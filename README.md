@@ -57,8 +57,8 @@
 
 1. **Clone the repository**
    ```sh
-   git clone <YOUR_GIT_URL>
-   cd <YOUR_PROJECT_NAME>
+   git clone https://github.com/picxels/picxels-photogrammetry-x
+   cd picxels-photogrammetry-x
    ```
 
 2. **Install Node.js dependencies**
