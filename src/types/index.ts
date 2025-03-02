@@ -15,6 +15,8 @@ export interface CapturedImage {
   camera: string;
   angle?: number;
   previewUrl?: string;
+  sharpness?: number;
+  hasMask?: boolean;
 }
 
 export interface Session {
@@ -24,6 +26,7 @@ export interface Session {
   images: CapturedImage[];
   subjectMatter?: string;
   completed: boolean;
+  imageQuality?: number;
 }
 
 export interface MotorPosition {
@@ -42,4 +45,11 @@ export interface AnalysisResult {
   subject: string;
   confidence: number;
   tags: string[];
+}
+
+export interface ExportSettings {
+  exportPng: boolean;
+  exportTiff: boolean;
+  exportMasks: boolean;
+  sendToRealityCapture: boolean;
 }

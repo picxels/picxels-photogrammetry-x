@@ -48,8 +48,19 @@ export const captureImage = async (
     const path = `/captures/${sessionId}/${cameraId}_${timestamp}.jpg`;
     
     // In a real implementation, we would save the actual image here
-    // For demo, we'll use a placeholder image
-    const previewUrl = "https://images.unsplash.com/photo-1568605114967-8130f3a36994";
+    // For demo, we'll use placeholder images
+    let previewUrl = "";
+    
+    // Select different placeholder images based on camera and angle
+    if (cameraId.includes("t2i")) {
+      previewUrl = "https://images.unsplash.com/photo-1568605114967-8130f3a36994";
+    } else {
+      previewUrl = "https://images.unsplash.com/photo-1601924994987-69e26d50dc26";
+    }
+    
+    // Simulate sharpness detection (0-100)
+    // In real implementation, this would analyze the actual image
+    const sharpness = Math.floor(Math.random() * 30) + 70;
     
     const image: CapturedImage = {
       id: `img-${timestamp}`,
@@ -58,8 +69,28 @@ export const captureImage = async (
       timestamp,
       camera: cameraId,
       angle,
-      previewUrl
+      previewUrl,
+      sharpness
     };
+    
+    // Simulate checking image sharpness and retaking if necessary
+    if (sharpness < 80) {
+      console.log(`Image sharpness (${sharpness}) below threshold, refocusing camera...`);
+      toast({
+        title: "Refocusing Camera",
+        description: `Image sharpness (${sharpness}/100) too low. Refocusing and retaking.`,
+        variant: "default"
+      });
+      
+      // Simulate refocusing delay
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      
+      // Take another image with better sharpness
+      const improvedSharpness = Math.floor(Math.random() * 10) + 85;
+      image.sharpness = improvedSharpness;
+      
+      console.log(`Retaken image with improved sharpness: ${improvedSharpness}`);
+    }
     
     console.log("Image captured:", image);
     return image;
@@ -91,9 +122,15 @@ export const addImageToSession = (
   session: Session,
   image: CapturedImage
 ): Session => {
+  // Calculate overall image quality for the session
+  const images = [...session.images, image];
+  const totalSharpness = images.reduce((sum, img) => sum + (img.sharpness || 0), 0);
+  const averageSharpness = images.length > 0 ? Math.round(totalSharpness / images.length) : 0;
+  
   return {
     ...session,
-    images: [...session.images, image]
+    images,
+    imageQuality: averageSharpness
   };
 };
 
@@ -105,5 +142,24 @@ export const renameSession = (
   return {
     ...session,
     name: newName
+  };
+};
+
+// Function to simulate checking if an image is sharp enough
+export const checkImageSharpness = (image: CapturedImage): boolean => {
+  return (image.sharpness || 0) >= 80;
+};
+
+// Function to simulate generating a mask for background removal
+export const generateImageMask = async (image: CapturedImage): Promise<CapturedImage> => {
+  console.log(`Generating background mask for image: ${image.id}`);
+  
+  // Simulate processing time
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+  
+  // Return updated image with mask flag
+  return {
+    ...image,
+    hasMask: true
   };
 };

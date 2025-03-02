@@ -8,7 +8,7 @@ import FileManager from "@/components/FileManager";
 import SubjectAnalysis from "@/components/SubjectAnalysis";
 import { toast } from "@/components/ui/use-toast";
 import { CapturedImage, MotorPosition, Session, AnalysisResult } from "@/types";
-import { createSession, addImageToSession, renameSession } from "@/utils/cameraUtils";
+import { createSession, addImageToSession, renameSession, generateImageMask } from "@/utils/cameraUtils";
 
 const Index = () => {
   const [session, setSession] = useState<Session>(createSession());
@@ -16,14 +16,45 @@ const Index = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [analyzedImage, setAnalyzedImage] = useState<CapturedImage | null>(null);
+  const [processingImages, setProcessingImages] = useState<string[]>([]);
 
-  const handleImageCaptured = (image: CapturedImage) => {
+  const handleImageCaptured = async (image: CapturedImage) => {
+    // Add image to session
     const updatedSession = addImageToSession(session, image);
     setSession(updatedSession);
     
     // If this is the first image and we don't have an image for analysis yet
     if (session.images.length === 0 && !analyzedImage) {
       setAnalyzedImage(image);
+    }
+    
+    // If the image is sharp enough, process it for background removal
+    if (image.sharpness && image.sharpness >= 80) {
+      setProcessingImages((prev) => [...prev, image.id]);
+      
+      try {
+        // Generate mask for the image
+        const maskedImage = await generateImageMask(image);
+        
+        // Update the session with the masked image
+        setSession((prevSession) => ({
+          ...prevSession,
+          images: prevSession.images.map((img) => 
+            img.id === maskedImage.id ? maskedImage : img
+          )
+        }));
+        
+        console.log(`Background mask generated for image: ${image.id}`);
+      } catch (error) {
+        console.error("Error generating mask:", error);
+        toast({
+          title: "Mask Generation Failed",
+          description: "Failed to generate background mask.",
+          variant: "destructive"
+        });
+      } finally {
+        setProcessingImages((prev) => prev.filter((id) => id !== image.id));
+      }
     }
   };
 
@@ -104,6 +135,7 @@ const Index = () => {
           <ImagePreview 
             session={session}
             onDeleteImage={handleDeleteImage}
+            processingImages={processingImages}
           />
         </div>
         
