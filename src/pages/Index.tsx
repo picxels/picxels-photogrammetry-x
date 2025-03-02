@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
-import Layout from "@/components/Layout";
-import CameraControl from "@/components/CameraControl";
-import ImagePreview from "@/components/ImagePreview";
-import MotorControl from "@/components/MotorControl";
-import FileManager from "@/components/FileManager";
-import SubjectAnalysis from "@/components/SubjectAnalysis";
+import Layout from "@/camera_profiles/Layout";
+import CameraControl from "@/camera_profiles/CameraControl";
+import ImagePreview from "@/camera_profiles/ImagePreview";
+import MotorControl from "@/camera_profiles/MotorControl";
+import FileManager from "@/camera_profiles/FileManager";
+import SubjectAnalysis from "@/camera_profiles/SubjectAnalysis";
 import { toast } from "@/components/ui/use-toast";
 import { CapturedImage, MotorPosition, Session, AnalysisResult } from "@/types";
 import { createSession, addImageToSession, renameSession, generateImageMask } from "@/utils/cameraUtils";
