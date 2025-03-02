@@ -1,6 +1,5 @@
-
 import React from "react";
-import { FolderOpen, Save, FileExport, RefreshCw } from "lucide-react";
+import { FolderOpen, Save, FileExport, RefreshCw, FileText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,7 +120,7 @@ const FileManager: React.FC<FileManagerProps> = ({
             disabled={isExporting || session.images.length === 0}
             className="gap-1 hover-scale"
           >
-            <FileExport className="h-3.5 w-3.5" />
+            <FileText className="h-3.5 w-3.5" />
             Export
           </Button>
         </div>

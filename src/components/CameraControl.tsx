@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { CameraDevice, CapturedImage, Session } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { captureImage, detectCameras } from "@/utils/cameraUtils";
 import { saveImageLocally } from "@/utils/fileSystem";
+import { cn } from "@/lib/utils";
 
 interface CameraControlProps {
   currentSession: Session;
