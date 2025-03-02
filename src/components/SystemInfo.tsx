@@ -1,101 +1,96 @@
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Cpu, HardDrive, AlertCircle, CheckCircle2 } from "lucide-react";
-import { detectTensorRTVersion, detectCUDAVersion } from "@/utils/jetsonAI";
+import { detectTensorRTVersion, detectCUDAVersion, KNOWN_DEPENDENCY_ISSUES, checkPythonDependencies } from "@/utils/jetsonAI";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, Check, Info } from "lucide-react";
 
-const SystemInfo = () => {
-  const [systemInfo, setSystemInfo] = useState({
-    tensorrt: { version: "Checking...", compatible: false },
-    cuda: { version: "Checking...", compatible: false },
-    models: { loaded: false, count: 0 }
-  });
-
+export function SystemInfo() {
+  const [tensorRTVersion, setTensorRTVersion] = useState<string>("detecting...");
+  const [cudaVersion, setCudaVersion] = useState<string>("detecting...");
+  const [dependencyIssues, setDependencyIssues] = useState<string[]>([]);
+  
   useEffect(() => {
-    const checkSystem = async () => {
+    const detectVersions = async () => {
       try {
-        // In a real implementation, these would be actual API calls
-        // For demo purposes, we're simulating delayed responses
-        const tensorrt = await detectTensorRTVersion();
-        const cuda = await detectCUDAVersion();
+        const trtVersion = await detectTensorRTVersion();
+        const cudaVer = await detectCUDAVersion();
         
-        // Check versions against requirements
-        const tensorrtCompatible = tensorrt !== "unknown" && tensorrt >= "8.0";
-        const cudaCompatible = cuda !== "unknown" && cuda >= "11.0";
+        setTensorRTVersion(trtVersion);
+        setCudaVersion(cudaVer);
         
-        setSystemInfo({
-          tensorrt: { version: tensorrt, compatible: tensorrtCompatible },
-          cuda: { version: cuda, compatible: cudaCompatible },
-          models: { loaded: tensorrtCompatible && cudaCompatible, count: 3 }
-        });
+        // Check for Python dependency issues
+        const { issues } = await checkPythonDependencies();
+        setDependencyIssues(issues);
       } catch (error) {
-        console.error("Error checking system:", error);
+        console.error("Error detecting system versions:", error);
       }
     };
     
-    checkSystem();
+    detectVersions();
   }, []);
 
   return (
-    <Card className="bg-background/60 backdrop-blur-sm border-muted">
+    <Card className="shadow-md h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Cpu className="h-5 w-5" />
-          System Information
-        </CardTitle>
-        <CardDescription>
-          Hardware compatibility status
-        </CardDescription>
+        <CardTitle className="text-lg font-semibold">System Information</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">TensorRT</span>
-            <Badge variant={systemInfo.tensorrt.compatible ? "success" : "destructive"} className="gap-1 items-center">
-              {systemInfo.tensorrt.compatible ? (
-                <CheckCircle2 className="h-3 w-3" />
-              ) : (
-                <AlertCircle className="h-3 w-3" />
-              )}
-              v{systemInfo.tensorrt.version}
+      <CardContent className="pt-2">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">TensorRT:</span>
+            <Badge 
+              variant={tensorRTVersion !== "unknown" ? "default" : "destructive"}
+              className="ml-2"
+            >
+              {tensorRTVersion}
             </Badge>
           </div>
           
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">CUDA Toolkit</span>
-            <Badge variant={systemInfo.cuda.compatible ? "success" : "destructive"} className="gap-1 items-center">
-              {systemInfo.cuda.compatible ? (
-                <CheckCircle2 className="h-3 w-3" />
-              ) : (
-                <AlertCircle className="h-3 w-3" />
-              )}
-              v{systemInfo.cuda.version}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">CUDA:</span>
+            <Badge 
+              variant={cudaVersion !== "unknown" ? "default" : "destructive"}
+              className="ml-2"
+            >
+              {cudaVersion}
             </Badge>
           </div>
           
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">AI Models</span>
-            <Badge variant={systemInfo.models.loaded ? "success" : "destructive"} className="gap-1 items-center">
-              {systemInfo.models.loaded ? (
-                <CheckCircle2 className="h-3 w-3" />
-              ) : (
-                <AlertCircle className="h-3 w-3" />
-              )}
-              {systemInfo.models.loaded ? `${systemInfo.models.count} Loaded` : "Not Loaded"}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Hardware:</span>
+            <Badge 
+              variant="default"
+              className="ml-2"
+            >
+              Jetson Orin Nano
             </Badge>
           </div>
-        </div>
-        
-        <div className="pt-2 text-xs text-muted-foreground">
-          <p className="flex items-center gap-1">
-            <HardDrive className="h-3 w-3" />
-            <span>Jetson Orin Nano Developer Kit</span>
-          </p>
+          
+          {dependencyIssues.length > 0 && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Python Dependency Issues</AlertTitle>
+              <AlertDescription>
+                <p className="text-xs mb-1">Fix numpy version conflicts with:</p>
+                <code className="text-xs bg-slate-900 p-1 rounded">pip install numpy==1.23.5</code>
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {KNOWN_DEPENDENCY_ISSUES.some(issue => issue.package === "nvcc") && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>CUDA Compiler Missing</AlertTitle>
+              <AlertDescription>
+                <p className="text-xs mb-1">Install CUDA compiler with:</p>
+                <code className="text-xs bg-slate-900 p-1 rounded">sudo apt-get install cuda-toolkit-12-6</code>
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
       </CardContent>
     </Card>
   );
-};
-
-export default SystemInfo;
+}

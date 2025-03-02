@@ -31,6 +31,20 @@ const DEFAULT_MODEL_PATHS = {
   }
 };
 
+// Known dependency issues
+export const KNOWN_DEPENDENCY_ISSUES = [
+  {
+    package: "numpy",
+    description: "Version conflicts with AI libraries",
+    recommendation: "Install numpy 1.23.5 with: pip install numpy==1.23.5"
+  },
+  {
+    package: "nvcc",
+    description: "CUDA compiler not found in PATH",
+    recommendation: "Install with: sudo apt-get install cuda-toolkit-12-6"
+  }
+];
+
 // State of loaded models
 let loadedModels: AIModels = {
   sharpness: { path: '', optimized: false, loaded: false, type: 'tensorrt' },
@@ -62,6 +76,29 @@ export const detectCUDAVersion = async (): Promise<string> => {
   }
 };
 
+// Function to check for Python package dependency issues
+export const checkPythonDependencies = async (): Promise<{hasIssues: boolean, issues: string[]}> => {
+  try {
+    // In a real implementation, this would run pip check or similar
+    const issues = [
+      "numpy 2.2.3 is incompatible with openvino 2024.6.0 (requires numpy<2.2.0,>=1.16.6)",
+      "numpy 2.2.3 is incompatible with tensorflow-cpu-aws 2.15.1 (requires numpy<2.0.0,>=1.23.5)",
+      "numpy 2.2.3 is incompatible with ultralytics 8.3.80 (requires numpy<=2.1.1,>=1.23.0)"
+    ];
+    
+    return {
+      hasIssues: issues.length > 0,
+      issues
+    };
+  } catch (error) {
+    console.error("Error checking Python dependencies:", error);
+    return {
+      hasIssues: false,
+      issues: []
+    };
+  }
+};
+
 // Mock function to initialize models (would use real TensorRT bindings in production)
 export const initializeAIModels = async (): Promise<AIModels> => {
   console.log("Initializing AI models for Jetson Orin Nano");
@@ -72,6 +109,19 @@ export const initializeAIModels = async (): Promise<AIModels> => {
   
   console.log(`Detected TensorRT version: ${tensorRTVersion}`);
   console.log(`Detected CUDA version: ${cudaVersion}`);
+  
+  // Check Python dependencies
+  const dependencyCheck = await checkPythonDependencies();
+  if (dependencyCheck.hasIssues) {
+    console.warn("Python dependency issues detected:");
+    dependencyCheck.issues.forEach(issue => console.warn(`- ${issue}`));
+    
+    toast({
+      title: "Dependency Issues Detected",
+      description: "There are Python package conflicts. Run 'pip install numpy==1.23.5' to fix.",
+      variant: "destructive"
+    });
+  }
   
   // In a real implementation, this would:
   // 1. Check for TensorRT support
