@@ -16,11 +16,13 @@
 
 ### Initial Setup
 
-1. **Flash JetPack 6.2**
+1. **Verify JetPack 6.2**
    ```sh
-   # Download JetPack 6.2 SDK from NVIDIA Developer site
-   # Flash your Jetson Orin Nano following NVIDIA's official instructions
-   # https://developer.nvidia.com/embedded/jetpack
+   # Check your TensorRT version (should show version 10.x)
+   dpkg -l | grep -i tensorrt
+   
+   # Check your CUDA Toolkit version (should show version 12.x)
+   dpkg -l | grep cuda-toolkit
    ```
 
 2. **Update and upgrade your system**
@@ -45,7 +47,20 @@
      cmake
    ```
 
-4. **Install Node.js LTS using NVM**
+4. **Install CUDA development tools if not already installed**
+   ```sh
+   sudo apt install -y cuda-compiler-12-6 cuda-nvcc-12-6
+   
+   # Add CUDA to your PATH (add to your .bashrc file)
+   echo 'export PATH="/usr/local/cuda-12.6/bin:$PATH"' >> ~/.bashrc
+   echo 'export LD_LIBRARY_PATH="/usr/local/cuda-12.6/lib64:$LD_LIBRARY_PATH"' >> ~/.bashrc
+   source ~/.bashrc
+   
+   # Verify CUDA compiler installation
+   nvcc --version
+   ```
+
+5. **Install Node.js LTS using NVM**
    ```sh
    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
    source ~/.bashrc
@@ -88,14 +103,19 @@
 
 ### AI Model Setup
 
-1. **Install TensorRT and CUDA libraries**
+1. **Verify TensorRT and CUDA installation**
    ```sh
-   sudo apt install -y tensorrt-dev cuda-toolkit-12-3
+   # Check TensorRT installation
+   dpkg -l | grep -i tensorrt
+   
+   # Check CUDA Toolkit installation  
+   dpkg -l | grep cuda-toolkit
    ```
 
 2. **Install required Python packages for AI**
    ```sh
-   pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nv-tensorrt-cu123
+   # For your CUDA 12.6 setup
+   pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nv-tensorrt-cu126
    pip3 install onnx onnxruntime-gpu scikit-image transformers opencv-python-headless
    ```
 
@@ -119,9 +139,12 @@
 4. **Optimize models with TensorRT**
    ```sh
    # Convert ONNX models to TensorRT for faster inference
-   /usr/src/tensorrt/bin/trtexec --onnx=~/models/sharpness/focus_net.onnx --saveEngine=~/models/sharpness/focus_net.trt
-   /usr/src/tensorrt/bin/trtexec --onnx=~/models/masks/mobile_sam.onnx --saveEngine=~/models/masks/mobile_sam.trt
-   /usr/src/tensorrt/bin/trtexec --onnx=~/models/llm/phi2.onnx --saveEngine=~/models/llm/phi2.trt
+   /usr/bin/trtexec --onnx=~/models/sharpness/focus_net.onnx --saveEngine=~/models/sharpness/focus_net.trt
+   /usr/bin/trtexec --onnx=~/models/masks/mobile_sam.onnx --saveEngine=~/models/masks/mobile_sam.trt
+   /usr/bin/trtexec --onnx=~/models/llm/phi2.onnx --saveEngine=~/models/llm/phi2.trt
+   
+   # Note: If trtexec is not in /usr/bin, find it with:
+   # find /usr -name trtexec
    ```
 
 ### Motor Control Setup
@@ -208,9 +231,20 @@
 - Run the test script: `python3 -m scripts.test_motor`
 
 ### AI Model Performance
+
 - If inference is slow, run `sudo nvpmodel -m 0` to set maximum performance mode
 - Run `sudo jetson_clocks` to maximize clock speeds
-- Check model loading with `python3 -m scripts.test_models`
+- Check that your models were properly converted to TensorRT:
+  ```sh
+  # Verify TensorRT engines exist
+  ls -la ~/models/*/focus_net.trt ~/models/*/mobile_sam.trt ~/models/*/phi2.trt
+  ```
+
+- For CUDA/TensorRT compatibility issues, you may need to reinstall PyTorch:
+  ```sh
+  pip3 uninstall -y torch torchvision torchaudio
+  pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nv-tensorrt-cu126
+  ```
 
 ## How to edit this code?
 

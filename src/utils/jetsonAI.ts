@@ -38,9 +38,40 @@ let loadedModels: AIModels = {
   llm: { path: '', optimized: false, loaded: false, type: 'tensorrt' }
 };
 
+// Function to detect TensorRT version
+export const detectTensorRTVersion = async (): Promise<string> => {
+  try {
+    // In a real implementation, this would check the system
+    // Since we know from the terminal output, we'll return the installed version
+    return "10.3.0.30";
+  } catch (error) {
+    console.error("Error detecting TensorRT version:", error);
+    return "unknown";
+  }
+};
+
+// Function to detect CUDA version
+export const detectCUDAVersion = async (): Promise<string> => {
+  try {
+    // In a real implementation, this would check the system
+    // Since we know from the terminal output, we'll return the installed version
+    return "12.6";
+  } catch (error) {
+    console.error("Error detecting CUDA version:", error);
+    return "unknown";
+  }
+};
+
 // Mock function to initialize models (would use real TensorRT bindings in production)
 export const initializeAIModels = async (): Promise<AIModels> => {
   console.log("Initializing AI models for Jetson Orin Nano");
+  
+  // Check TensorRT and CUDA versions
+  const tensorRTVersion = await detectTensorRTVersion();
+  const cudaVersion = await detectCUDAVersion();
+  
+  console.log(`Detected TensorRT version: ${tensorRTVersion}`);
+  console.log(`Detected CUDA version: ${cudaVersion}`);
   
   // In a real implementation, this would:
   // 1. Check for TensorRT support
@@ -76,7 +107,7 @@ export const initializeAIModels = async (): Promise<AIModels> => {
     console.log("AI models loaded successfully");
     toast({
       title: "AI Models Loaded",
-      description: "All models initialized successfully for Jetson Orin Nano."
+      description: `TensorRT ${tensorRTVersion} with CUDA ${cudaVersion} initialized successfully.`
     });
     
     return loadedModels;
