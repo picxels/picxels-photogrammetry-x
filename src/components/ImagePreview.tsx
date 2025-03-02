@@ -12,9 +12,10 @@ import { cn } from "@/lib/utils";
 interface ImagePreviewProps {
   session: Session;
   onDeleteImage?: (imageId: string) => void;
+  processingImages?: string[];
 }
 
-const ImagePreview: React.FC<ImagePreviewProps> = ({ session, onDeleteImage }) => {
+const ImagePreview: React.FC<ImagePreviewProps> = ({ session, onDeleteImage, processingImages = [] }) => {
   const [selectedImage, setSelectedImage] = useState<CapturedImage | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [imageLoaded, setImageLoaded] = useState<Record<string, boolean>>({});
@@ -80,7 +81,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ session, onDeleteImage }) =
                           <div className={cn(
                             "aspect-video bg-muted flex items-center justify-center",
                             !imageLoaded[image.id] && "image-loading",
-                            imageLoaded[image.id] && "image-loaded"
+                            imageLoaded[image.id] && "image-loaded",
+                            processingImages?.includes(image.id) && "opacity-60"
                           )}>
                             {image.previewUrl ? (
                               <img 
@@ -91,6 +93,12 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ session, onDeleteImage }) =
                               />
                             ) : (
                               <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                            )}
+                            
+                            {processingImages?.includes(image.id) && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
+                              </div>
                             )}
                           </div>
                           
