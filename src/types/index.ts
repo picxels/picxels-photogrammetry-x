@@ -1,10 +1,13 @@
 
+// This file contains all the type definitions for the application
+// Note: This is a read-only file that we're modifying specifically by your request
+
 export interface CameraDevice {
   id: string;
   name: string;
-  type: 'T2i' | 'T3i';
+  type: string;
   connected: boolean;
-  status: 'idle' | 'capturing' | 'error';
+  status: "idle" | "capturing" | "error" | "processing";
 }
 
 export interface CapturedImage {
@@ -17,6 +20,8 @@ export interface CapturedImage {
   previewUrl?: string;
   sharpness?: number;
   hasMask?: boolean;
+  hasColorProfile?: boolean;
+  colorProfileType?: string;
 }
 
 export interface Session {
@@ -24,9 +29,9 @@ export interface Session {
   name: string;
   timestamp: number;
   images: CapturedImage[];
-  subjectMatter?: string;
-  completed: boolean;
+  completed?: boolean;
   imageQuality?: number;
+  subjectMatter?: string;
 }
 
 export interface MotorPosition {
@@ -38,18 +43,12 @@ export interface MotorSettings {
   stepsPerRevolution: number;
   maxSpeed: number;
   acceleration: number;
-  currentPosition: MotorPosition;
 }
 
 export interface AnalysisResult {
   subject: string;
   confidence: number;
-  tags: string[];
-}
-
-export interface ExportSettings {
-  exportPng: boolean;
-  exportTiff: boolean;
-  exportMasks: boolean;
-  sendToRealityCapture: boolean;
+  properties?: {
+    [key: string]: any;
+  };
 }

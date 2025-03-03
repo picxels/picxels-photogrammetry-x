@@ -1,6 +1,7 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
+import ThemeToggle from "@/components/ThemeToggle";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,6 +26,7 @@ const Layout: React.FC<LayoutProps> = ({ children, className }) => {
             <div className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
               Jetson Nano Orin
             </div>
+            <ThemeToggle />
           </div>
         </div>
       </header>

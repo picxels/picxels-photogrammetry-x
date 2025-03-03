@@ -1,6 +1,7 @@
 
 import { toast } from "@/components/ui/use-toast";
 import { CameraDevice, CapturedImage, Session } from "@/types";
+import { applyColorProfile, getCameraTypeFromId } from "./colorProfileUtils";
 
 // Mock function to simulate USB camera detection
 export const detectCameras = async (): Promise<CameraDevice[]> => {
@@ -92,8 +93,12 @@ export const captureImage = async (
       console.log(`Retaken image with improved sharpness: ${improvedSharpness}`);
     }
     
-    console.log("Image captured:", image);
-    return image;
+    // Apply color profile to the image
+    const cameraType = getCameraTypeFromId(cameraId);
+    const profiledImage = await applyColorProfile(image, cameraType);
+    
+    console.log("Image captured and color profile applied:", profiledImage);
+    return profiledImage;
   } catch (error) {
     console.error("Error capturing image:", error);
     toast({
