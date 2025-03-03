@@ -34,6 +34,90 @@ https://github.com/picxels/picxels-photogrammetry-x
    npm run dev
    ```
 
+## Hardware Setup for Jetson Orin Nano
+
+### Camera Control Setup
+
+1. Install gphoto2
+   ```bash
+   sudo apt install -y gphoto2 libgphoto2-dev
+   ```
+
+2. Install Python libraries for camera control
+   ```bash
+   pip3 install gphoto2 numpy Pillow rawpy exifread
+   ```
+
+3. Set up camera access permissions
+   ```bash
+   sudo usermod -a -G plugdev $USER
+   sudo bash -c 'echo "SUBSYSTEM==\"usb\", ATTR{idVendor}==\"04a9\", MODE=\"0666\"" > /etc/udev/rules.d/51-canon-cameras.rules'
+   sudo udevadm control --reload-rules
+   sudo udevadm trigger
+   ```
+
+### AI Model Setup
+
+1. Verify TensorRT and CUDA installation
+   ```bash
+   # Check TensorRT installation
+   dpkg -l | grep -i tensorrt
+
+   # Check CUDA Toolkit installation  
+   dpkg -l | grep cuda-toolkit
+   ```
+
+2. Install required Python packages for AI
+   ```bash
+   # For your CUDA 12.6 setup
+   pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nv-tensorrt-cu126
+   pip3 install onnx onnxruntime-gpu scikit-image transformers opencv-python-headless
+   ```
+
+3. Download and optimize models for Jetson
+   ```bash
+   # Create models directory
+   mkdir -p ~/models/{sharpness,masks,llm}
+
+   # Download sharpness detection model
+   curl -L https://github.com/PINTO0309/PINTO_model_zoo/raw/main/356_FocusNet/model/FocusNet_480x384_float32.onnx -o ~/models/sharpness/focus_net.onnx
+
+   # Download segmentation model for masks
+   curl -L https://github.com/PINTO0309/PINTO_model_zoo/raw/main/115_MobileSAM/model/mobile_sam_predictor_quantized.onnx -o ~/models/masks/mobile_sam.onnx
+
+   # Download LLM for subject identification (Phi-2 optimized for Jetson)
+   git clone https://github.com/microsoft/Phi-2.git
+   cd Phi-2
+   python3 convert_to_onnx.py --output-path ~/models/llm/phi2.onnx
+   ```
+
+4. Optimize models with TensorRT
+   ```bash
+   # Convert ONNX models to TensorRT for faster inference
+   /usr/bin/trtexec --onnx=~/models/sharpness/focus_net.onnx --saveEngine=~/models/sharpness/focus_net.trt
+   /usr/bin/trtexec --onnx=~/models/masks/mobile_sam.onnx --saveEngine=~/models/masks/mobile_sam.trt
+   /usr/bin/trtexec --onnx=~/models/llm/phi2.onnx --saveEngine=~/models/llm/phi2.trt
+
+   # Note: If trtexec is not in /usr/bin, find it with:
+   # find /usr -name trtexec
+   ```
+
+### Motor Control Setup
+
+1. Install libraries for GPIO and motor control
+   ```bash
+   pip3 install Jetson.GPIO Adafruit-Blinka adafruit-circuitpython-motorkit
+   ```
+
+2. Set up permissions for GPIO
+   ```bash
+   sudo groupadd -f -r gpio
+   sudo usermod -a -G gpio $USER
+   sudo bash -c 'echo "SUBSYSTEM==\"gpio\", KERNEL==\"gpiochip*\", GROUP=\"gpio\", MODE=\"0660\"" > /etc/udev/rules.d/99-gpio.rules'
+   sudo udevadm control --reload-rules
+   sudo udevadm trigger
+   ```
+
 ## RC Node Configuration
 
 To connect to the Reality Capture Node:
