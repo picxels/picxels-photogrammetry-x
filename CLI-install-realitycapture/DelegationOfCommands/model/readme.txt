@@ -1,0 +1,1 @@
+exported 3D models and textures are stored here, see model4-1.bat and model4-2_texture.bat

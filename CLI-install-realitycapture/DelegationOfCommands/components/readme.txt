@@ -1,0 +1,1 @@
+exported RealityCapture components (.rcalign) are stored here, see Align_123.bat and Align_4.bat
