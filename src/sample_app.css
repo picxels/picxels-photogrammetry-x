@@ -1,0 +1,27 @@
+body {
+    margin: 0px;
+}
+
+#appRoot {
+    margin: 10px;
+}
+
+#logger {
+    height: 400px;
+    overflow-y: auto;
+    background-color: #EEEEEE;
+    font-family: "Lucida Console", Monaco, monospace;
+    font-size: 14px;
+}
+#sessionField {
+    width: 300px;
+}
+#projectNameField {
+    width: 200px;
+}
+#projectCommandField {
+    width: 300px;
+}
+#controls {
+    line-height: 2em;
+}

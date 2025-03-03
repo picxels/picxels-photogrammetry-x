@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sample app | RC Node</title>
+    <link rel='icon' href='/static/favicon.png' type='image/png' />
+    <script src="/static/modules/shared/CapturingReality.Bootloader-v1.js"></script>
+    <script src="/static/shared/jquery-3.5.1.min.js"></script>
+    <link rel="stylesheet" href="/static/shared/loader.css">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            $cr = CapturingReality;
+            $b = $cr.Bootloader;
+            $cr.ScriptOrigin = 'https://secondscreen.capturingreality.com';
+
+            const loadAnim = new $b.LoadingAnimator( document.body );
+            loadAnim.play();
+            
+            var appVersion = 'online';
+
+            const tokenParam = 'authToken';
+            const urlParams = new URLSearchParams(window.location.search);
+            var accessToken = '';
+            if (urlParams.has(tokenParam)) {
+                accessToken = urlParams.get(tokenParam);
+            }
+            $cr.Get('/node/status', { headers: { 'Authorization': 'Bearer ' + accessToken }})
+            .then((r) => {
+                const status = JSON.parse(r.response);
+                $cr.ApiVersion = status.apiVersion;
+
+                const onlineModule = {
+                    name: 'CapturingReality.OnlineModule',
+                    resources: [
+                        { type: 'script', source: $cr.ScriptOrigin + '/basic_js.js' }
+                    ]
+                }
+
+                return $b.LoadModules( [ onlineModule ] );
+            }).catch((e) => {
+                const newAppVersion = 'offline';
+                const reason = $b.GetErrorReason(e);
+                console.log(`Failed to load ${appVersion} app, trying ${newAppVersion}. Reason: ${reason}`);
+                appVersion = newAppVersion;
+
+                const moduleRoot = '/static/modules/sample_app/v1';
+                const offlineModule = {
+                    name: 'CapturingReality.SampleApp',
+                    moduleRoot: moduleRoot,
+                    resources: [
+                        { type: 'script', source: moduleRoot + '/sample_app.js' },
+                        { type: 'css',    source: moduleRoot + '/sample_app.css' }
+                    ]
+                }
+
+                return $b.LoadModules( [ offlineModule ] );
+            }).then(() => {
+                loadAnim.stop();
+                console.log(`Loaded ${appVersion} app success.`);
+            }).catch((e) => {
+                loadAnim.stop();
+                const reason = $b.GetErrorReason(e);
+                console.log(`Failed to load ${appVersion} app. Reason: ${reason}`);
+            });
+        });
+    </script>
+</head>
+<body>
+    <div id="appRoot">
+    </div>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RealityCapture Second Screen</title>
+    <link rel='icon' href='/static/favicon.png' type='image/png' />
+    <meta name="viewport" content="width=device-width">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="text/javascript" src="/static/modules/shared/CapturingReality.Bootloader-v1.js"></script>
+    <link rel="stylesheet" href="/static/shared/loader.css">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            $cr = CapturingReality;
+            $b = $cr.Bootloader;
+            $cr.LoadOnline = $cr.LoadOnline ||  true;
+            $cr.ScriptOrigin = $cr.ScriptOrigin || 'https://secondscreen.capturingreality.com';
+
+            const loadAnim = new $b.LoadingAnimator( document.body );
+            loadAnim.play();
+
+            var appVersion = '';
+
+            const OfflineLoader = () => {
+                const sharedUrl = '/static/modules/shared'
+                const moduleRoot = '/static/modules/secondscreen/v1';
+                const offlineModule = {
+                    name: 'CapturingReality.SecondScreen',
+                    moduleRoot: moduleRoot,
+                    resources: [
+                        { type: 'script', source: sharedUrl + '/CapturingReality-v1.js' },
+                        { type: 'script', source: sharedUrl + '/CapturingReality.Node-v1.js' },
+                        { type: 'script', source: sharedUrl + '/CapturingReality.Vis-v1.js' },
+                        { type: 'script', source: moduleRoot + '/secondscreen_app.js' },
+                        { type: 'css',    source: moduleRoot + '/secondscreen_app.css' }
+                    ]
+                };
+
+                return $b.LoadModules( [ offlineModule ] );
+            };
+
+            const OnlineLoader = () => {
+                const tokenParam = 'authToken';
+                const urlParams = new URLSearchParams(window.location.search);
+                var accessToken = '';
+                if (urlParams.has(tokenParam)) {
+                    accessToken = urlParams.get(tokenParam);
+                }
+
+                return $cr.Get('/node/status', { headers: { 'Authorization': 'Bearer ' + accessToken }})
+                .then((r) => {
+                    const status = JSON.parse(r.response);
+                    $cr.ApiVersion = status.apiVersion;
+
+                    const onlineModule = {
+                        name: 'CapturingReality.OnlineModule',
+                        resources: [
+                            { type: 'script', source: $cr.ScriptOrigin + '/secondscreen.js' }
+                        ]
+                    }
+
+                    return $b.LoadModules( [ onlineModule ] );
+                }).catch((e) => {
+                    const newAppVersion = 'offline';
+                    const reason = $b.GetErrorReason(e);
+                    console.log(`Failed to load ${appVersion} app, trying ${newAppVersion}. Reason: ${reason}`);
+                    appVersion = newAppVersion;
+
+                    return OfflineLoader();
+                });
+            };
+
+            const loadPromise = (() => {
+                if ($cr.LoadOnline) {
+                    appVersion = 'online';
+                    return OnlineLoader();
+                } else {
+                    appVersion = 'offline';
+                    return OfflineLoader();
+                }
+            })();
+
+            loadPromise.then(() => {
+                loadAnim.stop();
+                console.log(`Loaded ${appVersion} app success.`);
+            }).catch((e) => {
+                loadAnim.stop();
+                const reason = $b.GetErrorReason(e);
+                console.log(`Failed to load ${appVersion} app. Reason: ${reason}`);
+            });
+        });
+    </script>
+</head>
+<body>
+</body>
+</html>

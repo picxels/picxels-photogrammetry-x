@@ -1,0 +1,3372 @@
+{
+  "openapi" : "3.0.0",
+  "info" : {
+    "contact" : {
+      "name" : "Capturing Reality",
+      "url" : "https://www.capturingreality.com"
+    },
+    "description" : "RC Node REST API",
+    "title" : "RC Node",
+    "version" : "1.1"
+  },
+  "servers" : [ {
+    "url" : "http://localhost:8000"
+  } ],
+  "tags" : [ {
+    "name" : "node"
+  } ],
+  "paths" : {
+    "/node/connection" : {
+      "get" : {
+        "description" : "Returns RCNode connection information.",
+        "operationId" : "get-node-connection",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/nodeConnection"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Forbidden"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "summary" : "Query RCNode connection information (available only on localhost)",
+        "tags" : [ "node" ]
+      }
+    },
+    "/node/connectuser" : {
+      "get" : {
+        "description" : "This reserves one of the remaining session slots for the current user (until `/project/create`, `/project/open` or `/node/disonnectuser` is used).",
+        "operationId" : "get-node-connect-user",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Connect user to the Node",
+        "tags" : [ "node" ]
+      }
+    },
+    "/node/disconnectuser" : {
+      "get" : {
+        "description" : "This removes the session slot reservaton allocated by `/node/connectuser`.",
+        "operationId" : "get-node-disconnect-user",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Disconnect user from the Node",
+        "tags" : [ "node" ]
+      }
+    },
+    "/node/status" : {
+      "get" : {
+        "description" : "Returns RCNode status.",
+        "operationId" : "get-node-status",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/nodeStatus"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Query RCNode status",
+        "tags" : [ "node" ]
+      }
+    },
+    "/node/projects" : {
+      "get" : {
+        "description" : "Return list of locally stored projects.",
+        "operationId" : "get-node-projects",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/projectInfo"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "List RCNode Projects",
+        "tags" : [ "node" ]
+      }
+    },
+    "/project/create" : {
+      "get" : {
+        "description" : "Create new local project.",
+        "operationId" : "get-project-create",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "headers" : {
+              "Session" : {
+                "description" : "Session Identifier",
+                "explode" : false,
+                "required" : true,
+                "schema" : {
+                  "format" : "uuid",
+                  "type" : "string"
+                },
+                "style" : "simple"
+              }
+            }
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Create Project",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/acknowledgerestart" : {
+      "post" : {
+        "description" : "Acknowledge that the RC instance for this session has been restarted (reset `restarted` state to `false`).",
+        "operationId" : "post-project-acknowledge-restart",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "202" : {
+            "description" : "Accepted"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Acknowledge Session Restart",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/open" : {
+      "get" : {
+        "description" : "Open an existing project.",
+        "operationId" : "get-project-open",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Project Guid",
+          "explode" : true,
+          "in" : "query",
+          "name" : "guid",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Scene Name",
+          "explode" : true,
+          "in" : "query",
+          "name" : "name",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "headers" : {
+              "Session" : {
+                "description" : "Session Identifier",
+                "explode" : false,
+                "required" : true,
+                "schema" : {
+                  "format" : "uuid",
+                  "type" : "string"
+                },
+                "style" : "simple"
+              }
+            }
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Open Project",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/close" : {
+      "get" : {
+        "description" : "Close project and free allocated resources associated with project.",
+        "operationId" : "get-project-close",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Close Project",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/disconnect" : {
+      "get" : {
+        "description" : "The session will automatically terminate once it has no more CLI commands to run.",
+        "operationId" : "get-project-disconnect",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Disconnect user from the Project/Session",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/save" : {
+      "get" : {
+        "description" : "Save project to local filesystem.",
+        "operationId" : "get-project-save",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Scene name",
+          "explode" : true,
+          "in" : "query",
+          "name" : "name",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "202" : {
+            "description" : "Accepted"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Save project",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/delete" : {
+      "get" : {
+        "description" : "Deletes project from local filesystem.",
+        "operationId" : "get-project-delete",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Project guid",
+          "explode" : true,
+          "in" : "query",
+          "name" : "guid",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Delete project",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/command" : {
+      "get" : {
+        "description" : "Send CLI command, e.g.\n/project/command?name=align\n/project/command?name=calculateHighModel\n/project/command?name=calculateNormalModel\n/project/command?name=simplify\n/project/command?name=exportModel&param1=Model%201&param2=model_name.obj\n/project/command?name=exportSelectedModel&param1=model_name.obj",
+        "operationId" : "get-project-command",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Command name",
+          "explode" : true,
+          "in" : "query",
+          "name" : "name",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #1",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param1",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #2",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param2",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #3",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param3",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #4",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param4",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #5",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param5",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #6",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param6",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #7",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param7",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #8",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param8",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #9",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param9",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/taskHandle"
+                }
+              }
+            },
+            "description" : "Accepted"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Send CLI Command",
+        "tags" : [ "project" ]
+      },
+      "post" : {
+        "description" : "Send CLI command with POST data, e.g.\n/project/command?name=add&param1=image_name.jpg\n/project/command?name=simplify&param1=simplification_config.xml\n/project/command?name=exportReport&param1=report.txt&param2=template.txt\n/project/command?name=exportSelectedModel&param1=model_name.obj&param2=export_config.xml\nFor multiple inputs to command use /project/upload with folder=output to upload multiple files, then use GET /project/command.\n",
+        "operationId" : "post-project-command",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Command name",
+          "explode" : true,
+          "in" : "query",
+          "name" : "name",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #1",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param1",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #2",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param2",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #3",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param3",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #4",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param4",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #5",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param5",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #6",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param6",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #7",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param7",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #8",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param8",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #9",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param9",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Set to \"base64\" for base64 encoded data (raw by default)",
+          "explode" : true,
+          "in" : "query",
+          "name" : "encoded",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "raw", "base64" ],
+            "type" : "string"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/taskHandle"
+                }
+              }
+            },
+            "description" : "Accepted"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "411" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Length Required"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Send CLI Command",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/commandgroup" : {
+      "post" : {
+        "description" : "Send multiple CLI commands as a group with POST data. This group stops execution if any of the commands fail, and sets the Tasks error code to corresponding error.\n",
+        "operationId" : "post-project-command-group",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "items" : {
+                  "$ref" : "#/components/schemas/commandCall"
+                },
+                "type" : "array"
+              }
+            }
+          },
+          "description" : "The token request body",
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/taskHandle"
+                }
+              }
+            },
+            "description" : "Accepted"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "411" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Length Required"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Send CLI Command Group",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/condcommand" : {
+      "get" : {
+        "description" : "Send CLI command, if the tag is not set.\nSee /project/command",
+        "operationId" : "get-project-condcommand",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Tag name",
+          "explode" : true,
+          "in" : "query",
+          "name" : "tag",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command name",
+          "explode" : true,
+          "in" : "query",
+          "name" : "name",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #1",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param1",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #2",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param2",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #3",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param3",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #4",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param4",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #5",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param5",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #6",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param6",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #7",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param7",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #8",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param8",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #9",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param9",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/taskHandle"
+                }
+              }
+            },
+            "description" : "Accepted"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Send conditional CLI Command",
+        "tags" : [ "project" ]
+      },
+      "post" : {
+        "description" : "Send CLI command, if the tag is not set.\nSee /project/command\n",
+        "operationId" : "post-project-condcommand",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Tag name",
+          "explode" : true,
+          "in" : "query",
+          "name" : "tag",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command name",
+          "explode" : true,
+          "in" : "query",
+          "name" : "name",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #1",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param1",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #2",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param2",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #3",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param3",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #4",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param4",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #5",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param5",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #6",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param6",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #7",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param7",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #8",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param8",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Command parameter #9",
+          "explode" : true,
+          "in" : "query",
+          "name" : "param9",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Set to \"base64\" for base64 encoded data (raw by default)",
+          "explode" : true,
+          "in" : "query",
+          "name" : "encoded",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "raw", "base64" ],
+            "type" : "string"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/taskHandle"
+                }
+              }
+            },
+            "description" : "Accepted"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "411" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Length Required"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Send conditional CLI Command",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/condcommandgroup" : {
+      "post" : {
+        "description" : "Send multiple CLI command to RC as a group, if the tag is not set.\nReturns taskHandle only for the request that schedules the commands.\nSee /project/commandgroup\n",
+        "operationId" : "post-project-condcommand-group",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Tag name",
+          "explode" : true,
+          "in" : "query",
+          "name" : "tag",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/taskHandle"
+                }
+              }
+            },
+            "description" : "Accepted"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Conditionally execute multiple CLI commands as a group",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/list" : {
+      "get" : {
+        "description" : "Return list of opened project files.",
+        "operationId" : "get-project-list",
+        "parameters" : [ {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Specify the folder to look at (output by default)",
+          "explode" : true,
+          "in" : "query",
+          "name" : "folder",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "output", "data" ],
+            "type" : "string"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "type" : "string"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "List Project Files",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/download" : {
+      "get" : {
+        "description" : "Download single session output file.",
+        "operationId" : "get-project-download",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "File name or wildcard filter",
+          "explode" : true,
+          "in" : "query",
+          "name" : "name",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Specify the folder to look at (output by default)",
+          "explode" : true,
+          "in" : "query",
+          "name" : "folder",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "output", "data" ],
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Set to zip to download multiple files at once",
+          "explode" : true,
+          "in" : "query",
+          "name" : "mode",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "raw", "zip" ],
+            "type" : "string"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/octet-stream" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Download Session Output File",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/upload" : {
+      "post" : {
+        "description" : "Upload single project file.",
+        "operationId" : "post-project-upload",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "File name",
+          "explode" : true,
+          "in" : "query",
+          "name" : "name",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Set for base64 encoded data (raw by default)",
+          "explode" : true,
+          "in" : "query",
+          "name" : "encoded",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "raw", "base64" ],
+            "type" : "string"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Specify the folder to upload to (data by default)",
+          "explode" : true,
+          "in" : "query",
+          "name" : "folder",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "output", "data" ],
+            "type" : "string"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Upload Project File",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/status" : {
+      "get" : {
+        "description" : "Get project status.",
+        "operationId" : "get-project-status",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/projectStatus"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "411" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Length Required"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Project Status",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/testtag" : {
+      "get" : {
+        "description" : "Tests if project tag exists.",
+        "operationId" : "get-project-testtag",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Tag name",
+          "explode" : true,
+          "in" : "query",
+          "name" : "tag",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "description" : "Tag exists",
+                  "type" : "boolean"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Test if tag exists",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/tags" : {
+      "get" : {
+        "description" : "Lists all existing tags.",
+        "operationId" : "get-project-tags",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "description" : "Tag name",
+                    "type" : "string"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Return tag values",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/cleartags" : {
+      "get" : {
+        "description" : "Clears tag/tags from project.",
+        "operationId" : "get-project-cleartags",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Tag name",
+          "explode" : true,
+          "in" : "query",
+          "name" : "tag",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "description" : "Tag/tags cleared",
+                  "type" : "boolean"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Clears tag or all tags",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/tasks" : {
+      "get" : {
+        "description" : "Lists tasks by taskIDs or lists all tasks",
+        "operationId" : "get-project-tasks",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Task identifiers",
+          "explode" : false,
+          "in" : "query",
+          "name" : "taskIDs",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/taskStatus"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Return tasks information",
+        "tags" : [ "project" ]
+      }
+    },
+    "/project/cleartasks" : {
+      "get" : {
+        "description" : "Clears tasks by taskIds or clears all tasks",
+        "operationId" : "get-project-cleartasks",
+        "parameters" : [ {
+          "description" : "Client identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Caller application identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "appToken",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Session identifier",
+          "explode" : false,
+          "in" : "header",
+          "name" : "Session",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "style" : "simple"
+        }, {
+          "description" : "Task identifiers",
+          "explode" : false,
+          "in" : "query",
+          "name" : "taskIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Unauthorized"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description" : "Internal Server apiError"
+          }
+        },
+        "security" : [ {
+          "apiKeyToken" : [ ]
+        } ],
+        "summary" : "Clear tasks information",
+        "tags" : [ "project" ]
+      }
+    }
+  },
+  "components" : {
+    "responses" : {
+      "BadRequest" : {
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/apiError"
+            }
+          }
+        },
+        "description" : "Bad Request"
+      },
+      "Unauthorized" : {
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/apiError"
+            }
+          }
+        },
+        "description" : "Unauthorized"
+      },
+      "Forbidden" : {
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/apiError"
+            }
+          }
+        },
+        "description" : "Forbidden"
+      },
+      "NotFound" : {
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/apiError"
+            }
+          }
+        },
+        "description" : "Not Found"
+      },
+      "InternalError" : {
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/apiError"
+            }
+          }
+        },
+        "description" : "Internal Server apiError"
+      },
+      "LengthRequired" : {
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/apiError"
+            }
+          }
+        },
+        "description" : "Length Required"
+      }
+    },
+    "schemas" : {
+      "commandCall" : {
+        "properties" : {
+          "commandName" : {
+            "description" : "The name of the CLI command",
+            "type" : "string"
+          },
+          "parameters" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "title" : "Command Call",
+        "type" : "object"
+      },
+      "emptyObject" : {
+        "title" : "Empty reponse"
+      },
+      "nodeStatus" : {
+        "properties" : {
+          "status" : {
+            "description" : "RC Node status",
+            "type" : "string"
+          },
+          "apiVersion" : {
+            "description" : "API version string (with format 'major.minor')",
+            "type" : "string"
+          },
+          "activeSessions" : {
+            "description" : "Currently active sessions",
+            "type" : "integer"
+          },
+          "maxSessions" : {
+            "description" : "Maximum concurrent sessions",
+            "type" : "integer"
+          },
+          "sessionIds" : {
+            "description" : "Array of active session ids",
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "title" : "RC Node Status",
+        "type" : "object"
+      },
+      "nodeConnection" : {
+        "properties" : {
+          "protocol" : {
+            "description" : "Connection protocol (http or https)",
+            "type" : "string"
+          },
+          "hostAddress" : {
+            "description" : "Local IPv4 address on which RCNode listens",
+            "type" : "string"
+          },
+          "port" : {
+            "description" : "Port on which RCNode listens",
+            "type" : "string"
+          },
+          "authToken" : {
+            "description" : "Token to authorize with RCNode",
+            "type" : "string"
+          },
+          "pairingPage" : {
+            "description" : "URL path to pairing page",
+            "type" : "string"
+          },
+          "landingPage" : {
+            "description" : "URL path to landing page",
+            "type" : "string"
+          },
+          "allAddresses" : {
+            "description" : "IPv4 addresses of all local network adapters",
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "title" : "RC Node Connection Information",
+        "type" : "object"
+      },
+      "projectInfo" : {
+        "properties" : {
+          "name" : {
+            "description" : "Project name",
+            "type" : "string"
+          },
+          "guid" : {
+            "description" : "Project guid",
+            "type" : "string"
+          },
+          "timeStamp" : {
+            "description" : "Last access time stamp",
+            "type" : "integer"
+          }
+        },
+        "title" : "RC Project Information",
+        "type" : "object"
+      },
+      "projectStatus" : {
+        "properties" : {
+          "restarted" : {
+            "description" : "RC instance for this session has been automatically restarted after unexpected termination",
+            "type" : "boolean"
+          },
+          "progress" : {
+            "description" : "Estimated progress",
+            "type" : "number"
+          },
+          "timeTotal" : {
+            "description" : "Time spent",
+            "type" : "number"
+          },
+          "timeEstimation" : {
+            "description" : "Estimated finnish time",
+            "type" : "number"
+          },
+          "errorCode" : {
+            "description" : "Error code encountered",
+            "type" : "integer"
+          },
+          "changeCounter" : {
+            "description" : "Change counter",
+            "type" : "integer"
+          },
+          "processID" : {
+            "description" : "Instance process ID",
+            "type" : "integer"
+          }
+        },
+        "title" : "RC Project Status",
+        "type" : "object"
+      },
+      "taskHandle" : {
+        "properties" : {
+          "taskID" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "title" : "Task Handle",
+        "type" : "object"
+      },
+      "taskStatus" : {
+        "properties" : {
+          "taskID" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "timeStart" : {
+            "description" : "Unix time (milliseconds) in UTC when the task started",
+            "format" : "date-time",
+            "type" : "integer"
+          },
+          "timeEnd" : {
+            "description" : "Unix time (milliseconds) in UTC when the task ended",
+            "format" : "date-time",
+            "type" : "integer"
+          },
+          "state" : {
+            "description" : "Execution state of the task, one of {\"scheduled\", \"started\", \"finished\", \"failed\"}",
+            "type" : "string"
+          },
+          "errorCode" : {
+            "description" : "Error code encountered",
+            "type" : "integer"
+          },
+          "errorMessage" : {
+            "description" : "Error message encountered",
+            "type" : "string"
+          }
+        },
+        "title" : "Task Status",
+        "type" : "object"
+      },
+      "apiError" : {
+        "properties" : {
+          "code" : {
+            "type" : "integer"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        },
+        "title" : "apiError",
+        "type" : "object"
+      }
+    },
+    "securitySchemes" : {
+      "apiKeyToken" : {
+        "bearerFormat" : "GUID",
+        "scheme" : "bearer",
+        "type" : "http"
+      }
+    }
+  }
+}

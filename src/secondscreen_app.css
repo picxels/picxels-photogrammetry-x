@@ -1,0 +1,283 @@
+body {
+    margin: 0;
+    color: #ccc;
+    background-color: #0E0E0E;
+    font-family: "Segoe UI", "Lucida Grande", Verdana, Arial, Helvetica, sans-serif;
+}
+
+button {
+    font-family: "Segoe UI", "Lucida Grande", Verdana, Arial, Helvetica, sans-serif;
+    font-size: 1rem;
+}
+
+.pageHead h1 {
+    color: #fff;
+    padding: 2mm;
+    margin: 0;
+    font-size: 3.3mm;
+}
+
+.blue {
+    color: #7ecefd;
+}
+
+#idProgressOuter {
+    background-color: #000;
+    width: 100%;
+    height: 1mm;
+}
+
+#idProgress {
+    width: 0%;
+    height: 100%;
+    background-color: #55a1ff;
+}
+
+#idInfoPanel {
+    color: #888;
+    padding: 2.5mm 2mm 2mm 2mm;
+    font-size: 3mm;
+}
+
+#idModalBackground {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 1cm;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4);
+}
+
+#idModalWindow {
+    background-color: #2b2b2b;
+    color: #FFF;
+    margin: 1rem auto;
+    padding: 20px;
+    border: 1px solid #CCC;
+    width: 90%;
+    max-width: 60rem;
+}
+
+#idLog {
+    display: none;
+    position: absolute;
+    bottom: 0px;
+    width: 100%;
+    height: 3cm;
+    overflow-y: auto;
+    overflow-x: scroll;
+    background-color: #000;
+    font-family: "Lucida Console", Monaco, monospace;
+    font-size: 3mm;
+}
+
+#idDataBox {
+    display: none;
+}
+
+#idRightDock {
+    position: absolute;
+    right: 3mm;
+    top: 30%;
+    width: 1.3cm;
+}
+
+.verticalToolbar {
+    margin: 0;
+}
+
+.toolbutton {
+    display: block;
+    width: 1.2cm;
+    height: 1.2cm;
+    border-radius: 50%;
+    background-color: #2b2b2b;
+    border: 1px solid #ccc;
+}
+
+    .toolbutton:hover {
+        background-color: #424242;
+    }
+
+.flatButton {
+    font-weight: bold;
+    padding: .375rem 1rem;
+    border: 1px solid transparent;
+}
+
+.flatButtonPrimary {
+    color: #fff;
+    background-color: #1c8ac9;
+    border-color: #136894;
+}
+
+.flatButtonDanger {
+    color: #fff;
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+.pageLayout {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    flex-flow: column;
+}
+
+.pageHead {
+    height: 1cm;
+}
+
+.pageClient {
+    flex: 1 1 auto;
+}
+
+.Width60 {
+    float: left;
+    width: 59%;
+}
+
+.Width50 {
+    float: left;
+    width: 49%;
+}
+
+.Width40 {
+    float: left;
+    width: 39%;
+}
+
+.appTitle {
+    text-align: right;
+}
+
+.dropDown {
+    display: none;
+    position: absolute;
+    z-index: 10;
+}
+
+.toolbuttonDrop {
+    width: 1.2cm;
+    height: 1.2cm;
+}
+
+.dropDownContent {
+    background-color: #2b2b2b;
+    border: 1px solid #ccc;
+    z-index: 100;
+}
+
+    .dropDownContent a {
+        text-decoration: none;
+        display: block;
+        padding: 2mm 3mm;
+        cursor: pointer;
+        color: #ccc;
+    }
+
+        .dropDownContent a:hover {
+            background-color: #424242;
+        }
+
+.verticalToolbar {
+    margin: 0;
+    padding: 0;
+}
+
+    .verticalToolbar li {
+        margin-top: 3mm;
+        display: list-item;
+        list-style-type: none;
+    }
+
+.dropDownContentCancel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    z-index: -1;
+    display: block;
+}
+
+#idTakePhoto {
+    background-size: cover;
+}
+
+#idDropDownBtn {
+    background-size: cover;
+    background-position-x: 1.2cm;
+}
+
+#idCommandMenu {
+    right: 15mm;
+}
+
+    #idCommandMenu a {
+        min-width: 4cm;
+    }
+
+.flatTable {
+    list-style-type: none;
+    margin: 1em 0;
+    padding: 0;
+    line-height: 1.5;
+    border-collapse: collapse;
+    border-spacing: 0;
+    border-style: hidden;
+    width: 100%;
+}
+
+    .flatTable tr {
+        /*display: flex;
+        flex-direction: column;*/
+        margin: 0.5em 1em;
+        text-align: left;
+    }
+
+    .flatTable tbody tr:nth-child(odd) {
+        background-color: #424242;
+    }
+
+    .flatTable thead tr {
+        color: #56bffc;
+        font-size: 1.2em;
+        border-bottom: 2px solid #ccc;
+    }
+
+    .flatTable td, th {
+        padding: 0.3rem;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .projectTable .sceneName {
+        font-size: 1.2em;
+        font-weight: bold;
+    }
+
+@media screen and (max-width: 480px) {
+    .flatTable thead {
+        display: none;
+    }
+
+    .flatTable tr {
+        border-bottom: 1px solid #ccc;
+    }
+
+    .flatTable td, th {
+        display: block;
+        border-bottom: 0px solid #ccc;
+    }
+
+    .sceneActions, .sessionActions {
+        text-align: right;
+    }
+}
