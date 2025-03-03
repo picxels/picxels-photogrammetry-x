@@ -5,6 +5,7 @@ import ImagePreview from "@/camera_profiles/ImagePreview";
 import MotorControl from "@/camera_profiles/MotorControl";
 import FileManager from "@/camera_profiles/FileManager";
 import SubjectAnalysis from "@/camera_profiles/SubjectAnalysis";
+import RCNodeConfig from "@/components/RCNodeConfig";
 import { toast } from "@/components/ui/use-toast";
 import { CapturedImage, MotorPosition, Session, AnalysisResult } from "@/types";
 import { createSession, addImageToSession, renameSession, generateImageMask } from "@/utils/cameraUtils";
@@ -16,33 +17,27 @@ const Index = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [analyzedImage, setAnalyzedImage] = useState<CapturedImage | null>(null);
   const [processingImages, setProcessingImages] = useState<string[]>([]);
+  const [rcNodeConnected, setRcNodeConnected] = useState(false);
 
   const handleImageCaptured = async (image: CapturedImage) => {
-    // Add image to session
     const updatedSession = addImageToSession(session, image);
     setSession(updatedSession);
     
-    // If this is the first image and we don't have an image for analysis yet
     if (session.images.length === 0 && !analyzedImage) {
       setAnalyzedImage(image);
     }
     
-    // If the image is sharp enough, process it for background removal
     if (image.sharpness && image.sharpness >= 80) {
       setProcessingImages((prev) => [...prev, image.id]);
       
       try {
-        // Generate mask for the image
         const maskedImage = await generateImageMask(image);
-        
-        // Update the session with the masked image
         setSession((prevSession) => ({
           ...prevSession,
           images: prevSession.images.map((img) => 
             img.id === maskedImage.id ? maskedImage : img
           )
         }));
-        
         console.log(`Background mask generated for image: ${image.id}`);
       } catch (error) {
         console.error("Error generating mask:", error);
@@ -62,10 +57,7 @@ const Index = () => {
   };
 
   const handleScanStep = async (position: MotorPosition) => {
-    // This is called during an automated scan at each step
-    // We don't need to update the position as it's already done in MotorControl
     return new Promise<void>((resolve) => {
-      // Small delay to ensure stability before capture
       setTimeout(resolve, 300);
     });
   };
@@ -89,7 +81,6 @@ const Index = () => {
       images: session.images.filter(img => img.id !== imageId)
     });
     
-    // If we deleted the analyzed image, reset it
     if (analyzedImage && analyzedImage.id === imageId) {
       setAnalyzedImage(null);
     }
@@ -101,7 +92,6 @@ const Index = () => {
   };
 
   const handleAnalysisComplete = (result: AnalysisResult, suggestedName: string) => {
-    // Update the session with the subject matter and suggested name
     setSession({
       ...session,
       name: suggestedName,
@@ -112,6 +102,16 @@ const Index = () => {
       title: "Analysis Complete",
       description: `Subject identified: ${result.subject}`
     });
+  };
+
+  const handleRCNodeConnectionChange = (isConnected: boolean) => {
+    setRcNodeConnected(isConnected);
+    if (isConnected) {
+      toast({
+        title: "RC Node Connected",
+        description: "Ready to process photogrammetry data",
+      });
+    }
   };
 
   return (
@@ -139,12 +139,15 @@ const Index = () => {
         </div>
         
         <div className="space-y-6">
+          <RCNodeConfig onConnectionStatusChange={handleRCNodeConnectionChange} />
+          
           <FileManager 
             session={session}
             onSessionNameChange={handleSessionNameChange}
             onSessionRefresh={handleNewSession}
             isSaving={isSaving}
             isExporting={isExporting}
+            rcNodeConnected={rcNodeConnected}
           />
           
           <SubjectAnalysis 

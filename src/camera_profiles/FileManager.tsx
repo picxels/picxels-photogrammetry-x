@@ -1,4 +1,3 @@
-
 import React from "react";
 import { FolderOpen, Save, FileText, RefreshCw, Settings2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -17,6 +16,7 @@ interface FileManagerProps {
   onSessionRefresh: () => void;
   isSaving?: boolean;
   isExporting?: boolean;
+  rcNodeConnected?: boolean;
 }
 
 const FileManager: React.FC<FileManagerProps> = ({
@@ -24,7 +24,8 @@ const FileManager: React.FC<FileManagerProps> = ({
   onSessionNameChange,
   onSessionRefresh,
   isSaving = false,
-  isExporting = false
+  isExporting = false,
+  rcNodeConnected = false
 }) => {
   const [exportSettings, setExportSettings] = React.useState({
     exportPng: true,
@@ -53,6 +54,15 @@ const FileManager: React.FC<FileManagerProps> = ({
   };
 
   const stats = getSessionStats();
+
+  React.useEffect(() => {
+    if (rcNodeConnected) {
+      setExportSettings(prev => ({
+        ...prev,
+        sendToRealityCapture: true
+      }));
+    }
+  }, [rcNodeConnected]);
 
   return (
     <Card className="glass animate-scale-in">
@@ -172,12 +182,17 @@ const FileManager: React.FC<FileManagerProps> = ({
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="reality-capture" className="text-sm">Send to Reality Capture</Label>
-                    <p className="text-xs text-muted-foreground">Automatically start alignment</p>
+                    <p className="text-xs text-muted-foreground">
+                      {rcNodeConnected 
+                        ? "RC Node connected and ready" 
+                        : "Configure RC Node connection first"}
+                    </p>
                   </div>
                   <Switch 
                     id="reality-capture"
                     checked={exportSettings.sendToRealityCapture}
                     onCheckedChange={(checked) => setExportSettings({...exportSettings, sendToRealityCapture: checked})}
+                    disabled={!rcNodeConnected}
                   />
                 </div>
               </div>

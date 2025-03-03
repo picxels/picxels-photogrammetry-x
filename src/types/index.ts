@@ -61,3 +61,9 @@ export interface ExportSettings {
   exportMasks: boolean;
   sendToRealityCapture: boolean;
 }
+
+export interface RCNodeConfig {
+  nodeUrl: string;
+  authToken: string;
+  isConnected: boolean;
+}
