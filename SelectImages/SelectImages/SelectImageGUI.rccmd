@@ -1,0 +1,4 @@
+rem drag and drop this file directly into the RealityCapture application
+rem this command selects images which contain "IMG", and ends with "5" 
+
+-selectImage g/IMG.*[5]/
