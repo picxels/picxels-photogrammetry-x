@@ -43,12 +43,21 @@ export interface MotorSettings {
   stepsPerRevolution: number;
   maxSpeed: number;
   acceleration: number;
+  currentPosition: MotorPosition; // Added missing property
 }
 
 export interface AnalysisResult {
   subject: string;
   confidence: number;
+  tags: string[]; // Added missing property
   properties?: {
     [key: string]: any;
   };
+}
+
+export interface ExportSettings {
+  exportPng: boolean;
+  exportTiff: boolean;
+  exportMasks: boolean;
+  sendToRealityCapture: boolean;
 }
