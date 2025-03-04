@@ -42,8 +42,13 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
         clearTimeout(timeoutId);
         
         if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Command execution failed (${response.status}): ${errorText}`);
+          if (response.status === 404) {
+            console.error("API endpoint not found. Make sure the server is running and the endpoint exists.");
+            throw new Error(`API endpoint not found (404). Server might not be running.`);
+          } else {
+            const errorText = await response.text();
+            throw new Error(`Command execution failed (${response.status}): ${errorText}`);
+          }
         }
         
         const data = await response.json();
@@ -69,6 +74,12 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
       }
     }
     
+    // In development mode, fall back to simulated responses if the API endpoint is not available
+    if (isDevelopmentMode() && lastError?.message?.includes("404")) {
+      console.warn("API endpoint not available in development mode, using simulated responses");
+      return executeDevCommand(command);
+    }
+    
     // If we reach here, all attempts failed
     if (lastError) {
       throw lastError;
@@ -77,11 +88,27 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
     }
   } catch (error) {
     console.error(`Error executing command '${command}':`, error);
-    toast({
-      title: "Command Error",
-      description: "Error communicating with camera. Check connections.",
-      variant: "destructive"
-    });
+    
+    // Show more informative toast error
+    if ((error as Error).message.includes("404")) {
+      toast({
+        title: "API Endpoint Not Found",
+        description: "Camera communication API not available. Using simulated data.",
+        variant: "destructive"
+      });
+      
+      // Fall back to dev command in case of API unavailability
+      if (isDevelopmentMode()) {
+        return executeDevCommand(command);
+      }
+    } else {
+      toast({
+        title: "Command Error",
+        description: "Error communicating with camera. Check connections.",
+        variant: "destructive"
+      });
+    }
+    
     throw error;
   }
 };

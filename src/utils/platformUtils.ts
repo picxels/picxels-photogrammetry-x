@@ -22,6 +22,12 @@ export const isJetsonPlatform = () => {
   
   console.log("Platform detection:", { isLinux, hasJetsonEnv, isTegra, forceDetection });
   
+  // Always return false in development mode unless explicitly forced
+  if (isDevelopmentMode() && !forceDetection) {
+    console.log("Development mode detected, not treating as Jetson platform");
+    return false;
+  }
+  
   // In production, force Jetson detection based on config
   if (forceDetection) {
     console.log("Force detecting as Jetson platform via config");

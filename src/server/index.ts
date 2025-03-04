@@ -1,8 +1,7 @@
 
 import express from 'express';
-import path from 'path';
 import cors from 'cors';
-import { executeCommandHandler } from './api/routes/execute-command';
+import executeCommandRouter from './api/execute-command';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -10,21 +9,17 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// API routes
-app.post('/api/execute-command', executeCommandHandler);
+// API Routes
+app.use('/api/execute-command', executeCommandRouter);
 
-// Serve static files
-app.use(express.static(path.join(__dirname, '../../public')));
-
-// Simple error handling
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Server error:', err);
-  res.status(500).json({ error: 'Internal server error' });
+// Error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Internal Server Error' });
 });
 
-// Start server
+// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
