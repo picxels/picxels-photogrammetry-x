@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { WorkflowProgress as WorkflowProgressType } from '@/types/workflow';
-import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, Image, Clock } from 'lucide-react';
 
 interface WorkflowProgressProps {
   progress: WorkflowProgressType;
@@ -20,7 +20,7 @@ const WorkflowProgress: React.FC<WorkflowProgressProps> = ({ progress }) => {
       case 'running':
         return <Loader2 className="h-5 w-5 text-primary animate-spin" />;
       default:
-        return null;
+        return <Clock className="h-5 w-5 text-muted-foreground" />;
     }
   };
 
@@ -81,6 +81,13 @@ const WorkflowProgress: React.FC<WorkflowProgressProps> = ({ progress }) => {
         {progress.message && (
           <div className="text-sm p-2 bg-primary/5 rounded-md border border-primary/10">
             {progress.message}
+          </div>
+        )}
+
+        {progress.previewUrl && (
+          <div className="flex items-center gap-2 text-sm text-primary">
+            <Image className="h-4 w-4" />
+            <span>Preview available in visualization panel</span>
           </div>
         )}
       </CardContent>

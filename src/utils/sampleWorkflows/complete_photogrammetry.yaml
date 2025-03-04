@@ -1,0 +1,116 @@
+
+workflow_name: "Complete Photogrammetry Pipeline"
+metadata:
+  description: "Complete photogrammetry pipeline with advanced processing, texturing and exports"
+  author: "PhotoCapture Team"
+  version: "1.0"
+  tags:
+    - "photogrammetry"
+    - "professional"
+    - "full-pipeline"
+  requiresMarkers: true
+  requiresMasks: true
+  requiresTextures: true
+
+stages:
+  - name: "Initialize"
+    commands:
+      - { command: "headless" }
+      - { command: "newScene" }
+      - { command: "createFolder", params: ["./projects/CurrentSession"] }
+      - { command: "createFolder", params: ["./projects/CurrentSession/Images"] }
+      - { command: "createFolder", params: ["./projects/CurrentSession/Output"] }
+      - { command: "createFolder", params: ["./projects/CurrentSession/Output/Renders"] }
+      - { command: "tag", params: ["session", "CurrentSession"] }
+    description: "Setting up the project structure and initializing Reality Capture"
+
+  - name: "Import Initial Construction Images"
+    commands:
+      - { command: "addFolder", params: ["./projects/CurrentSession/Images/.geometry"] }
+    description: "Adding initial construction images without masks for marker detection"
+
+  - name: "First Alignment"
+    commands:
+      - { command: "align" }
+      - { command: "selectMaximalComponent" }
+      - { command: "printProgress", params: ["Initial alignment completed"] }
+
+  - name: "Marker Recognition"
+    commands:
+      - { command: "detectMarkers", params: ["auto"] }
+      - { command: "loadMarkersData", params: ["./projects/CurrentSession/markers.csv"] }
+      - { command: "applyMarkerDistances" }
+      - { command: "setGroundPointFromMarker", params: ["1"] }
+    description: "Detecting and applying markers for scale and orientation"
+
+  - name: "Lock Initial Cameras"
+    commands:
+      - { command: "selectAll" }
+      - { command: "lockSelectedCameras" }
+      - { command: "printProgress", params: ["Cameras locked"] }
+
+  - name: "Import Masks and Texturing Images"
+    commands:
+      - { command: "addFolder", params: ["./projects/CurrentSession/Images/.mask"] }
+      - { command: "addFolder", params: ["./projects/CurrentSession/Images/.texture.TextureLayer"] }
+    description: "Adding masks and high-quality texture images for the initial set"
+
+  - name: "Import Additional Passes"
+    commands:
+      - { command: "addFolder", params: ["./projects/CurrentSession/Images/Additional"] }
+      - { command: "addFolder", params: ["./projects/CurrentSession/Images/Additional/.mask"] }
+      - { command: "addFolder", params: ["./projects/CurrentSession/Images/Additional/.texture.TextureLayer"] }
+    description: "Adding images from additional passes including masks and textures"
+
+  - name: "Complete Alignment"
+    commands:
+      - { command: "align" }
+      - { command: "selectMaximalComponent" }
+      - { command: "save", params: ["./projects/CurrentSession/Project/aligned.rcproj"] }
+    description: "Aligning all images including masked ones"
+
+  - name: "Mesh Creation"
+    commands:
+      - { command: "setReconstructionRegionAuto" }
+      - { command: "calculateModel", params: ["medium"] }
+      - { command: "printProgress", params: ["Medium mesh created"] }
+
+  - name: "Mesh Cleanup"
+    commands:
+      - { command: "selectIsolatedRegions" }
+      - { command: "removeSelectedTriangles" }
+      - { command: "selectNonManifoldTriangles" }
+      - { command: "removeSelectedTriangles" }
+      - { command: "selectByColor", params: ["0", "0", "0", "10"] }
+      - { command: "removeSelectedTriangles" }
+      - { command: "printProgress", params: ["Mesh cleaned"] }
+    description: "Removing artifacts, isolated regions and background remnants"
+
+  - name: "Texturing"
+    commands:
+      - { command: "calculateTexture", params: ["4096"] }
+      - { command: "save", params: ["./projects/CurrentSession/Project/textured.rcproj"] }
+    description: "Creating a 4K texture from 16-bit images"
+
+  - name: "Optimization"
+    commands:
+      - { command: "simplify", params: ["5000"] }
+      - { command: "unwrap" }
+      - { command: "reprojectTexture", params: ["Model", "Model_Simplified", "4096", "normalmap"] }
+    description: "Simplifying to 5K triangles and generating normal maps"
+
+  - name: "Render Views"
+    commands:
+      - { command: "renderTurntable", params: ["6", "1920", "1080", "./projects/CurrentSession/Output/Renders/view_"] }
+    description: "Rendering 6 views of the object like a dice"
+
+  - name: "Export"
+    commands:
+      - { command: "exportModel", params: ["Model_Simplified", "./projects/CurrentSession/Output/final_model.glb", "glb"] }
+      - { command: "exportMetadata", params: ["./projects/CurrentSession/Output/metadata.json"] }
+    description: "Exporting as GLB with embedded textures and metadata"
+
+  - name: "Upload to Sketchfab"
+    commands:
+      - { command: "sketchfabUpload", params: ["./projects/CurrentSession/Output/final_model.glb"] }
+    description: "Uploading to Sketchfab (this will trigger the metadata editor)"

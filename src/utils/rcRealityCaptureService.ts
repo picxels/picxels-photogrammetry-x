@@ -2,6 +2,8 @@
 import { toast } from "@/components/ui/use-toast";
 import { ExportSettings, RCNodeConfig, Session, CapturedImage, Pass } from "@/types";
 import { sendRCNodeCommand } from "./rcNodeService";
+import { getWorkflowTemplateFromSession } from "./workflowTemplates";
+import { formatRCCommand } from "./workflowUtils";
 
 /**
  * Prepare a dataset for Reality Capture processing via RC Node
@@ -18,16 +20,18 @@ export const prepareRealityCaptureDataset = async (
   try {
     // Create a sanitized project name from session name (remove spaces, special chars)
     const projectName = session.name.replace(/[^a-zA-Z0-9]/g, '_');
-    const modelName = projectName;
+    const modelName = session.subjectMatter ? 
+      session.subjectMatter.replace(/[^a-zA-Z0-9]/g, '_') : 
+      projectName;
     
     console.log(`Preparing Reality Capture dataset for session: ${session.name}`);
     console.log(`Using model name: ${modelName}, project name: ${projectName}`);
+    console.log(`Subject matter: ${session.subjectMatter || 'Unknown'}`);
     
     // Log the export settings
     console.log("Export settings:", settings);
     
     // Create project folder structure on RC Node
-    // This follows the examples in the batch files
     await sendRCNodeCommand(config, "createFolder", {
       path: `${projectName}/Images`
     });
@@ -53,6 +57,25 @@ export const prepareRealityCaptureDataset = async (
       });
     }
     
+    // Create additional passes folders if we have multiple passes
+    if (session.passes.length > 1) {
+      await sendRCNodeCommand(config, "createFolder", {
+        path: `${projectName}/Images/Additional`
+      });
+      
+      if (settings.exportMasks) {
+        await sendRCNodeCommand(config, "createFolder", {
+          path: `${projectName}/Images/Additional/.mask`
+        });
+      }
+      
+      if (settings.exportTiff) {
+        await sendRCNodeCommand(config, "createFolder", {
+          path: `${projectName}/Images/Additional/.texture.TextureLayer`
+        });
+      }
+    }
+    
     // Create project folder for RC project files
     await sendRCNodeCommand(config, "createFolder", {
       path: `${projectName}/Project`
@@ -60,8 +83,21 @@ export const prepareRealityCaptureDataset = async (
     
     // Create model output folder
     await sendRCNodeCommand(config, "createFolder", {
-      path: `${projectName}/Model`
+      path: `${projectName}/Output`
     });
+    
+    // Create renders folder
+    await sendRCNodeCommand(config, "createFolder", {
+      path: `${projectName}/Output/Renders`
+    });
+    
+    // Pass subject metadata to RC Node for use in workflow
+    if (session.subjectMatter) {
+      await sendRCNodeCommand(config, "tag", {
+        key: "subject",
+        value: session.subjectMatter
+      });
+    }
     
     toast({
       title: "Dataset Prepared",
@@ -134,15 +170,17 @@ export const uploadSessionImagesToRCNode = async (
       
       console.log(`Processing pass ${passIndex + 1}: ${pass.name} with ${pass.images.length} images`);
       
+      // Determine if this is the first pass or additional pass
+      const isFirstPass = passIndex === 0;
+      const baseImagePath = isFirstPass ? 
+        `${projectName}/Images` : 
+        `${projectName}/Images/Additional`;
+      
       // For each image in the pass
       for (let imageIndex = 0; imageIndex < pass.images.length; imageIndex++) {
         const image = pass.images[imageIndex];
         
         // Generate filenames following RC conventions
-        const baseImagePath = `${projectName}/Images`;
-        
-        // In a real implementation, this would upload the actual image data
-        // to the RC Node server using the naming convention
         console.log(`Processing image: ${image.id} from pass ${passIndex + 1}`);
         
         // Upload main image
@@ -191,8 +229,7 @@ export const uploadSessionImagesToRCNode = async (
 };
 
 /**
- * Process a session with Reality Capture via RC Node
- * Follows the patterns seen in the example batch files
+ * Process a session with Reality Capture via RC Node using a predefined workflow
  */
 export const processWithRealityCapture = async (
   session: Session,
@@ -202,61 +239,36 @@ export const processWithRealityCapture = async (
   try {
     // Create a sanitized project name from session name
     const projectName = session.name.replace(/[^a-zA-Z0-9]/g, '_');
-    const modelName = projectName;
+    const modelName = session.subjectMatter ? 
+      session.subjectMatter.replace(/[^a-zA-Z0-9]/g, '_') : 
+      projectName;
     
     console.log(`Processing with Reality Capture: ${projectName} with ${session.passes.length} passes`);
+    console.log(`Subject: ${session.subjectMatter || 'Unknown'}`);
     
-    // Build a command set based on the RC example batch files
-    const commands = [
-      // Set working directory to the project folder
-      `-set "workingFolder=${projectName}"`,
-      
-      // Add images folder
-      `-addFolder "${projectName}/Images"`,
-      
-      // Align images
-      `-align`,
-      
-      // Set reconstruction region automatically
-      `-setReconstructionRegionAuto`,
-      
-      // Calculate normal model
-      `-calculateNormalModel`,
-      
-      // Select marginal triangles
-      `-selectMarginalTriangles`,
-      
-      // Remove selected triangles
-      `-removeSelectedTriangles`,
-      
-      // Rename model
-      `-renameSelectedModel "${modelName}"`,
-      
-      // Calculate texture (this step is conditional based on settings)
-      ...(settings.exportTiff ? [`-calculateTexture`] : []),
-      
-      // Save project
-      `-save "${projectName}/Project/${projectName}.rcproj"`,
-      
-      // Export model
-      `-exportModel "${modelName}" "${projectName}/Model/${modelName}.obj"`,
-      
-      // Quit Reality Capture
-      `-quit`
-    ];
+    // Generate a workflow from the session data
+    const workflow = getWorkflowTemplateFromSession(
+      session,
+      session.subjectMatter ? [session.subjectMatter.toLowerCase()] : []
+    );
     
-    // Join commands
+    console.log("Generated workflow:", workflow);
+    
+    // Extract commands from workflow
+    const commands = workflow.stages.flatMap(stage => 
+      stage.commands.map(cmd => formatRCCommand(cmd))
+    );
+    
+    // Join commands and execute via RC Node
     const commandString = commands.join(" ");
-    
-    // Log the command string
     console.log("RC Command:", commandString);
     
-    // In a real implementation, we would execute the command via RC Node API
-    // await sendRCNodeCommand(config, "executeRCCommand", { command: commandString });
+    // In a real implementation, we would execute each command in sequence
+    // via the RC Node API, tracking progress for each stage
     
     toast({
       title: "Processing Started",
-      description: `Reality Capture processing started for ${projectName} with ${session.passes.length} passes`,
+      description: `Reality Capture processing started for ${session.name} with ${session.passes.length} passes`,
     });
     
     return true;
