@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/camera_profiles/Layout";
 import CameraControl from "@/camera_profiles/CameraControl";
@@ -8,6 +7,7 @@ import FileManager from "@/camera_profiles/FileManager";
 import SubjectAnalysis from "@/camera_profiles/SubjectAnalysis";
 import RCNodeConfig from "@/components/RCNodeConfig";
 import WorkflowManager from "@/components/workflow/WorkflowManager";
+import SocialMediaConnections from "@/components/social/SocialMediaConnections";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { CapturedImage, MotorPosition, Session, AnalysisResult, Pass, RCNodeConfig as RCNodeConfigType } from "@/types";
@@ -27,7 +27,7 @@ const Index = () => {
     isConnected: false
   });
   const [currentPassId, setCurrentPassId] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<'capture' | 'workflow'>('capture');
+  const [activeTab, setActiveTab] = useState<'capture' | 'workflow' | 'social'>('capture');
 
   useEffect(() => {
     if (session.passes && session.passes.length > 0 && !currentPassId) {
@@ -245,10 +245,17 @@ const Index = () => {
           </Button>
           <Button
             variant={activeTab === 'workflow' ? 'default' : 'outline'}
-            className="rounded-l-none"
+            className="rounded-l-none rounded-r-none"
             onClick={() => setActiveTab('workflow')}
           >
             RC Workflow
+          </Button>
+          <Button
+            variant={activeTab === 'social' ? 'default' : 'outline'}
+            className="rounded-l-none"
+            onClick={() => setActiveTab('social')}
+          >
+            Social Media
           </Button>
         </div>
       </div>
@@ -312,13 +319,33 @@ const Index = () => {
             />
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'workflow' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <WorkflowManager 
               rcNodeConfig={rcNodeConfig} 
               currentSession={session}  
             />
+          </div>
+          
+          <div className="space-y-6">
+            <RCNodeConfig onConnectionStatusChange={handleRCNodeConnectionChange} />
+            
+            <FileManager 
+              session={session}
+              onSessionNameChange={handleSessionNameChange}
+              onSessionRefresh={handleNewSession}
+              isSaving={isSaving}
+              isExporting={isExporting}
+              rcNodeConnected={rcNodeConnected}
+              rcNodeConfig={rcNodeConfig}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <SocialMediaConnections />
           </div>
           
           <div className="space-y-6">
