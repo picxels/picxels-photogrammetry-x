@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import { Camera, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,22 +41,11 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
   }, []);
 
   useEffect(() => {
-    // Initialize camera detection
+    // Initialize camera detection only once
     refreshCameras();
     
-    // Set up periodic camera status check
-    const checkInterval = CAMERA_DEVICE_PATHS.detection?.checkIntervalMs || 5000;
-    const intervalId = setInterval(async () => {
-      // Only refresh if not currently capturing
-      if (!isCapturing) {
-        await refreshCameras();
-      }
-    }, checkInterval);
-    
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [refreshCameras, isCapturing]);
+    // No recurring timer here anymore
+  }, [refreshCameras]);
 
   const handleCapture = async (camera: CameraDevice) => {
     if (isCapturing || !camera.connected) return;
