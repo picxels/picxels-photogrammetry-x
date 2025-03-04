@@ -38,7 +38,9 @@ export const CAMERA_DEVICE_PATHS = {
   ],
   gphoto2SupportedModels: [
     "Canon EOS Rebel T2i",
-    "Canon EOS Rebel T3i"
+    "Canon EOS Rebel T3i",
+    "Canon EOS 550D",  // European/Japanese name for T2i
+    "Canon EOS 600D"   // European/Japanese name for T3i
   ],
   // Camera detection settings
   detection: {

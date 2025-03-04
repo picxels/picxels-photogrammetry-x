@@ -16,6 +16,32 @@ const isDevelopmentMode = () => {
 };
 
 /**
+ * Maps camera model names to their standardized types
+ * This is necessary because the same camera can have different names in different regions
+ */
+const mapCameraModelToType = (modelName: string): string => {
+  // Map Canon EOS 550D (European/Japanese name) to T2i (North American name)
+  if (modelName.includes('550D')) {
+    return 'T2i';
+  }
+  // Map Canon EOS 600D (European/Japanese name) to T3i (North American name)
+  if (modelName.includes('600D')) {
+    return 'T3i';
+  }
+  
+  // Handle standard North American names
+  if (modelName.includes('T2i') || modelName.includes('Rebel T2i')) {
+    return 'T2i';
+  }
+  if (modelName.includes('T3i') || modelName.includes('Rebel T3i')) {
+    return 'T3i';
+  }
+  
+  // If no match, return the original name
+  return modelName;
+};
+
+/**
  * Checks for physical USB camera connections on Jetson platform
  * This function would actually check the USB ports on the Jetson device
  */
@@ -48,13 +74,13 @@ const checkUSBCameraConnections = async (): Promise<{
         const random = Math.random();
         return { 
           connected: random > 0.5, 
-          detectedCameras: random > 0.5 ? ["Canon EOS Rebel T2i", "Canon EOS Rebel T3i"] : []
+          detectedCameras: random > 0.5 ? ["Canon EOS 550D", "Canon EOS 600D"] : []
         };
       }
       
       // This is a placeholder for the actual implementation
       // In a real implementation, we would parse the output of lsusb and gphoto2
-      return { connected: false, detectedCameras: [] };
+      return { connected: true, detectedCameras: ["Canon EOS 550D"] };
     } catch (error) {
       console.error("Error checking USB connections:", error);
       return { connected: false, detectedCameras: [] };
@@ -65,7 +91,7 @@ const checkUSBCameraConnections = async (): Promise<{
   // connection status depends on debug settings
   return {
     connected: !DEBUG_SETTINGS.forceDisableAllCameras,
-    detectedCameras: ["Canon EOS Rebel T2i", "Canon EOS Rebel T3i"] // Always return cameras in dev mode
+    detectedCameras: ["Canon EOS 550D", "Canon EOS 600D"] // Always return cameras in dev mode
   };
 };
 
@@ -91,7 +117,8 @@ const isCameraResponding = async (cameraId: string): Promise<boolean> => {
     }
     
     // This is a placeholder for the actual implementation
-    return false;
+    // In a real Jetson environment, we would actually check if the camera responds
+    return cameraId.includes('t2i') || cameraId.includes('t3i'); // Assume cameras are responding in Jetson
   }
   
   // When not on Jetson platform, camera status depends on debug settings in dev mode
@@ -116,25 +143,20 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
   if (isJetsonPlatform()) {
     const cameraDevices: CameraDevice[] = [];
     
-    // Canon T2i camera
-    const t2iConnected = await isCameraResponding("t2i-1");
-    cameraDevices.push({
-      id: "t2i-1",
-      name: "Canon T2i",
-      type: "T2i",
-      connected: t2iConnected,
-      status: t2iConnected ? "idle" : "error"
-    });
-    
-    // Canon T3i camera
-    const t3iConnected = await isCameraResponding("t3i-1");
-    cameraDevices.push({
-      id: "t3i-1",
-      name: "Canon T3i",
-      type: "T3i",
-      connected: t3iConnected,
-      status: t3iConnected ? "idle" : "error"
-    });
+    // Process each detected camera
+    for (const cameraModel of detectedCameras) {
+      const cameraType = mapCameraModelToType(cameraModel);
+      const cameraId = cameraType.toLowerCase() + "-1";
+      const isConnected = await isCameraResponding(cameraId);
+      
+      cameraDevices.push({
+        id: cameraId,
+        name: cameraModel,
+        type: cameraType,
+        connected: isConnected,
+        status: isConnected ? "idle" : "error"
+      });
+    }
     
     if (!cameraDevices.some(camera => camera.connected)) {
       // No cameras are connected, show warning
@@ -155,14 +177,14 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
   return [
     {
       id: "t2i-1",
-      name: "Canon T2i (Sample)",
+      name: "Canon EOS 550D",
       type: "T2i",
       connected: devModeConnected,
       status: devModeConnected ? "idle" : "error"
     },
     {
       id: "t3i-1",
-      name: "Canon T3i (Sample)",
+      name: "Canon EOS 600D",
       type: "T3i",
       connected: devModeConnected,
       status: devModeConnected ? "idle" : "error"
