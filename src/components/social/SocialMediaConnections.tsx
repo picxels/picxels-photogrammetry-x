@@ -7,18 +7,22 @@ import { Share2, Plus, Settings2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { SocialMediaAccount, SocialMediaConnectionState } from '@/types/social';
 import PlatformCard from './PlatformCard';
-import { v4 as uuidv4 } from 'uuid';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  getSavedAccounts, 
-  saveAccount, 
-  deleteAccount, 
-  initializeDatabase 
+import {
+  getSavedAccounts,
+  saveAccount,
+  deleteAccount,
+  initializeDatabase
 } from '@/utils/socialAccountStorage';
-import { 
-  DEFAULT_CAPTION_TEMPLATES, 
-  PLATFORM_CONFIGS 
+import {
+  DEFAULT_CAPTION_TEMPLATES,
+  PLATFORM_CONFIGS
 } from '@/config/socialMedia.config';
+import {
+  initiateOAuth,
+  handleOAuthCallback,
+  validateAccountToken
+} from '@/services/oauthService';
 
 const SocialMediaConnections: React.FC = () => {
   const [connectionState, setConnectionState] = useState<SocialMediaConnectionState>({
@@ -31,6 +35,7 @@ const SocialMediaConnections: React.FC = () => {
   );
 
   const [isDbReady, setIsDbReady] = useState<boolean>(false);
+  const [connectingPlatform, setConnectingPlatform] = useState<SocialMediaAccount['platform'] | null>(null);
 
   const platforms: SocialMediaAccount['platform'][] = [
     'instagram', 'twitter', 'facebook', 'tiktok', 'reddit'
@@ -46,14 +51,29 @@ const SocialMediaConnections: React.FC = () => {
         const savedAccounts = await getSavedAccounts();
         
         if (savedAccounts.length > 0) {
+          // Verify all saved accounts are still valid
+          const validatedAccounts = [];
+          for (const account of savedAccounts) {
+            const isValid = await validateAccountToken(account);
+            if (isValid) {
+              validatedAccounts.push(account);
+            } else {
+              await deleteAccount(account.id);
+              toast({
+                title: "Account Expired",
+                description: `Your ${account.platform} connection has expired and was removed.`
+              });
+            }
+          }
+          
           setConnectionState(prev => ({
             ...prev,
-            accounts: savedAccounts
+            accounts: validatedAccounts
           }));
           
           toast({
-            title: "Accounts Loaded",
-            description: `${savedAccounts.length} social media accounts loaded.`
+            title: "Accounts Verified",
+            description: `${validatedAccounts.length} social media accounts loaded.`
           });
         }
       }
@@ -72,43 +92,17 @@ const SocialMediaConnections: React.FC = () => {
       return;
     }
     
+    setConnectingPlatform(platform);
     setConnectionState(prev => ({ ...prev, isConnecting: true }));
     
-    // In a production implementation, this would initiate OAuth flow
-    // For demo purposes, we're simulating a successful connection
     try {
-      // Simulate OAuth flow delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Initiate OAuth flow
+      initiateOAuth(platform);
       
-      const newAccount: SocialMediaAccount = {
-        id: uuidv4(),
-        platform,
-        username: `demo_user_${platform}`,
-        connected: true,
-        lastUsed: new Date(),
-        accessToken: `mock-token-${uuidv4()}`,
-        refreshToken: `mock-refresh-${uuidv4()}`,
-        tokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        scopes: PLATFORM_CONFIGS[platform]?.supportedImageFormats || []
-      };
+      // The OAuth flow will continue in a popup window
+      // The callback will be handled by handleOAuthCallback
+      // For this demo implementation, we simulate the callback
       
-      // Save account to secure storage
-      const saved = await saveAccount(newAccount);
-      
-      if (saved) {
-        setConnectionState(prev => ({
-          ...prev,
-          isConnecting: false,
-          accounts: [...prev.accounts, newAccount]
-        }));
-        
-        toast({
-          title: "Account Connected",
-          description: `Successfully connected ${platform} account.`,
-        });
-      } else {
-        throw new Error("Failed to save account");
-      }
     } catch (error) {
       console.error(`Error connecting to ${platform}:`, error);
       
@@ -123,11 +117,20 @@ const SocialMediaConnections: React.FC = () => {
         isConnecting: false,
         connectionError: error instanceof Error ? error.message : "Unknown error"
       }));
+      
+      setConnectingPlatform(null);
     }
   };
 
   const handleDisconnect = async (accountId: string) => {
     try {
+      // Find account before deletion
+      const accountToDelete = connectionState.accounts.find(account => account.id === accountId);
+      
+      if (!accountToDelete) {
+        throw new Error("Account not found");
+      }
+      
       // Delete account from secure storage
       const deleted = await deleteAccount(accountId);
       
@@ -139,7 +142,7 @@ const SocialMediaConnections: React.FC = () => {
         
         toast({
           title: "Account Disconnected",
-          description: "Your social media account has been disconnected.",
+          description: `Your ${accountToDelete.platform} account has been disconnected.`,
         });
       } else {
         throw new Error("Failed to delete account");
@@ -154,6 +157,57 @@ const SocialMediaConnections: React.FC = () => {
       });
     }
   };
+
+  // Listen for OAuth callback events (in a real implementation, this would be a callback endpoint)
+  useEffect(() => {
+    const simulateOAuthCallback = async () => {
+      if (connectingPlatform) {
+        // In a real implementation, we would listen for a message from the popup window
+        // For this demo, we simulate the callback after a delay
+        
+        setTimeout(async () => {
+          try {
+            const newAccount = await handleOAuthCallback(
+              connectingPlatform,
+              "simulated-auth-code",
+              "simulated-state"
+            );
+            
+            if (newAccount) {
+              // Save account to secure storage
+              const saved = await saveAccount(newAccount);
+              
+              if (saved) {
+                setConnectionState(prev => ({
+                  ...prev,
+                  isConnecting: false,
+                  accounts: [...prev.accounts, newAccount]
+                }));
+              } else {
+                throw new Error("Failed to save account");
+              }
+            } else {
+              throw new Error("OAuth flow completed but no account was returned");
+            }
+          } catch (error) {
+            console.error(`Error in OAuth callback for ${connectingPlatform}:`, error);
+            toast({
+              title: "Connection Error",
+              description: error instanceof Error ? error.message : "Unknown connection error",
+              variant: "destructive"
+            });
+          } finally {
+            setConnectionState(prev => ({ ...prev, isConnecting: false }));
+            setConnectingPlatform(null);
+          }
+        }, 3000); // Simulate delay for OAuth flow
+      }
+    };
+    
+    if (connectingPlatform && connectionState.isConnecting) {
+      simulateOAuthCallback();
+    }
+  }, [connectingPlatform, connectionState.isConnecting]);
 
   const getConnectedAccount = (platform: SocialMediaAccount['platform']) => {
     return connectionState.accounts.find(account => account.platform === platform);
@@ -191,6 +245,7 @@ const SocialMediaConnections: React.FC = () => {
                 connectedAccount={getConnectedAccount(platform)}
                 onConnect={handleConnect}
                 onDisconnect={handleDisconnect}
+                isConnecting={connectingPlatform === platform && connectionState.isConnecting}
               />
             ))}
           </div>

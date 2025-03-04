@@ -1,10 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Twitter, Instagram, Facebook, MessageSquare, Share2 } from 'lucide-react';
+import { Twitter, Instagram, Facebook, MessageSquare, Share2, Loader2 } from 'lucide-react';
 import { SocialMediaAccount } from '@/types/social';
 
 interface PlatformCardProps {
@@ -12,14 +12,18 @@ interface PlatformCardProps {
   connectedAccount?: SocialMediaAccount;
   onConnect: (platform: SocialMediaAccount['platform']) => void;
   onDisconnect: (accountId: string) => void;
+  isConnecting: boolean;
 }
 
 const PlatformCard: React.FC<PlatformCardProps> = ({
   platform,
   connectedAccount,
   onConnect,
-  onDisconnect
+  onDisconnect,
+  isConnecting
 }) => {
+  const [autoShare, setAutoShare] = useState<boolean>(true);
+
   const getPlatformIcon = (platform: SocialMediaAccount['platform']) => {
     switch (platform) {
       case 'instagram': return <Instagram className="h-5 w-5 text-[#E1306C]" />;
@@ -39,6 +43,11 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
   };
 
   const isConnected = !!connectedAccount;
+  const isCurrentlyConnecting = isConnecting && !isConnected;
+
+  const handleAutoShareToggle = (checked: boolean) => {
+    setAutoShare(checked);
+  };
 
   return (
     <Card className="overflow-hidden">
@@ -64,7 +73,10 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
         {isConnected && (
           <div className="flex items-center justify-between">
             <span className="text-sm">Auto-sharing</span>
-            <Switch checked={true} onCheckedChange={() => {}} />
+            <Switch 
+              checked={autoShare} 
+              onCheckedChange={handleAutoShareToggle} 
+            />
           </div>
         )}
       </CardContent>
@@ -75,6 +87,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
             size="sm" 
             className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
             onClick={() => onDisconnect(connectedAccount.id)}
+            disabled={isCurrentlyConnecting}
           >
             Disconnect
           </Button>
@@ -84,8 +97,16 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
             size="sm" 
             className="w-full"
             onClick={() => onConnect(platform)}
+            disabled={isCurrentlyConnecting}
           >
-            Connect
+            {isCurrentlyConnecting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              'Connect'
+            )}
           </Button>
         )}
       </CardFooter>
