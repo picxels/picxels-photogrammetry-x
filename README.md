@@ -15,8 +15,11 @@ https://github.com/picxels/picxels-photogrammetry-x
 - Background mask generation
 - Reality Capture Node integration
 - Color profile application (T2i and T3i cameras)
+- Social media sharing and account management
 
-## Installation
+## Installation Options
+
+### For Development
 
 1. Clone the repository
    ```bash
@@ -33,6 +36,19 @@ https://github.com/picxels/picxels-photogrammetry-x
    ```bash
    npm run dev
    ```
+
+### For Jetson Orin Nano (Production Use)
+
+For full installation instructions for Jetson Orin Nano with NVIDIA Jetson Linux 36.4.3 GA, see:
+
+**[Jetson Installation Guide](INSTALL_JETSON.md)**
+
+This guide includes:
+- System setup and dependencies
+- AI model optimization with TensorRT
+- Camera and motor configuration
+- Social media account database setup
+- Performance optimization
 
 ## Hardware Setup for Jetson Orin Nano
 
@@ -77,29 +93,27 @@ https://github.com/picxels/picxels-photogrammetry-x
 3. Download and optimize models for Jetson
    ```bash
    # Create models directory
-   mkdir -p ~/models/{sharpness,masks,llm}
+   sudo mkdir -p /opt/picxels/models/{sharpness,masks,llm}
+   sudo chown -R $USER:$USER /opt/picxels
 
    # Download sharpness detection model
-   curl -L https://github.com/PINTO0309/PINTO_model_zoo/raw/main/356_FocusNet/model/FocusNet_480x384_float32.onnx -o ~/models/sharpness/focus_net.onnx
+   curl -L https://github.com/PINTO0309/PINTO_model_zoo/raw/main/356_FocusNet/model/FocusNet_480x384_float32.onnx -o /opt/picxels/models/sharpness/focus_net.onnx
 
    # Download segmentation model for masks
-   curl -L https://github.com/PINTO0309/PINTO_model_zoo/raw/main/115_MobileSAM/model/mobile_sam_predictor_quantized.onnx -o ~/models/masks/mobile_sam.onnx
+   curl -L https://github.com/PINTO0309/PINTO_model_zoo/raw/main/115_MobileSAM/model/mobile_sam_predictor_quantized.onnx -o /opt/picxels/models/masks/mobile_sam.onnx
 
    # Download LLM for subject identification (Phi-2 optimized for Jetson)
    git clone https://github.com/microsoft/Phi-2.git
    cd Phi-2
-   python3 convert_to_onnx.py --output-path ~/models/llm/phi2.onnx
+   python3 convert_to_onnx.py --output-path /opt/picxels/models/llm/phi2.onnx
    ```
 
 4. Optimize models with TensorRT
    ```bash
    # Convert ONNX models to TensorRT for faster inference
-   /usr/bin/trtexec --onnx=~/models/sharpness/focus_net.onnx --saveEngine=~/models/sharpness/focus_net.trt
-   /usr/bin/trtexec --onnx=~/models/masks/mobile_sam.onnx --saveEngine=~/models/masks/mobile_sam.trt
-   /usr/bin/trtexec --onnx=~/models/llm/phi2.onnx --saveEngine=~/models/llm/phi2.trt
-
-   # Note: If trtexec is not in /usr/bin, find it with:
-   # find /usr -name trtexec
+   /usr/bin/trtexec --onnx=/opt/picxels/models/sharpness/focus_net.onnx --saveEngine=/opt/picxels/models/sharpness/focus_net.trt
+   /usr/bin/trtexec --onnx=/opt/picxels/models/masks/mobile_sam.onnx --saveEngine=/opt/picxels/models/masks/mobile_sam.trt
+   /usr/bin/trtexec --onnx=/opt/picxels/models/llm/phi2.onnx --saveEngine=/opt/picxels/models/llm/phi2.trt
    ```
 
 ### Motor Control Setup
@@ -144,6 +158,17 @@ The system automatically applies camera color profiles for better image quality:
 - T3i_ColorProfile.dcp - For Canon T3i cameras
 
 These profiles are applied to every captured image before additional processing.
+
+## Social Media Integration
+
+The application includes a dedicated social media management tab where you can:
+
+1. Connect multiple social media accounts (Instagram, Twitter/X, Facebook, TikTok, Reddit)
+2. Configure default sharing settings for 3D models
+3. Customize caption templates with placeholders for model names
+4. Share directly to connected platforms after completing photogrammetry workflows
+
+Account credentials are securely stored in a local SQLite database.
 
 ## Development
 

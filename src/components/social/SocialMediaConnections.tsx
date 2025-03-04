@@ -1,74 +1,158 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Share2, Plus } from 'lucide-react';
+import { Share2, Plus, Settings2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { SocialMediaAccount, SocialMediaConnectionState } from '@/types/social';
 import PlatformCard from './PlatformCard';
 import { v4 as uuidv4 } from 'uuid';
 import { Textarea } from '@/components/ui/textarea';
+import { 
+  getSavedAccounts, 
+  saveAccount, 
+  deleteAccount, 
+  initializeDatabase 
+} from '@/utils/socialAccountStorage';
+import { 
+  DEFAULT_CAPTION_TEMPLATES, 
+  PLATFORM_CONFIGS 
+} from '@/config/socialMedia.config';
 
 const SocialMediaConnections: React.FC = () => {
   const [connectionState, setConnectionState] = useState<SocialMediaConnectionState>({
-    accounts: [
-      {
-        id: '1',
-        platform: 'instagram',
-        username: 'photogrammetryx',
-        connected: true,
-        lastUsed: new Date()
-      }
-    ],
+    accounts: [],
     isConnecting: false
   });
 
   const [captionTemplate, setCaptionTemplate] = useState<string>(
-    "Check out my new 3D scan of {model_name}! #3DScan #Photogrammetry"
+    DEFAULT_CAPTION_TEMPLATES.default
   );
+
+  const [isDbReady, setIsDbReady] = useState<boolean>(false);
 
   const platforms: SocialMediaAccount['platform'][] = [
     'instagram', 'twitter', 'facebook', 'tiktok', 'reddit'
   ];
 
-  const handleConnect = (platform: SocialMediaAccount['platform']) => {
+  // Initialize database and load saved accounts
+  useEffect(() => {
+    const initializeStorage = async () => {
+      const initialized = await initializeDatabase();
+      setIsDbReady(initialized);
+      
+      if (initialized) {
+        const savedAccounts = await getSavedAccounts();
+        
+        if (savedAccounts.length > 0) {
+          setConnectionState(prev => ({
+            ...prev,
+            accounts: savedAccounts
+          }));
+          
+          toast({
+            title: "Accounts Loaded",
+            description: `${savedAccounts.length} social media accounts loaded.`
+          });
+        }
+      }
+    };
+    
+    initializeStorage();
+  }, []);
+
+  const handleConnect = async (platform: SocialMediaAccount['platform']) => {
+    if (!isDbReady) {
+      toast({
+        title: "Database Not Ready",
+        description: "The account database is still initializing. Please try again in a moment.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setConnectionState(prev => ({ ...prev, isConnecting: true }));
     
-    // In a real implementation, this would redirect to OAuth flow
+    // In a production implementation, this would initiate OAuth flow
     // For demo purposes, we're simulating a successful connection
-    setTimeout(() => {
+    try {
+      // Simulate OAuth flow delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       const newAccount: SocialMediaAccount = {
         id: uuidv4(),
         platform,
         username: `demo_user_${platform}`,
         connected: true,
-        lastUsed: new Date()
+        lastUsed: new Date(),
+        accessToken: `mock-token-${uuidv4()}`,
+        refreshToken: `mock-refresh-${uuidv4()}`,
+        tokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        scopes: PLATFORM_CONFIGS[platform]?.supportedImageFormats || []
       };
+      
+      // Save account to secure storage
+      const saved = await saveAccount(newAccount);
+      
+      if (saved) {
+        setConnectionState(prev => ({
+          ...prev,
+          isConnecting: false,
+          accounts: [...prev.accounts, newAccount]
+        }));
+        
+        toast({
+          title: "Account Connected",
+          description: `Successfully connected ${platform} account.`,
+        });
+      } else {
+        throw new Error("Failed to save account");
+      }
+    } catch (error) {
+      console.error(`Error connecting to ${platform}:`, error);
+      
+      toast({
+        title: "Connection Failed",
+        description: `Failed to connect to ${platform}. Please try again.`,
+        variant: "destructive"
+      });
       
       setConnectionState(prev => ({
         ...prev,
         isConnecting: false,
-        accounts: [...prev.accounts, newAccount]
+        connectionError: error instanceof Error ? error.message : "Unknown error"
       }));
-      
-      toast({
-        title: "Account Connected",
-        description: `Successfully connected ${platform} account.`,
-      });
-    }, 1500);
+    }
   };
 
-  const handleDisconnect = (accountId: string) => {
-    setConnectionState(prev => ({
-      ...prev,
-      accounts: prev.accounts.filter(account => account.id !== accountId)
-    }));
-    
-    toast({
-      title: "Account Disconnected",
-      description: "Your social media account has been disconnected.",
-    });
+  const handleDisconnect = async (accountId: string) => {
+    try {
+      // Delete account from secure storage
+      const deleted = await deleteAccount(accountId);
+      
+      if (deleted) {
+        setConnectionState(prev => ({
+          ...prev,
+          accounts: prev.accounts.filter(account => account.id !== accountId)
+        }));
+        
+        toast({
+          title: "Account Disconnected",
+          description: "Your social media account has been disconnected.",
+        });
+      } else {
+        throw new Error("Failed to delete account");
+      }
+    } catch (error) {
+      console.error("Error disconnecting account:", error);
+      
+      toast({
+        title: "Disconnection Failed",
+        description: "Failed to disconnect account. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getConnectedAccount = (platform: SocialMediaAccount['platform']) => {
@@ -111,10 +195,14 @@ const SocialMediaConnections: React.FC = () => {
             ))}
           </div>
           
-          <div className="mt-6 text-center">
+          <div className="mt-6 flex justify-center space-x-2">
             <Button variant="outline" size="sm" className="gap-1">
               <Plus className="h-4 w-4" />
               Add Custom Platform
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1">
+              <Settings2 className="h-4 w-4" />
+              OAuth Settings
             </Button>
           </div>
         </CardContent>
