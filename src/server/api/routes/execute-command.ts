@@ -6,7 +6,7 @@ import { executeShellCommand } from '../execute-command';
  * Express route handler for the execute-command endpoint
  * This validates the request and calls executeShellCommand
  */
-export async function executeCommandHandler(req: Request, res: Response) {
+export async function executeCommandHandler(req: Request, res: Response): Promise<Response> {
   try {
     // Validate the request body
     const { command } = req.body;
