@@ -50,6 +50,12 @@ export interface RCPreviewData {
   renderViews?: string[]; // URLs to rendered views
 }
 
+export interface SocialMediaShare {
+  platform: 'instagram' | 'twitter' | 'tiktok' | 'reddit' | 'facebook';
+  enabled: boolean;
+  customText?: string;
+}
+
 export interface SketchfabMetadata {
   title: string;
   description: string;
@@ -57,4 +63,6 @@ export interface SketchfabMetadata {
   isPrivate: boolean;
   isPublished: boolean;
   password?: string;
+  storeLink?: string;
+  socialSharing?: SocialMediaShare[];
 }

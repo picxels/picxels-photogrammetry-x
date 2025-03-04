@@ -225,9 +225,11 @@ export const advancedWorkflowTemplate = (sessionName: string, subject: string, t
               `${projectFolder}/Output/${sanitizedName}.glb`, 
               `${subject} 3D Scan`, 
               `3D scan of ${subject} created with Reality Capture`,
-              "photogrammetry,3d-scan," + tags.join(",")
+              "photogrammetry,3d-scan," + tags.join(","),
+              "", // Store link (empty by default)
+              "social=instagram:false,twitter:false,facebook:false,reddit:false,tiktok:false" // Social sharing defaults
             ],
-            description: "Uploading to Sketchfab with metadata" 
+            description: "Uploading to Sketchfab with metadata and social sharing options" 
           },
           { command: "printProgress", params: ["Upload completed"] }
         ]
