@@ -1,3 +1,4 @@
+
 /**
  * Jetson Orin Nano Configuration
  * 
@@ -39,19 +40,43 @@ export const CAMERA_DEVICE_PATHS = {
     "Canon EOS Rebel T2i",
     "Canon EOS Rebel T3i",
     "Canon EOS 550D",  // European/Japanese name for T2i
-    "Canon EOS 600D"   // European/Japanese name for T3i
+    "Canon EOS 600D",   // European/Japanese name for T3i
+    "Canon EOS Digital Rebel T2i",
+    "Canon EOS Digital Rebel T3i"
   ],
   // Camera detection settings
   detection: {
     checkIntervalMs: 5000,           // How often to check for camera connection changes
-    requiredResponseTimeoutMs: 5000, // Increased timeout for camera response
+    requiredResponseTimeoutMs: 5000, // Timeout for camera response
+    maxCaptureTimeoutMs: 15000,      // Maximum time to wait for image capture (15 seconds)
+    
+    // Commands for camera detection and interaction
     usbBusCheckCommand: "lsusb",     // Command to check USB bus
     gphoto2ListCommand: "gphoto2 --auto-detect", // Command to list detected cameras
     gphoto2SummaryCommand: "gphoto2 --port={port} --summary", // Command to check camera responsiveness
     gphoto2CaptureCommand: "gphoto2 --port={port} --capture-image-and-download --filename={filename}", // Command for capture
     temporaryImageStorage: "/tmp/picxels/captures", // Directory to temporarily store captured images
-    maxCaptureTimeoutMs: 15000,      // Maximum time to wait for image capture (15 seconds)
-    cameraAbilityCommand: "gphoto2 --abilities" // Command to check camera capabilities
+    
+    // Allowed gphoto2 camera commands for security
+    allowedCommands: [
+      "gphoto2 --auto-detect",
+      "gphoto2 --abilities",
+      "gphoto2 --port={port} --summary",
+      "gphoto2 --port={port} --capture-image-and-download",
+      "gphoto2 --port={port} --get-config",
+      "mkdir -p {storage}",
+      "ls {storage}",
+      "convert {image} {output}"
+    ],
+    
+    // Command parameter templates that can be substituted
+    commandTemplates: {
+      port: "usb:\\d+,\\d+", // Regex pattern for allowable port values
+      storage: "/tmp/picxels/captures(/[\\w\\-\\.]+)*", // Regex for allowable storage paths
+      filename: "/tmp/picxels/captures(/[\\w\\-\\.]+)*\\.jpe?g", // Regex for allowable filenames
+      image: "/tmp/picxels/captures(/[\\w\\-\\.]+)*\\.jpe?g", // Regex for allowable image paths
+      output: "/tmp/picxels/captures(/[\\w\\-\\.]+)*\\.(png|jpe?g|tiff)" // Regex for allowable output paths
+    }
   }
 };
 

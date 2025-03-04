@@ -1,11 +1,8 @@
+
 import { toast } from "@/components/ui/use-toast";
 import { CameraDevice, CapturedImage, Session, Pass, ImageData } from "@/types";
 import { applyColorProfile, getCameraTypeFromId } from "./colorProfileUtils";
 import { CAMERA_DEVICE_PATHS, DEBUG_SETTINGS } from "@/config/jetson.config";
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
 
 // Check if running on Jetson platform
 const isJetsonPlatform = () => {
@@ -45,6 +42,80 @@ const mapCameraModelToType = (modelName: string): string => {
 };
 
 /**
+ * Executes a shell command on the Jetson platform
+ * @param command The command to execute
+ * @returns Promise that resolves with stdout or rejects with an error
+ */
+const executeCommand = async (command: string): Promise<string> => {
+  if (isJetsonPlatform() || !isDevelopmentMode()) {
+    try {
+      // For actual Jetson implementation, use the node-side API
+      // to execute shell commands rather than directly importing child_process
+      const response = await fetch('/api/execute-command', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ command }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Command execution failed: ${command}`);
+      }
+      
+      const data = await response.json();
+      return data.stdout;
+    } catch (error) {
+      console.error(`Error executing command '${command}':`, error);
+      throw error;
+    }
+  } else {
+    // In development mode on non-Jetson platforms, simulate command execution
+    console.log(`[DEV] Simulating execution of: ${command}`);
+    
+    // Simulate gphoto2 --auto-detect
+    if (command === 'gphoto2 --auto-detect') {
+      if (DEBUG_SETTINGS.simulateBadConnection && Math.random() > 0.5) {
+        return '';
+      }
+      return `
+Model                          Port                                            
+----------------------------------------------------------
+Canon EOS 550D                 usb:001,007
+Canon EOS 600D                 usb:002,005
+`;
+    }
+    
+    // Simulate gphoto2 --port=usb:xxx --summary
+    if (command.includes('--summary')) {
+      if (DEBUG_SETTINGS.simulateBadConnection && Math.random() > 0.3) {
+        throw new Error('Camera not responding');
+      }
+      return `
+Camera summary:                                                                
+Manufacturer: Canon Inc.
+Model: Canon EOS 550D
+  Version: 1.0.9
+  Serial Number: 2147483647
+  Vendor Extension ID: 0xb (1.0)
+`;
+    }
+    
+    // Simulate gphoto2 capture
+    if (command.includes('--capture-image-and-download')) {
+      if (DEBUG_SETTINGS.simulateBadConnection && Math.random() > 0.7) {
+        throw new Error('Camera capture failed');
+      }
+      return `
+New file is in location /tmp/picxels/captures/img_001.jpg
+`;
+    }
+    
+    return 'Command executed successfully';
+  }
+};
+
+/**
  * Parse gphoto2 --auto-detect output to get connected cameras
  * @param output The command output string from gphoto2 --auto-detect
  * @returns Array of detected cameras with their port information
@@ -81,7 +152,7 @@ const parseGphoto2Output = (output: string): { model: string, port: string }[] =
 };
 
 /**
- * Checks for physical USB camera connections on Jetson platform
+ * Checks for physical USB camera connections
  * Uses gphoto2 --auto-detect to find connected cameras
  */
 const checkUSBCameraConnections = async (): Promise<{
@@ -96,10 +167,11 @@ const checkUSBCameraConnections = async (): Promise<{
   try {
     console.log("Checking for physical USB camera connections");
     
+    // Actual implementation to run on Jetson or in production
     if (isJetsonPlatform() || !isDevelopmentMode()) {
       // Execute gphoto2 --auto-detect command to find connected cameras
       console.log("Executing gphoto2 --auto-detect");
-      const { stdout } = await execAsync('gphoto2 --auto-detect');
+      const stdout = await executeCommand('gphoto2 --auto-detect');
       console.log("gphoto2 --auto-detect output:", stdout);
       
       // Parse the output to get camera models and ports
@@ -159,10 +231,10 @@ const isCameraResponding = async (cameraId: string, portInfo?: string): Promise<
       
       // Try to get camera summary which will fail if camera is not responsive
       console.log(`Executing gphoto2 --port=${portInfo} --summary`);
-      const { stdout, stderr } = await execAsync(`gphoto2 --port=${portInfo} --summary`, { timeout: 5000 });
+      const stdout = await executeCommand(`gphoto2 --port=${portInfo} --summary`);
       
       // If we get a successful response with camera info, it's responding
-      const isResponding = !stderr.includes('Error') && stdout.includes('Camera');
+      const isResponding = stdout.includes('Camera summary') && stdout.includes('Model');
       console.log(`Camera ${cameraId} responsive: ${isResponding}`);
       return isResponding;
     }
@@ -307,7 +379,7 @@ export const captureImage = async (
       
       // Create the capture directory if it doesn't exist
       const captureDir = `/tmp/picxels/captures/${sessionId}`;
-      await execAsync(`mkdir -p ${captureDir}`);
+      await executeCommand(`mkdir -p ${captureDir}`);
       
       // Generate a filename based on timestamp and camera
       const timestamp = Date.now();
@@ -318,12 +390,12 @@ export const captureImage = async (
       const captureCommand = `gphoto2 --port=${portInfo} --capture-image-and-download --filename=${filePath}`;
       console.log(`Executing: ${captureCommand}`);
       
-      const { stdout, stderr } = await execAsync(captureCommand, { timeout: 15000 });
+      const stdout = await executeCommand(captureCommand);
       console.log("Capture output:", stdout);
       
-      if (stderr && stderr.includes('Error')) {
-        console.error("Capture error:", stderr);
-        throw new Error(`Failed to capture image: ${stderr}`);
+      if (!stdout.includes('New file')) {
+        console.error("Capture did not produce a new file");
+        throw new Error(`Failed to capture image: No file produced`);
       }
       
       // If we got this far, capture was successful
