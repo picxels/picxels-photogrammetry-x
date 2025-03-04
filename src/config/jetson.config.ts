@@ -66,5 +66,24 @@ export const DEBUG_SETTINGS = {
   logNetworkRequests: true,
   simulateCameraConnection: false,
   simulateMotorConnection: false,
-  forceUseLocalSamples: false
+  forceUseLocalSamples: false,
+  // New settings for better diagnostics
+  disableCors: false,         // If true, attempts to proxy RC Node requests
+  rcNodeDebugMode: true,      // Enables more detailed RC Node error logging
+  forceUseXhr: false,         // Use XMLHttpRequest instead of fetch for RC Node
+  useDetectPortScan: false,   // Scan common ports on RC Node host to find service
+  ignoreHttpsErrors: true,    // Ignore HTTPS certificate errors
+  saveRawResponseData: true,  // Save raw response data for debugging
+  useRelaxedAuthFlow: false   // Try with and without auth token for connections
+};
+
+// Network and communication settings
+export const NETWORK_SETTINGS = {
+  rcNodeConnectionTimeout: 10000,    // 10 seconds for initial connection test
+  rcNodeCommandTimeout: 30000,       // 30 seconds for commands
+  rcNodeHeartbeatInterval: 60000,    // Check connection every minute
+  rcNodeReconnectAttempts: 3,        // Number of reconnect attempts
+  rcNodeDefaultPort: 8000,           // Default port for RC Node
+  allowLocalNetworkOnly: false,      // Restrict connections to local network
+  enableIpv6: false                  // Enable IPv6 connections
 };

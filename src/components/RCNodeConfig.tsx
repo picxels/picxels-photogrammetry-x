@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Server, Link2, Shield, RefreshCw, Terminal, Copy } from "lucide-react";
+import { Server, Link2, Shield, RefreshCw, Terminal, Copy, AlertCircle } from "lucide-react";
 import { RCNodeConfig } from "@/types";
-import { loadRCNodeConfig, saveRCNodeConfig, testRCNodeConnection } from "@/utils/rcNodeService";
+import { loadRCNodeConfig, saveRCNodeConfig, testRCNodeConnection, testServerReachable } from "@/utils/rcNodeService";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface RCNodeConfigProps {
   onConnectionStatusChange?: (isConnected: boolean) => void;
@@ -21,8 +22,10 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
 }) => {
   const [config, setConfig] = useState<RCNodeConfig>(loadRCNodeConfig);
   const [isTesting, setIsTesting] = useState(false);
+  const [isServerReachable, setIsServerReachable] = useState<boolean | null>(null);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [debugLog, setDebugLog] = useState<string[]>([]);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   // Effect to test connection on initial load if both URL and token are present
   useEffect(() => {
@@ -39,20 +42,61 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
   // Add debug log entry
   const addLogEntry = (message: string) => {
     const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
-    setDebugLog(prev => [...prev, `[${timestamp}] ${message}`].slice(-10));
+    setDebugLog(prev => [...prev, `[${timestamp}] ${message}`].slice(-15)); // Keep last 15 messages
   };
 
   const handleSaveConfig = () => {
-    saveRCNodeConfig(config);
-    addLogEntry(`Config saved: URL=${config.nodeUrl}, Token=${config.authToken.substring(0, 8)}...`);
+    // Remove trailing slash for consistency
+    const normalizedUrl = config.nodeUrl.endsWith('/') 
+      ? config.nodeUrl.slice(0, -1) 
+      : config.nodeUrl;
+    
+    const updatedConfig = {
+      ...config,
+      nodeUrl: normalizedUrl
+    };
+    
+    setConfig(updatedConfig);
+    saveRCNodeConfig(updatedConfig);
+    addLogEntry(`Config saved: URL=${normalizedUrl}, Token=${config.authToken.substring(0, 8)}...`);
+    
     toast({
       title: "Configuration Saved",
       description: "RC Node configuration has been saved to local storage."
     });
   };
 
+  const checkServerReachable = async () => {
+    if (!config.nodeUrl) return;
+    
+    addLogEntry(`Checking if server is reachable: ${config.nodeUrl}`);
+    const result = await testServerReachable(config.nodeUrl);
+    
+    setIsServerReachable(result.reachable);
+    addLogEntry(`Server reachability: ${result.reachable ? 'YES' : 'NO - ' + result.error}`);
+    
+    return result.reachable;
+  };
+
   const handleTestConnection = async () => {
     setIsTesting(true);
+    setConnectionError(null);
+    
+    // First check if server is reachable at all
+    const isReachable = await checkServerReachable();
+    if (!isReachable) {
+      addLogEntry(`Server is not reachable at ${config.nodeUrl}`);
+      setConnectionError(`Server is not reachable at ${config.nodeUrl}. Check if the server is running and the URL is correct.`);
+      setIsTesting(false);
+      
+      if (onConnectionStatusChange) {
+        onConnectionStatusChange(false);
+      }
+      
+      return;
+    }
+    
+    // Then test the actual RC Node connection with auth
     addLogEntry(`Testing connection to ${config.nodeUrl}`);
     
     try {
@@ -64,12 +108,17 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
       }
       
       addLogEntry(`Connection test ${isConnected ? 'successful' : 'failed'}`);
+      
+      if (!isConnected) {
+        setConnectionError("Connection failed. Check console for details.");
+      }
     } finally {
       setIsTesting(false);
     }
   };
 
   const handleCurlCommand = () => {
+    // Remove trailing slash for consistency
     const baseUrl = config.nodeUrl.endsWith('/') ? config.nodeUrl.slice(0, -1) : config.nodeUrl;
     const curlCommand = `curl ${baseUrl}/node/status -H "Authorization: Bearer ${config.authToken}"`;
     
@@ -120,7 +169,7 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            The URL where your Reality Capture Node is accessible, including port
+            The URL where your Reality Capture Node is accessible, including port (no trailing slash)
           </p>
         </div>
 
@@ -142,6 +191,16 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
           </p>
         </div>
 
+        {connectionError && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Connection Error</AlertTitle>
+            <AlertDescription>
+              {connectionError}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Separator className="my-4" />
 
         <div className="text-sm">
@@ -149,6 +208,14 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
           <div className="mt-1 flex items-center">
             <div className={`h-2 w-2 rounded-full mr-2 ${config.isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
             <span>{config.isConnected ? 'Connected to RC Node' : 'Not connected'}</span>
+            {isServerReachable !== null && (
+              <Badge 
+                variant="outline" 
+                className={`ml-2 ${isServerReachable ? 'bg-blue-500/10 text-blue-500' : 'bg-orange-500/10 text-orange-500'}`}
+              >
+                Server {isServerReachable ? 'Reachable' : 'Unreachable'}
+              </Badge>
+            )}
           </div>
         </div>
         
@@ -188,8 +255,19 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
               )}
               
               <p className="text-xs text-muted-foreground mt-2">
-                You can use this command in a terminal to test the connection directly.
+                You can use this command in a terminal to test the connection directly. If the terminal works but the app doesn't, it might be a CORS issue.
               </p>
+              
+              <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+                <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400">Troubleshooting Tips:</p>
+                <ul className="text-xs ml-4 list-disc text-muted-foreground mt-1 space-y-1">
+                  <li>Make sure the URL has no trailing slash</li>
+                  <li>Verify the auth token is correct</li>
+                  <li>Check that the RC Node server is running</li>
+                  <li>Try accessing the URL directly in a browser</li>
+                  <li>Check network settings and firewalls</li>
+                </ul>
+              </div>
             </div>
           </CollapsibleContent>
         </Collapsible>

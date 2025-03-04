@@ -34,24 +34,47 @@ export const saveRCNodeConfig = (config: Partial<RCNodeConfig>): void => {
 };
 
 /**
+ * Normalize URL to ensure proper format
+ */
+const normalizeUrl = (url: string): string => {
+  // Remove trailing slash for consistency
+  return url.endsWith('/') ? url.slice(0, -1) : url;
+};
+
+/**
  * Tests connection to RC Node
  */
 export const testRCNodeConnection = async (config: RCNodeConfig): Promise<boolean> => {
   try {
-    // Make sure URL doesn't end with a slash to prevent double slashes
-    const baseUrl = config.nodeUrl.endsWith('/') ? config.nodeUrl.slice(0, -1) : config.nodeUrl;
+    // Normalize URL
+    const baseUrl = normalizeUrl(config.nodeUrl);
     const url = `${baseUrl}/node/status`;
     
     console.log(`Testing connection to RC Node at: ${url}`);
     console.log(`Using auth token: ${config.authToken.substring(0, 8)}...`);
     
-    const response = await fetch(url, {
+    // Add a timestamp to prevent caching
+    const urlWithNoCache = `${url}?t=${Date.now()}`;
+    
+    // Create a new AbortController to set a timeout for the fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+    
+    const response = await fetch(urlWithNoCache, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${config.authToken}`,
-        'Accept': 'application/json'
-      }
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      },
+      signal: controller.signal,
+      mode: 'cors', // Ensure CORS is enabled
+      credentials: 'same-origin' // Don't send cookies for cross-origin requests
     });
+    
+    // Clear the timeout
+    clearTimeout(timeoutId);
     
     console.log(`Response status: ${response.status}`);
     
@@ -64,41 +87,103 @@ export const testRCNodeConnection = async (config: RCNodeConfig): Promise<boolea
     let data;
     try {
       data = await response.json();
+      console.log("RC Node status response:", data);
+      
+      // Verify essential fields to ensure it's a valid RC Node
+      if (!data.status || !data.apiVersion) {
+        throw new Error("Invalid RC Node response format");
+      }
+      
+      toast({
+        title: "Connection Successful",
+        description: `Connected to RC Node version ${data.apiVersion || 'unknown'}`,
+      });
+      
+      return true;
     } catch (parseError) {
       console.error("Failed to parse response as JSON:", parseError);
       const responseText = await response.text();
       console.log("Raw response:", responseText);
       throw new Error("Invalid JSON response from server");
     }
-    
-    console.log("RC Node status response:", data);
-    
-    toast({
-      title: "Connection Successful",
-      description: `Connected to RC Node version ${data.apiVersion || 'unknown'}`,
-    });
-    
-    return true;
   } catch (error) {
     console.error("RC Node connection error:", error);
     
-    // More detailed error message
+    // More detailed error message based on error type
     let errorMessage = "Failed to connect to RC Node. ";
     
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      errorMessage += "Network error - server might be down or URL incorrect.";
+    if (error.name === 'AbortError') {
+      errorMessage += "Connection timed out after 10 seconds.";
+    } else if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      errorMessage += "Network error - server might be down, URL incorrect, or CORS blocked.";
     } else if (error instanceof Error) {
       errorMessage += error.message;
     }
     
-    toast({
-      title: "Connection Failed",
-      description: errorMessage,
-      variant: "destructive"
+    // Try a direct connection check using XMLHttpRequest for debugging
+    doFallbackConnectionTest(config).then(fallbackResult => {
+      if (fallbackResult.success) {
+        console.log("Fallback connection test succeeded with XHR");
+        errorMessage += " However, a fallback connection method worked - this may be a CORS issue.";
+      } else {
+        console.log("Fallback connection also failed:", fallbackResult.error);
+      }
+      
+      toast({
+        title: "Connection Failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
     });
     
     return false;
   }
+};
+
+/**
+ * A fallback connection test using XMLHttpRequest which may have different CORS behavior
+ */
+const doFallbackConnectionTest = (config: RCNodeConfig): Promise<{success: boolean, error?: string}> => {
+  return new Promise((resolve) => {
+    try {
+      const baseUrl = normalizeUrl(config.nodeUrl);
+      const url = `${baseUrl}/node/status?t=${Date.now()}`;
+      
+      console.log("Trying fallback connection test with XMLHttpRequest");
+      
+      const xhr = new XMLHttpRequest();
+      xhr.timeout = 5000; // 5 second timeout
+      
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            console.log("XHR fallback success:", xhr.responseText);
+            resolve({success: true});
+          } else {
+            resolve({
+              success: false, 
+              error: `XHR failed with status: ${xhr.status} - ${xhr.statusText}`
+            });
+          }
+        }
+      };
+      
+      xhr.ontimeout = function() {
+        resolve({success: false, error: "XHR timeout"});
+      };
+      
+      xhr.onerror = function() {
+        resolve({success: false, error: "XHR network error"});
+      };
+      
+      xhr.open("GET", url, true);
+      xhr.setRequestHeader("Authorization", `Bearer ${config.authToken}`);
+      xhr.setRequestHeader("Accept", "application/json");
+      xhr.send();
+    } catch (error) {
+      resolve({success: false, error: error.message});
+    }
+  });
 };
 
 /**
@@ -110,8 +195,8 @@ export const sendRCNodeCommand = async (
   params: Record<string, string> = {}
 ): Promise<any> => {
   try {
-    // Make sure URL doesn't end with a slash
-    const baseUrl = config.nodeUrl.endsWith('/') ? config.nodeUrl.slice(0, -1) : config.nodeUrl;
+    // Normalize URL
+    const baseUrl = normalizeUrl(config.nodeUrl);
     
     // Construct query parameters
     const queryParams = new URLSearchParams();
@@ -125,13 +210,20 @@ export const sendRCNodeCommand = async (
     const url = `${baseUrl}/project/command?${queryParams.toString()}`;
     console.log(`Sending RC Node command: ${commandName} to URL: ${url}`);
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout for commands
+    
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${config.authToken}`,
-        'Accept': 'application/json'
-      }
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      },
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -143,5 +235,43 @@ export const sendRCNodeCommand = async (
   } catch (error) {
     console.error(`RC Node command '${commandName}' error:`, error);
     throw error;
+  }
+};
+
+/**
+ * Utility to test if a server is accessible (even without authorization)
+ */
+export const testServerReachable = async (url: string): Promise<{reachable: boolean, error?: string}> => {
+  try {
+    // Normalize URL
+    const baseUrl = normalizeUrl(url);
+    
+    // Create a new AbortController to set a timeout for the fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5-second timeout
+    
+    // Send a basic HEAD request just to check if server responds
+    const response = await fetch(`${baseUrl}`, {
+      method: 'HEAD',
+      signal: controller.signal,
+      mode: 'no-cors' // This allows checking if server exists even without CORS headers
+    });
+    
+    // Clear the timeout
+    clearTimeout(timeoutId);
+    
+    // If we get here, the server is reachable (even if it returns an error code)
+    return { reachable: true };
+  } catch (error) {
+    let errorMessage = "Server unreachable";
+    if (error.name === 'AbortError') {
+      errorMessage = "Connection timed out";
+    } else if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      errorMessage = "Network error - server might be down or URL incorrect";
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    
+    return { reachable: false, error: errorMessage };
   }
 };
