@@ -10,7 +10,7 @@ export const advancedWorkflowTemplate = (sessionName: string, subject: string, t
     metadata: {
       description: `Full photogrammetry pipeline for ${subject}`,
       tags: tags,
-      requiresMarkers: true,
+      requiredMarkers: true,
       requiresMasks: true,
       requiresTextures: true,
       version: "1.0"

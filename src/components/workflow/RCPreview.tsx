@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { RCPreviewData } from '@/types/workflow';
-import { AlertCircle, CubeIcon, Image } from 'lucide-react';
+import { AlertCircle, Cube, Image } from 'lucide-react';
 
 interface RCPreviewProps {
   previewData?: RCPreviewData;
@@ -18,7 +17,6 @@ const RCPreview: React.FC<RCPreviewProps> = ({
 }) => {
   const [currentViewIndex, setCurrentViewIndex] = useState(0);
 
-  // Rotate through render views if available
   useEffect(() => {
     if (previewData?.renderViews && previewData.renderViews.length > 0) {
       const interval = setInterval(() => {
@@ -35,7 +33,7 @@ const RCPreview: React.FC<RCPreviewProps> = ({
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <CubeIcon className="h-5 w-5 text-primary" />
+            <Cube className="h-5 w-5 text-primary" />
             <span>RC Visualization</span>
           </CardTitle>
         </CardHeader>
@@ -54,7 +52,7 @@ const RCPreview: React.FC<RCPreviewProps> = ({
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <CubeIcon className="h-5 w-5 text-primary" />
+            <Cube className="h-5 w-5 text-primary" />
             <span>RC Visualization</span>
           </CardTitle>
         </CardHeader>
@@ -71,7 +69,6 @@ const RCPreview: React.FC<RCPreviewProps> = ({
     );
   }
 
-  // Determine what to display - WebGL preview or rendered views
   const hasPreview = previewData.previewUrl;
   const hasRenderViews = previewData.renderViews && previewData.renderViews.length > 0;
   const currentView = hasRenderViews ? previewData.renderViews[currentViewIndex] : undefined;
@@ -80,7 +77,7 @@ const RCPreview: React.FC<RCPreviewProps> = ({
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
-          <CubeIcon className="h-5 w-5 text-primary" />
+          <Cube className="h-5 w-5 text-primary" />
           <span>RC Visualization</span>
           {previewData.modelStats && (
             <Badge variant="outline" className="ml-auto text-xs font-normal">
