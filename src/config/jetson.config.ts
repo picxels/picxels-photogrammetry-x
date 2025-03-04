@@ -47,8 +47,7 @@ export const SYSTEM_REQUIREMENTS = {
   minCudaVersion: "11.4",
   minTensorRTVersion: "8.5.2",
   recommendedNvccPath: "/usr/local/cuda/bin/nvcc",
-  pythonVersion: "3.8",
-  nodeVersion: "12.22.9" // Specifically requiring Node.js 12.22.9
+  pythonVersion: "3.8"
 };
 
 // Performance settings
