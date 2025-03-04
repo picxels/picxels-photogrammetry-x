@@ -1,5 +1,5 @@
 
-import express, { Request, Response } from 'express';
+import express from 'express';
 import path from 'path';
 import { executeCommandHandler } from './api/routes/execute-command';
 
@@ -12,9 +12,7 @@ if (require.main === module) {
   app.use(express.json());
   
   // API routes - use correct Express route handler pattern
-  app.post('/api/execute-command', (req: Request, res: Response) => {
-    return executeCommandHandler(req, res);
-  });
+  app.post('/api/execute-command', executeCommandHandler);
   
   // Serve static files from the dist directory
   app.use(express.static(path.join(__dirname, '../../dist')));
