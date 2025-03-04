@@ -4,33 +4,13 @@ import { CapturedImage } from "@/types";
 import { isJetsonPlatform, isDevelopmentMode } from "./platformUtils";
 import { executeCommand } from "./commandUtils";
 import { applyColorProfile, getCameraTypeFromId } from "./colorProfileUtils";
+import { getSampleImageUrl } from "./sampleImageUtils";
+import { checkImageSharpness, generateImageMask } from "./imageQualityUtils";
 import { CAMERA_DEVICE_PATHS } from "@/config/jetson.config";
 
-const getSampleImageUrl = (cameraId: string, angle?: number): string => {
-  const isDev = isDevelopmentMode();
-  
-  const defaultImages = [
-    "/sample_images/sample1.jpg",
-    "/sample_images/sample2.jpg",
-    "/sample_images/sample3.jpg",
-    "/sample_images/sample4.jpg"
-  ];
-  
-  if (isDev) {
-    if (cameraId.includes("t2i")) {
-      return "https://images.unsplash.com/photo-1568605114967-8130f3a36994";
-    } else {
-      return "https://images.unsplash.com/photo-1601924994987-69e26d50dc26";
-    }
-  }
-  
-  const imageIndex = (angle && angle > 0) 
-    ? Math.floor((angle / 360) * defaultImages.length) % defaultImages.length 
-    : Math.floor(Math.random() * defaultImages.length);
-    
-  return defaultImages[imageIndex];
-};
-
+/**
+ * Captures an image from a camera and processes it
+ */
 export const captureImage = async (
   cameraId: string,
   sessionId: string,
@@ -163,17 +143,5 @@ export const captureImage = async (
   }
 };
 
-export const checkImageSharpness = (image: CapturedImage): boolean => {
-  return (image.sharpness || 0) >= 80;
-};
-
-export const generateImageMask = async (image: CapturedImage): Promise<CapturedImage> => {
-  console.log(`Generating background mask for image: ${image.id}`);
-  
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-  
-  return {
-    ...image,
-    hasMask: true
-  };
-};
+// Re-export functions from imageQualityUtils
+export { checkImageSharpness, generateImageMask } from "./imageQualityUtils";
