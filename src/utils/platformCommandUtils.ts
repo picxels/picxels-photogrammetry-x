@@ -30,7 +30,8 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
         
-        // Updated endpoint path to match the server configuration
+        // Use correct API endpoint path
+        console.log("Sending request to /api/execute-command endpoint");
         const response = await fetch('/api/execute-command', {
           method: 'POST',
           headers: {

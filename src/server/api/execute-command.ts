@@ -8,14 +8,19 @@ import { DEBUG_SETTINGS } from '@/config/jetson.config';
 export default function registerExecuteCommandRoutes(router: any) {
   // Register the POST route for executing commands
   router.post('/execute-command', async (req: Request, res: Response) => {
+    console.log('API endpoint hit: /api/execute-command');
+    console.log('Request body:', req.body);
+    
     try {
       const { command } = req.body;
 
       if (!command) {
+        console.error('No command provided in request');
         return res.status(400).json({ error: 'No command provided' });
       }
 
       if (!validateCommand(command)) {
+        console.error(`Command validation failed: ${command}`);
         return res.status(403).json({ error: 'Command not allowed' });
       }
 
@@ -40,5 +45,10 @@ export default function registerExecuteCommandRoutes(router: any) {
       console.error('Server error:', error);
       return res.status(500).json({ error: 'Internal server error' });
     }
+  });
+  
+  // Add a test route to verify the API is accessible
+  router.get('/command-test', (req: Request, res: Response) => {
+    res.json({ message: 'Command API is accessible' });
   });
 }
