@@ -23,15 +23,19 @@ sudo apt upgrade -y
 ### 1.2 Install essential dependencies
 
 ```bash
-sudo apt install -y git curl wget nodejs npm python3-pip libgphoto2-dev libjpeg-dev \
+sudo apt install -y git curl wget libgphoto2-dev libjpeg-dev \
   libpng-dev libtiff-dev libwebp-dev libopenjp2-7-dev libtbb-dev sqlite3 libsqlite3-dev
 ```
 
-### 1.3 Install Node.js 18 (if not already installed)
+### 1.3 Install Node.js 12.22.9
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
+# Install Node.js 12.22.9 using the package manager
+sudo apt install -y libnode-dev=12.22.9* nodejs=12.22.9* npm
+
+# Verify installation
+node -v  # Should output v12.22.9
+npm -v   # Verify npm version
 ```
 
 ## 2. Install CUDA and TensorRT (if not already installed)
@@ -149,6 +153,8 @@ cd picxels-photogrammetry-x
 ### 8.2 Install dependencies
 
 ```bash
+# Use a specific npm version compatible with Node.js 12.22.9
+npm install -g npm@6.14.16
 npm install
 ```
 
@@ -178,6 +184,8 @@ EOF
 ### 8.4 Build the application
 
 ```bash
+# Set Node.js options for older Node versions if needed
+export NODE_OPTIONS=--max-old-space-size=4096
 npm run build
 ```
 
@@ -233,6 +241,17 @@ The application will be available at http://localhost:8080 by default.
 4. Your accounts will be securely stored in the local SQLite database
 
 ## 12. Troubleshooting
+
+### Node.js Compatibility Issues
+
+If you encounter errors related to Node.js version 12.22.9:
+
+- For ES module import errors, modify the `type` in package.json to "commonjs"
+- For memory limitations, use `export NODE_OPTIONS=--max-old-space-size=4096` before running commands
+- Some newer npm packages may not be compatible with Node.js 12; if errors persist, consider downgrading those packages:
+  ```bash
+  npm install package-name@older-version
+  ```
 
 ### Model Path Issues
 
