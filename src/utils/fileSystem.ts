@@ -1,6 +1,7 @@
 
-import { ExportSettings, Session } from "@/types";
+import { ExportSettings, RCNodeConfig, Session } from "@/types";
 import { toast } from "@/components/ui/use-toast";
+import { exportSessionToRealityCapture } from "./rcRealityCaptureService";
 
 // Save session data locally
 export const saveSession = async (session: Session): Promise<void> => {
@@ -43,7 +44,8 @@ export const saveImageLocally = async (imageData: any): Promise<void> => {
 // Export session data and images
 export const exportSession = async (
   session: Session,
-  settings?: ExportSettings
+  settings?: ExportSettings,
+  rcNodeConfig?: RCNodeConfig
 ): Promise<void> => {
   try {
     console.log("Exporting session with settings:", settings);
@@ -70,11 +72,17 @@ export const exportSession = async (
       console.log("Exporting B&W masks for background removal");
     }
     
-    if (sendToRealityCapture) {
+    // If sending to Reality Capture and RC Node config is provided
+    if (sendToRealityCapture && rcNodeConfig && rcNodeConfig.isConnected) {
       console.log("Sending data to Reality Capture Node");
-      // Simulate RC Node communication
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      console.log("Reality Capture Node acknowledged receipt");
+      await exportSessionToRealityCapture(session, rcNodeConfig, settings || {
+        exportPng: true,
+        exportTiff: false,
+        exportMasks: false,
+        sendToRealityCapture: true
+      });
+    } else if (sendToRealityCapture) {
+      console.log("Cannot send to Reality Capture Node: not connected or no config provided");
     }
     
     toast({

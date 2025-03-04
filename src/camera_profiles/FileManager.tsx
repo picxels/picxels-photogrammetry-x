@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Session } from "@/types";
+import { RCNodeConfig, Session } from "@/types";
 import { exportSession, saveSession } from "@/utils/fileSystem";
+import { loadRCNodeConfig } from "@/utils/rcNodeService";
 
 interface FileManagerProps {
   session: Session;
@@ -17,6 +18,7 @@ interface FileManagerProps {
   isSaving?: boolean;
   isExporting?: boolean;
   rcNodeConnected?: boolean;
+  rcNodeConfig?: RCNodeConfig;
 }
 
 const FileManager: React.FC<FileManagerProps> = ({
@@ -25,7 +27,8 @@ const FileManager: React.FC<FileManagerProps> = ({
   onSessionRefresh,
   isSaving = false,
   isExporting = false,
-  rcNodeConnected = false
+  rcNodeConnected = false,
+  rcNodeConfig
 }) => {
   const [exportSettings, setExportSettings] = React.useState({
     exportPng: true,
@@ -39,7 +42,8 @@ const FileManager: React.FC<FileManagerProps> = ({
   };
 
   const handleExportSession = async () => {
-    await exportSession(session, exportSettings);
+    const config = rcNodeConfig || (rcNodeConnected ? loadRCNodeConfig() : undefined);
+    await exportSession(session, exportSettings, config);
   };
 
   const getSessionStats = () => {

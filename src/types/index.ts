@@ -1,58 +1,7 @@
-
-// This file contains all the type definitions for the application
-// Note: This is a read-only file that we're modifying specifically by your request
-
-export interface CameraDevice {
-  id: string;
-  name: string;
-  type: string;
-  connected: boolean;
-  status: "idle" | "capturing" | "error" | "processing";
-}
-
-export interface CapturedImage {
-  id: string;
-  sessionId: string;
-  path: string;
-  timestamp: number;
-  camera: string;
-  angle?: number;
-  previewUrl?: string;
-  sharpness?: number;
-  hasMask?: boolean;
-  hasColorProfile?: boolean;
-  colorProfileType?: string;
-}
-
-export interface Session {
-  id: string;
-  name: string;
-  timestamp: number;
-  images: CapturedImage[];
-  completed?: boolean;
-  imageQuality?: number;
-  subjectMatter?: string;
-}
-
-export interface MotorPosition {
-  angle: number;
-  step: number;
-}
-
-export interface MotorSettings {
-  stepsPerRevolution: number;
-  maxSpeed: number;
-  acceleration: number;
-  currentPosition: MotorPosition; // Added missing property
-}
-
-export interface AnalysisResult {
-  subject: string;
-  confidence: number;
-  tags: string[]; // Added missing property
-  properties?: {
-    [key: string]: any;
-  };
+export interface RCNodeConfig {
+  nodeUrl: string;
+  authToken: string;
+  isConnected: boolean;
 }
 
 export interface ExportSettings {
@@ -62,8 +11,33 @@ export interface ExportSettings {
   sendToRealityCapture: boolean;
 }
 
-export interface RCNodeConfig {
-  nodeUrl: string;
-  authToken: string;
-  isConnected: boolean;
+export interface CameraSettings {
+  // Define camera settings properties here
+}
+
+export interface Session {
+  id: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+  images: ImageData[];
+  imageQuality?: number;
+  subjectMatter?: string;
+  // Add any other session properties needed
+}
+
+export interface ImageData {
+  id: string;
+  url: string;
+  camera: string;
+  angle: number;
+  timestamp: Date;
+  hasMask?: boolean;
+  // Add other image properties as needed
+}
+
+export interface CameraProfile {
+  id: string;
+  name: string;
+  settings: CameraSettings;
 }
