@@ -1,3 +1,4 @@
+
 export interface RCNodeConfig {
   nodeUrl: string;
   authToken: string;
@@ -13,6 +14,11 @@ export interface ExportSettings {
 
 export interface CameraSettings {
   // Define camera settings properties here
+  iso?: number;
+  shutterSpeed?: string;
+  aperture?: number;
+  whiteBalance?: string;
+  focusMode?: string;
 }
 
 export interface Session {
@@ -23,7 +29,16 @@ export interface Session {
   images: ImageData[];
   imageQuality?: number;
   subjectMatter?: string;
+  passes: Pass[];
   // Add any other session properties needed
+}
+
+export interface Pass {
+  id: string;
+  name: string;
+  timestamp: number;
+  images: CapturedImage[];
+  completed: boolean;
 }
 
 export interface ImageData {
@@ -36,8 +51,49 @@ export interface ImageData {
   // Add other image properties as needed
 }
 
+export interface CapturedImage {
+  id: string;
+  sessionId: string;
+  path: string;
+  timestamp: number;
+  camera: string;
+  angle?: number;
+  previewUrl: string;
+  sharpness?: number;
+  hasMask?: boolean;
+}
+
 export interface CameraProfile {
   id: string;
   name: string;
   settings: CameraSettings;
+}
+
+export interface CameraDevice {
+  id: string;
+  name: string;
+  type: string;
+  connected: boolean;
+  status: string;
+}
+
+export interface MotorPosition {
+  angle: number;
+  step: number;
+}
+
+export interface MotorSettings {
+  stepsPerRotation: number;
+  stepSize: number;
+  maxSpeed: number;
+  acceleration: number;
+  scanSteps: number;
+  pauseTimeBetweenSteps: number;
+}
+
+export interface AnalysisResult {
+  subject: string;
+  confidence: number;
+  suggestions?: string[];
+  metadata?: Record<string, any>;
 }

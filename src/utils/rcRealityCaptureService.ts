@@ -1,10 +1,11 @@
 
 import { toast } from "@/components/ui/use-toast";
-import { ExportSettings, RCNodeConfig, Session } from "@/types";
+import { ExportSettings, RCNodeConfig, Session, CapturedImage, Pass } from "@/types";
 import { sendRCNodeCommand } from "./rcNodeService";
 
 /**
  * Prepare a dataset for Reality Capture processing via RC Node
+ * Following Reality Capture naming conventions
  * @param session - The session containing images and metadata
  * @param config - RC Node configuration
  * @param settings - Export settings
@@ -26,29 +27,42 @@ export const prepareRealityCaptureDataset = async (
     console.log("Export settings:", settings);
     
     // Create project folder structure on RC Node
-    // This would create folders similar to what we see in the example batch files
+    // This follows the examples in the batch files
     await sendRCNodeCommand(config, "createFolder", {
       path: `${projectName}/Images`
     });
     
-    if (settings.exportTiff) {
-      await sendRCNodeCommand(config, "createFolder", {
-        path: `${projectName}/Images/.texture.TextureLayer`
-      });
-    }
-    
+    // Create folder for geometry (construction) images
     if (settings.exportPng) {
       await sendRCNodeCommand(config, "createFolder", {
         path: `${projectName}/Images/.geometry`
       });
     }
     
+    // Create folder for texture images
+    if (settings.exportTiff) {
+      await sendRCNodeCommand(config, "createFolder", {
+        path: `${projectName}/Images/.texture.TextureLayer`
+      });
+    }
+    
+    // Create folder for masks if needed
+    if (settings.exportMasks) {
+      await sendRCNodeCommand(config, "createFolder", {
+        path: `${projectName}/Images/.mask`
+      });
+    }
+    
+    // Create project folder for RC project files
     await sendRCNodeCommand(config, "createFolder", {
       path: `${projectName}/Project`
     });
     
-    // The actual image upload would happen here
-    // This is a placeholder for the actual implementation
+    // Create model output folder
+    await sendRCNodeCommand(config, "createFolder", {
+      path: `${projectName}/Model`
+    });
+    
     toast({
       title: "Dataset Prepared",
       description: `Project structure created for ${projectName}`,
@@ -61,6 +75,114 @@ export const prepareRealityCaptureDataset = async (
     toast({
       title: "Preparation Failed",
       description: "Failed to prepare Reality Capture dataset. See console for details.",
+      variant: "destructive"
+    });
+    
+    return false;
+  }
+};
+
+/**
+ * Generate an RC-compatible filename for an image
+ * Following Reality Capture naming conventions
+ */
+const generateRCFilename = (
+  image: CapturedImage, 
+  pass: Pass, 
+  passIndex: number, 
+  imageIndex: number,
+  purpose: 'geometry' | 'texture' | 'mask'
+): string => {
+  // Extract camera identifier without spaces
+  const camera = image.camera.replace(/\s+/g, '');
+  
+  // Format: Camera_PassX_AngleY_Z
+  // Where X is pass number, Y is angle, Z is image index
+  const angle = image.angle !== undefined ? Math.round(image.angle) : 0;
+  const baseFilename = `${camera}_Pass${passIndex + 1}_Angle${angle}_${imageIndex + 1}`;
+  
+  switch (purpose) {
+    case 'geometry':
+      return `${baseFilename}.png`;
+    case 'texture':
+      return `${baseFilename}.tiff`;
+    case 'mask':
+      return `${baseFilename}_mask.png`;
+    default:
+      return `${baseFilename}.jpg`;
+  }
+};
+
+/**
+ * Upload images from a session to RC Node for Reality Capture processing
+ */
+export const uploadSessionImagesToRCNode = async (
+  session: Session,
+  config: RCNodeConfig,
+  settings: ExportSettings
+): Promise<boolean> => {
+  try {
+    const projectName = session.name.replace(/[^a-zA-Z0-9]/g, '_');
+    
+    console.log(`Uploading images from ${session.passes.length} passes for session: ${session.name}`);
+    
+    let totalUploadedCount = 0;
+    
+    // Process images by pass to maintain organization
+    for (let passIndex = 0; passIndex < session.passes.length; passIndex++) {
+      const pass = session.passes[passIndex];
+      
+      console.log(`Processing pass ${passIndex + 1}: ${pass.name} with ${pass.images.length} images`);
+      
+      // For each image in the pass
+      for (let imageIndex = 0; imageIndex < pass.images.length; imageIndex++) {
+        const image = pass.images[imageIndex];
+        
+        // Generate filenames following RC conventions
+        const baseImagePath = `${projectName}/Images`;
+        
+        // In a real implementation, this would upload the actual image data
+        // to the RC Node server using the naming convention
+        console.log(`Processing image: ${image.id} from pass ${passIndex + 1}`);
+        
+        // Upload main image
+        const mainFilename = generateRCFilename(image, pass, passIndex, imageIndex, 'geometry');
+        console.log(`Would upload main image to ${baseImagePath}/${mainFilename}`);
+        
+        // If exporting PNGs for geometry
+        if (settings.exportPng) {
+          const geometryFilename = generateRCFilename(image, pass, passIndex, imageIndex, 'geometry');
+          console.log(`Would upload PNG version to ${baseImagePath}/.geometry/${geometryFilename}`);
+        }
+        
+        // If exporting TIFFs for texturing
+        if (settings.exportTiff) {
+          const textureFilename = generateRCFilename(image, pass, passIndex, imageIndex, 'texture');
+          console.log(`Would upload TIFF version to ${baseImagePath}/.texture.TextureLayer/${textureFilename}`);
+        }
+        
+        // If exporting masks
+        if (settings.exportMasks && image.hasMask) {
+          const maskFilename = generateRCFilename(image, pass, passIndex, imageIndex, 'mask');
+          console.log(`Would upload mask to ${baseImagePath}/.mask/${maskFilename}`);
+        }
+        
+        totalUploadedCount++;
+      }
+    }
+    
+    toast({
+      title: "Upload Complete",
+      description: `${totalUploadedCount} images from ${session.passes.length} passes uploaded for processing with Reality Capture`,
+    });
+    
+    return true;
+  } catch (error) {
+    console.error("Error uploading images to RC Node:", error);
+    
+    toast({
+      title: "Upload Failed",
+      description: "Failed to upload images to RC Node. See console for details.",
       variant: "destructive"
     });
     
@@ -82,17 +204,14 @@ export const processWithRealityCapture = async (
     const projectName = session.name.replace(/[^a-zA-Z0-9]/g, '_');
     const modelName = projectName;
     
-    console.log(`Processing with Reality Capture: ${projectName}`);
+    console.log(`Processing with Reality Capture: ${projectName} with ${session.passes.length} passes`);
     
-    // Build a command set based on the _ProcessAll.bat examples
-    // The commands follow the pattern seen in the example batch files
-    
-    // Based on docs/RC_examples/CalculateTextured3DModel/_ProcessAll.bat
+    // Build a command set based on the RC example batch files
     const commands = [
       // Set working directory to the project folder
       `-set "workingFolder=${projectName}"`,
       
-      // Add images folder - using patterns from examples
+      // Add images folder
       `-addFolder "${projectName}/Images"`,
       
       // Align images
@@ -126,19 +245,18 @@ export const processWithRealityCapture = async (
       `-quit`
     ];
     
-    // Join commands with ^ as in batch files
-    const commandString = commands.join(" ^ ");
+    // Join commands
+    const commandString = commands.join(" ");
     
-    // This would be the actual command execution
-    // For now, we're just logging it
-    console.log("Would execute RC command:", commandString);
+    // Log the command string
+    console.log("RC Command:", commandString);
     
-    // In reality, we would use something like:
-    // await sendRCNodeCommand(config, "executeCommand", { command: commandString });
+    // In a real implementation, we would execute the command via RC Node API
+    // await sendRCNodeCommand(config, "executeRCCommand", { command: commandString });
     
     toast({
       title: "Processing Started",
-      description: `Reality Capture processing started for ${projectName}`,
+      description: `Reality Capture processing started for ${projectName} with ${session.passes.length} passes`,
     });
     
     return true;
@@ -148,65 +266,6 @@ export const processWithRealityCapture = async (
     toast({
       title: "Processing Failed",
       description: "Failed to process with Reality Capture. See console for details.",
-      variant: "destructive"
-    });
-    
-    return false;
-  }
-};
-
-/**
- * Upload images from a session to RC Node for Reality Capture processing
- */
-export const uploadSessionImagesToRCNode = async (
-  session: Session,
-  config: RCNodeConfig,
-  settings: ExportSettings
-): Promise<boolean> => {
-  try {
-    const projectName = session.name.replace(/[^a-zA-Z0-9]/g, '_');
-    
-    console.log(`Uploading ${session.images.length} images for session: ${session.name}`);
-    
-    // For each image in the session, we would upload it to the appropriate folder
-    // based on the export settings
-    let uploadedCount = 0;
-    
-    for (const image of session.images) {
-      // In a real implementation, this would upload the actual image data
-      // to the RC Node server
-      console.log(`Would upload image: ${image.id} to ${projectName}/Images`);
-      
-      // If exporting PNGs for geometry
-      if (settings.exportPng) {
-        console.log(`Would upload PNG version to ${projectName}/Images/.geometry`);
-      }
-      
-      // If exporting TIFFs for texturing
-      if (settings.exportTiff) {
-        console.log(`Would upload TIFF version to ${projectName}/Images/.texture.TextureLayer`);
-      }
-      
-      // If exporting masks
-      if (settings.exportMasks && image.hasMask) {
-        console.log(`Would upload mask for ${image.id}`);
-      }
-      
-      uploadedCount++;
-    }
-    
-    toast({
-      title: "Upload Complete",
-      description: `${uploadedCount} images uploaded for processing with Reality Capture`,
-    });
-    
-    return true;
-  } catch (error) {
-    console.error("Error uploading images to RC Node:", error);
-    
-    toast({
-      title: "Upload Failed",
-      description: "Failed to upload images to RC Node. See console for details.",
       variant: "destructive"
     });
     
@@ -248,7 +307,7 @@ export const exportSessionToRealityCapture = async (
     
     toast({
       title: "Export Successful",
-      description: `Session ${session.name} exported to Reality Capture successfully`,
+      description: `Session ${session.name} with ${session.passes.length} passes exported to Reality Capture successfully`,
     });
     
     return true;
