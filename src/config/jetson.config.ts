@@ -1,3 +1,4 @@
+
 /**
  * Jetson Orin Nano Configuration
  * 
@@ -91,7 +92,7 @@ export const DEBUG_SETTINGS = {
   // Network settings
   bypassNetworkIsolation: true, // Allow connections that might normally be restricted
   probeAllPorts: false,         // Test multiple ports on the target server
-  logAllHeaders: true           // Log all request/response headers
+  logAllHeaders: true,          // Log all request/response headers
   
   // Camera debug options
   cameraDebugMode: true,        // Enable camera debug messages
