@@ -1,4 +1,3 @@
-
 /**
  * Jetson Orin Nano Configuration
  * 
@@ -30,7 +29,7 @@ export const MOTOR_GPIO_CONFIG = {
   sleepPin: 17
 };
 
-// Camera device paths
+// Camera device paths and configuration
 export const CAMERA_DEVICE_PATHS = {
   usbCameras: [
     "/dev/bus/usb/001/",
@@ -45,9 +44,14 @@ export const CAMERA_DEVICE_PATHS = {
   // Camera detection settings
   detection: {
     checkIntervalMs: 5000,           // How often to check for camera connection changes
-    requiredResponseTimeoutMs: 2000, // Timeout for camera response
+    requiredResponseTimeoutMs: 5000, // Increased timeout for camera response
     usbBusCheckCommand: "lsusb",     // Command to check USB bus
-    gphoto2ListCommand: "gphoto2 --auto-detect" // Command to list detected cameras
+    gphoto2ListCommand: "gphoto2 --auto-detect", // Command to list detected cameras
+    gphoto2SummaryCommand: "gphoto2 --port={port} --summary", // Command to check camera responsiveness
+    gphoto2CaptureCommand: "gphoto2 --port={port} --capture-image-and-download --filename={filename}", // Command for capture
+    temporaryImageStorage: "/tmp/picxels/captures", // Directory to temporarily store captured images
+    maxCaptureTimeoutMs: 15000,      // Maximum time to wait for image capture (15 seconds)
+    cameraAbilityCommand: "gphoto2 --abilities" // Command to check camera capabilities
   }
 };
 

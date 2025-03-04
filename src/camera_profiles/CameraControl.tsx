@@ -9,7 +9,6 @@ import { toast } from "@/components/ui/use-toast";
 import { captureImage, detectCameras } from "@/utils/cameraUtils";
 import { saveImageLocally } from "@/utils/fileSystem";
 import { cn } from "@/lib/utils";
-import { CAMERA_DEVICE_PATHS } from "@/config/jetson.config";
 
 interface CameraControlProps {
   currentSession: Session;
@@ -26,7 +25,7 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
   const refreshCameras = useCallback(async () => {
     try {
       setIsLoading(true);
-      console.log("Manually refreshing camera status...");
+      console.log("Refreshing camera status...");
       const detectedCameras = await detectCameras();
       setCameras(detectedCameras);
       setLastUpdateTime(new Date());
@@ -238,7 +237,9 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
                   />
                   <div>
                     <p className="font-medium">{camera.name}</p>
-                    <p className="text-xs text-muted-foreground">{camera.type}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {camera.type} {camera.port && `(${camera.port})`}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

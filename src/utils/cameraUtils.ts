@@ -1,8 +1,11 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { CameraDevice, CapturedImage, Session, Pass, ImageData } from "@/types";
 import { applyColorProfile, getCameraTypeFromId } from "./colorProfileUtils";
 import { CAMERA_DEVICE_PATHS, DEBUG_SETTINGS } from "@/config/jetson.config";
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 // Check if running on Jetson platform
 const isJetsonPlatform = () => {
@@ -42,95 +45,141 @@ const mapCameraModelToType = (modelName: string): string => {
 };
 
 /**
+ * Parse gphoto2 --auto-detect output to get connected cameras
+ * @param output The command output string from gphoto2 --auto-detect
+ * @returns Array of detected cameras with their port information
+ */
+const parseGphoto2Output = (output: string): { model: string, port: string }[] => {
+  const cameras: { model: string, port: string }[] = [];
+  const lines = output.split('\n');
+  
+  // Find the line that has the header
+  const headerIndex = lines.findIndex(line => 
+    line.includes('Model') && line.includes('Port')
+  );
+  
+  if (headerIndex === -1 || headerIndex >= lines.length - 1) {
+    return cameras;
+  }
+  
+  // Skip the header and the dashed line
+  for (let i = headerIndex + 2; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    // Parse the model and port - gphoto2 output has a specific format
+    // Example: Canon EOS 550D                 usb:001,007
+    const match = line.match(/^(.+?)\s+usb:(.+?)$/);
+    if (match) {
+      const model = match[1].trim();
+      const port = `usb:${match[2].trim()}`;
+      cameras.push({ model, port });
+    }
+  }
+  
+  return cameras;
+};
+
+/**
  * Checks for physical USB camera connections on Jetson platform
  * Uses gphoto2 --auto-detect to find connected cameras
  */
 const checkUSBCameraConnections = async (): Promise<{
   connected: boolean;
-  detectedCameras: string[];
+  detectedCameras: { model: string, port: string }[];
 }> => {
   if (DEBUG_SETTINGS.forceDisableAllCameras) {
     console.log("All cameras forcibly disabled via debug settings");
     return { connected: false, detectedCameras: [] };
   }
   
-  if (isJetsonPlatform()) {
-    try {
-      console.log("Checking for physical USB camera connections on Jetson platform");
+  try {
+    console.log("Checking for physical USB camera connections");
+    
+    if (isJetsonPlatform() || !isDevelopmentMode()) {
+      // Execute gphoto2 --auto-detect command to find connected cameras
+      console.log("Executing gphoto2 --auto-detect");
+      const { stdout } = await execAsync('gphoto2 --auto-detect');
+      console.log("gphoto2 --auto-detect output:", stdout);
       
-      // In a real implementation on Jetson, we would execute the gphoto2 command
-      // and parse its output to find connected cameras
-      // The command should be: 'gphoto2 --auto-detect'
+      // Parse the output to get camera models and ports
+      const detectedCameras = parseGphoto2Output(stdout);
+      console.log("Parsed camera info:", detectedCameras);
       
-      // For demonstration purposes, we'll simulate parsing the output:
-      // Example output from gphoto2 --auto-detect:
-      // Model                          Port
-      // ----------------------------------------------------------
-      // Canon EOS 550D                 usb:001,007
-      
-      if (DEBUG_SETTINGS.simulateBadConnection) {
-        // Simulate intermittent connections for testing
-        const random = Math.random();
-        return { 
-          connected: random > 0.5, 
-          detectedCameras: random > 0.5 ? ["Canon EOS 550D", "Canon EOS 600D"] : []
-        };
-      }
-      
-      // This is a placeholder for the actual implementation
-      // In production code, we would call the system command and parse the output
-      
-      // Simulating the detection of a Canon EOS 550D on usb:001,007
-      // This matches the output shown in the user's console
-      console.log("Simulating detection of Canon EOS 550D on usb:001,007");
-      return { connected: true, detectedCameras: ["Canon EOS 550D"] };
-    } catch (error) {
-      console.error("Error checking USB connections:", error);
-      return { connected: false, detectedCameras: [] };
+      return { 
+        connected: detectedCameras.length > 0, 
+        detectedCameras 
+      };
     }
+    
+    // For development mode on non-Jetson platforms, return simulated data
+    if (DEBUG_SETTINGS.simulateBadConnection) {
+      // Simulate intermittent connections for testing
+      const random = Math.random();
+      return { 
+        connected: random > 0.5, 
+        detectedCameras: random > 0.5 ? [
+          { model: "Canon EOS 550D", port: "usb:001,007" },
+          { model: "Canon EOS 600D", port: "usb:002,005" }
+        ] : []
+      };
+    }
+    
+    // Default simulated data for development
+    return { 
+      connected: true, 
+      detectedCameras: [
+        { model: "Canon EOS 550D", port: "usb:001,007" },
+        { model: "Canon EOS 600D", port: "usb:002,005" }
+      ]
+    };
+  } catch (error) {
+    console.error("Error checking USB connections:", error);
+    return { connected: false, detectedCameras: [] };
   }
-  
-  // When not on Jetson platform and in development mode, 
-  // return simulated cameras for development purposes
-  return {
-    connected: !DEBUG_SETTINGS.forceDisableAllCameras,
-    detectedCameras: ["Canon EOS 550D", "Canon EOS 600D"] // Simulated cameras for dev mode
-  };
 };
 
 /**
  * Check if a specific camera is physically connected and responsive
- * This would make a specific call to the camera to check its status
+ * Makes a specific call to the camera to check its status
  */
 const isCameraResponding = async (cameraId: string, portInfo?: string): Promise<boolean> => {
   if (DEBUG_SETTINGS.forceDisableAllCameras) {
     return false;
   }
   
-  if (isJetsonPlatform()) {
-    try {
-      console.log(`Checking if camera ${cameraId} is responding on port ${portInfo || 'unknown'}`);
-      
-      // In production, we would execute a command like:
-      // gphoto2 --port=usb:001,007 --summary
-      // to check if the camera responds with device information
-      
-      if (DEBUG_SETTINGS.simulateBadConnection) {
-        // Simulate some cameras not responding
-        return Math.random() > 0.3;
+  try {
+    console.log(`Checking if camera ${cameraId} is responding on port ${portInfo || 'unknown'}`);
+    
+    if (isJetsonPlatform() || !isDevelopmentMode()) {
+      if (!portInfo) {
+        console.error(`No port information for camera ${cameraId}`);
+        return false;
       }
       
-      // For the Canon EOS 550D on usb:001,007, return true
-      // For development and testing, assume all cameras are responding
-      return true;
-    } catch (error) {
-      console.error(`Error checking camera ${cameraId} response:`, error);
-      return false;
+      // Try to get camera summary which will fail if camera is not responsive
+      console.log(`Executing gphoto2 --port=${portInfo} --summary`);
+      const { stdout, stderr } = await execAsync(`gphoto2 --port=${portInfo} --summary`, { timeout: 5000 });
+      
+      // If we get a successful response with camera info, it's responding
+      const isResponding = !stderr.includes('Error') && stdout.includes('Camera');
+      console.log(`Camera ${cameraId} responsive: ${isResponding}`);
+      return isResponding;
     }
+    
+    // Simulation for development mode
+    if (DEBUG_SETTINGS.simulateBadConnection) {
+      return Math.random() > 0.3;
+    }
+    
+    // Default in development: return true
+    return true;
+    
+  } catch (error) {
+    console.error(`Error checking camera ${cameraId} response:`, error);
+    // If we get a timeout or error, the camera is likely not responding
+    return false;
   }
-  
-  // When not on Jetson platform, camera status depends on debug settings in dev mode
-  return isDevelopmentMode() && !DEBUG_SETTINGS.forceDisableAllCameras;
 };
 
 /**
@@ -149,60 +198,59 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
   console.log("USB cameras physically connected:", hasUSBCameras);
   console.log("Detected camera models:", detectedCameras);
   
-  // In production on Jetson, process detected cameras
-  if (isJetsonPlatform()) {
-    const cameraDevices: CameraDevice[] = [];
-    
-    if (hasUSBCameras && detectedCameras.length > 0) {
-      // Process each detected camera from gphoto2 --auto-detect
-      for (const cameraModel of detectedCameras) {
-        const cameraType = mapCameraModelToType(cameraModel);
-        const cameraId = cameraType.toLowerCase() + "-1";
-        
-        // Check if camera is responding (would use port info in production)
-        const isConnected = await isCameraResponding(cameraId);
-        
-        cameraDevices.push({
-          id: cameraId,
-          name: cameraModel,
-          type: cameraType,
-          connected: isConnected,
-          status: isConnected ? "idle" : "error"
-        });
-      }
-    }
-    
-    if (cameraDevices.length === 0 || !cameraDevices.some(camera => camera.connected)) {
-      // No cameras were found or none are connected, show warning
-      toast({
-        title: "Camera Connection Issue",
-        description: "No cameras found or cameras are not responding. Check USB connections and power.",
-        variant: "destructive"
+  const cameraDevices: CameraDevice[] = [];
+  
+  if (hasUSBCameras && detectedCameras.length > 0) {
+    // Process each detected camera
+    for (const camera of detectedCameras) {
+      const cameraType = mapCameraModelToType(camera.model);
+      const cameraId = cameraType.toLowerCase() + "-" + camera.port.split(',')[1]; // Use port number in ID
+      
+      // Check if camera is responding
+      const isConnected = await isCameraResponding(cameraId, camera.port);
+      
+      cameraDevices.push({
+        id: cameraId,
+        name: camera.model,
+        type: cameraType,
+        port: camera.port,
+        connected: isConnected,
+        status: isConnected ? "idle" : "error"
       });
     }
+  } else if (isDevelopmentMode()) {
+    // In development mode with no physical cameras, add simulated cameras
+    const devModeConnected = !DEBUG_SETTINGS.forceDisableAllCameras;
     
-    return cameraDevices;
-  }
-  
-  // In development mode, return simulated cameras
-  const devModeConnected = isDevelopmentMode() && !DEBUG_SETTINGS.forceDisableAllCameras;
-  
-  return [
-    {
+    cameraDevices.push({
       id: "t2i-1",
       name: "Canon EOS 550D",
       type: "T2i",
+      port: "usb:001,007",
       connected: devModeConnected,
       status: devModeConnected ? "idle" : "error"
-    },
-    {
+    });
+    
+    cameraDevices.push({
       id: "t3i-1",
       name: "Canon EOS 600D",
       type: "T3i",
+      port: "usb:002,005",
       connected: devModeConnected,
       status: devModeConnected ? "idle" : "error"
-    }
-  ];
+    });
+  }
+  
+  if (cameraDevices.length === 0 || !cameraDevices.some(camera => camera.connected)) {
+    // No cameras were found or none are connected, show warning
+    toast({
+      title: "Camera Connection Issue",
+      description: "No cameras found or cameras are not responding. Check USB connections and power.",
+      variant: "destructive"
+    });
+  }
+  
+  return cameraDevices;
 };
 
 // Function to get sample images based on the environment
@@ -235,7 +283,7 @@ const getSampleImageUrl = (cameraId: string, angle?: number): string => {
   return defaultImages[imageIndex];
 };
 
-// Mock function to simulate taking a photo
+// Function to capture an image from the camera
 export const captureImage = async (
   cameraId: string,
   sessionId: string,
@@ -244,56 +292,119 @@ export const captureImage = async (
   console.log(`Capturing image from camera ${cameraId} at angle ${angle}°`);
   
   try {
-    // Simulate capture delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const cameraDevice = cameraId.split('-');
+    const cameraType = cameraDevice[0].toLowerCase();
+    let portInfo = "";
     
-    // Generate a mock image path
-    const timestamp = Date.now();
-    const path = `/captures/${sessionId}/${cameraId}_${timestamp}.jpg`;
-    
-    // Get appropriate sample image URL based on environment
-    const previewUrl = getSampleImageUrl(cameraId, angle);
-    console.log(`Using sample image: ${previewUrl}`);
-    
-    // Simulate sharpness detection (0-100)
-    const sharpness = Math.floor(Math.random() * 30) + 70;
-    
-    const image: CapturedImage = {
-      id: `img-${timestamp}`,
-      sessionId,
-      path,
-      timestamp,
-      camera: cameraId,
-      angle,
-      previewUrl,
-      sharpness
-    };
-    
-    // Simulate checking image sharpness and retaking if necessary
-    if (sharpness < 80) {
-      console.log(`Image sharpness (${sharpness}) below threshold, refocusing camera...`);
-      toast({
-        title: "Refocusing Camera",
-        description: `Image sharpness (${sharpness}/100) too low. Refocusing and retaking.`,
-        variant: "default"
-      });
-      
-      // Simulate refocusing delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      
-      // Take another image with better sharpness
-      const improvedSharpness = Math.floor(Math.random() * 10) + 85;
-      image.sharpness = improvedSharpness;
-      
-      console.log(`Retaken image with improved sharpness: ${improvedSharpness}`);
+    // Extract port info from camera ID if available
+    if (cameraDevice.length > 1) {
+      portInfo = `usb:001,${cameraDevice[1]}`;
     }
     
-    // Apply color profile to the image
-    const cameraType = getCameraTypeFromId(cameraId);
-    const profiledImage = await applyColorProfile(image, cameraType);
-    
-    console.log("Image captured and color profile applied:", profiledImage);
-    return profiledImage;
+    if ((isJetsonPlatform() || !isDevelopmentMode()) && portInfo) {
+      // In production on Jetson, actually capture using gphoto2
+      console.log(`Executing gphoto2 capture on port ${portInfo}`);
+      
+      // Create the capture directory if it doesn't exist
+      const captureDir = `/tmp/picxels/captures/${sessionId}`;
+      await execAsync(`mkdir -p ${captureDir}`);
+      
+      // Generate a filename based on timestamp and camera
+      const timestamp = Date.now();
+      const filename = `${cameraType}_${timestamp}.jpg`;
+      const filePath = `${captureDir}/${filename}`;
+      
+      // Use gphoto2 to capture directly to the file
+      const captureCommand = `gphoto2 --port=${portInfo} --capture-image-and-download --filename=${filePath}`;
+      console.log(`Executing: ${captureCommand}`);
+      
+      const { stdout, stderr } = await execAsync(captureCommand, { timeout: 15000 });
+      console.log("Capture output:", stdout);
+      
+      if (stderr && stderr.includes('Error')) {
+        console.error("Capture error:", stderr);
+        throw new Error(`Failed to capture image: ${stderr}`);
+      }
+      
+      // If we got this far, capture was successful
+      // In a real implementation, we would now process the file and analyze sharpness
+      
+      // For now, simulate the rest of the processing with the sample image logic
+      const previewUrl = getSampleImageUrl(cameraId, angle);
+      
+      // Simulate sharpness detection (0-100)
+      const sharpness = Math.floor(Math.random() * 30) + 70;
+      
+      const image: CapturedImage = {
+        id: `img-${timestamp}`,
+        sessionId,
+        path: filePath,
+        timestamp,
+        camera: cameraId,
+        angle,
+        previewUrl,
+        sharpness
+      };
+      
+      // Apply color profile to the image
+      const cameraTypeForProfile = getCameraTypeFromId(cameraId);
+      const profiledImage = await applyColorProfile(image, cameraTypeForProfile);
+      
+      console.log("Image captured and color profile applied:", profiledImage);
+      return profiledImage;
+    } else {
+      // In development, use the simulation code
+      // Simulate capture delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      // Generate a mock image path
+      const timestamp = Date.now();
+      const path = `/captures/${sessionId}/${cameraId}_${timestamp}.jpg`;
+      
+      // Get appropriate sample image URL based on environment
+      const previewUrl = getSampleImageUrl(cameraId, angle);
+      console.log(`Using sample image: ${previewUrl}`);
+      
+      // Simulate sharpness detection (0-100)
+      const sharpness = Math.floor(Math.random() * 30) + 70;
+      
+      const image: CapturedImage = {
+        id: `img-${timestamp}`,
+        sessionId,
+        path,
+        timestamp,
+        camera: cameraId,
+        angle,
+        previewUrl,
+        sharpness
+      };
+      
+      // Simulate checking image sharpness and retaking if necessary
+      if (sharpness < 80) {
+        console.log(`Image sharpness (${sharpness}) below threshold, refocusing camera...`);
+        toast({
+          title: "Refocusing Camera",
+          description: `Image sharpness (${sharpness}/100) too low. Refocusing and retaking.`,
+          variant: "default"
+        });
+        
+        // Simulate refocusing delay
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        
+        // Take another image with better sharpness
+        const improvedSharpness = Math.floor(Math.random() * 10) + 85;
+        image.sharpness = improvedSharpness;
+        
+        console.log(`Retaken image with improved sharpness: ${improvedSharpness}`);
+      }
+      
+      // Apply color profile to the image
+      const cameraType = getCameraTypeFromId(cameraId);
+      const profiledImage = await applyColorProfile(image, cameraType);
+      
+      console.log("Image captured and color profile applied:", profiledImage);
+      return profiledImage;
+    }
   } catch (error) {
     console.error("Error capturing image:", error);
     toast({

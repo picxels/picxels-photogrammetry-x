@@ -1,4 +1,3 @@
-
 export interface RCNodeConfig {
   nodeUrl: string;
   authToken: string;
@@ -75,8 +74,9 @@ export interface CameraDevice {
   id: string;
   name: string;
   type: string;
+  port?: string;  // Added port property to store the USB port information
   connected: boolean;
-  status: string;
+  status: "idle" | "capturing" | "error";
 }
 
 export interface MotorPosition {
@@ -104,4 +104,3 @@ export interface AnalysisResult {
 
 // Import workflow types
 export * from './workflow';
-
