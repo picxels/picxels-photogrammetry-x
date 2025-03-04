@@ -1,7 +1,13 @@
 
 import { useState } from "react";
 import { Session, CapturedImage, AnalysisResult } from "@/types";
-import { createSession, addImageToPass, renameSession, createNewPass } from "@/utils/cameraUtils";
+import { 
+  createSession, 
+  addImageToPass, 
+  renameSession, 
+  createNewPass, 
+  generateImageMask 
+} from "@/utils/cameraUtils";
 import { toast } from "@/components/ui/use-toast";
 
 export const useSession = () => {
@@ -39,47 +45,46 @@ export const useSession = () => {
       setAnalyzedImage(image);
     }
     
-    if (image.sharpness && image.sharpness >= 80) {
+    // If image doesn't already have a mask and is sharp enough, generate one
+    if (!image.hasMask && image.sharpness && image.sharpness >= 80) {
       setProcessingImages((prev) => [...prev, image.id]);
       
       try {
         const maskedImage = await generateImageMask(image);
         
-        setSession((prevSession) => {
-          const updatedImages = prevSession.images.map((img) => {
-            if (img.id === maskedImage.id) {
-              return {
-                id: maskedImage.id,
-                url: maskedImage.previewUrl,
-                camera: maskedImage.camera,
-                angle: maskedImage.angle || 0,
-                timestamp: new Date(maskedImage.timestamp),
-                hasMask: maskedImage.hasMask
-              };
-            }
-            return img;
+        if (maskedImage.hasMask) {
+          setSession((prevSession) => {
+            const updatedImages = prevSession.images.map((img) => {
+              if (img.id === maskedImage.id) {
+                return {
+                  ...img,
+                  hasMask: true
+                };
+              }
+              return img;
+            });
+            
+            const updatedPasses = prevSession.passes.map(pass => {
+              if (pass.id === passId) {
+                return {
+                  ...pass,
+                  images: pass.images.map(img => 
+                    img.id === maskedImage.id ? maskedImage : img
+                  )
+                };
+              }
+              return pass;
+            });
+            
+            return {
+              ...prevSession,
+              images: updatedImages,
+              passes: updatedPasses
+            };
           });
           
-          const updatedPasses = prevSession.passes.map(pass => {
-            if (pass.id === passId) {
-              return {
-                ...pass,
-                images: pass.images.map(img => 
-                  img.id === maskedImage.id ? maskedImage : img
-                )
-              };
-            }
-            return pass;
-          });
-          
-          return {
-            ...prevSession,
-            images: updatedImages,
-            passes: updatedPasses
-          };
-        });
-        
-        console.log(`Background mask generated for image: ${image.id}`);
+          console.log(`Background mask generated for image: ${image.id}`);
+        }
       } catch (error) {
         console.error("Error generating mask:", error);
         toast({
@@ -195,18 +200,4 @@ export const useSession = () => {
     handleAnalysisComplete,
     setAnalyzedImage
   };
-};
-
-// Helper function that would typically be imported, but included here for completeness
-const generateImageMask = async (image: CapturedImage): Promise<CapturedImage> => {
-  // Simulate background mask generation process
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Return the modified image with mask data
-      resolve({
-        ...image,
-        hasMask: true
-      });
-    }, 1000);
-  });
 };

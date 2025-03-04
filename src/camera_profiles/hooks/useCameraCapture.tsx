@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { CameraDevice, CapturedImage, Session } from "@/types";
 import { toast } from "@/components/ui/use-toast";
-import { captureImage } from "@/utils/cameraUtils";
+import { captureImage, generateImageMask } from "@/utils/cameraUtils";
 import { saveImageLocally } from "@/utils/fileSystem";
 
 interface UseCameraCaptureProps {
@@ -44,13 +44,46 @@ export const useCameraCapture = ({
         // Save the image locally
         await saveImageLocally(image);
         
-        // Update camera status back to idle
-        setCameras(prev => prev.map(c => 
-          c.id === camera.id ? { ...c, status: "idle" } : c
-        ));
-        
-        // Notify parent component
-        onImageCaptured(image);
+        // Apply background mask if the image is sharp enough
+        if (image.sharpness && image.sharpness >= 80) {
+          try {
+            const maskedImage = await generateImageMask(image);
+            
+            // If mask was successfully generated, use the masked image
+            if (maskedImage.hasMask) {
+              // Update camera status back to idle
+              setCameras(prev => prev.map(c => 
+                c.id === camera.id ? { ...c, status: "idle" } : c
+              ));
+              
+              // Notify parent component with the masked image
+              onImageCaptured(maskedImage);
+            } else {
+              // Use original image if mask generation failed
+              setCameras(prev => prev.map(c => 
+                c.id === camera.id ? { ...c, status: "idle" } : c
+              ));
+              
+              onImageCaptured(image);
+            }
+          } catch (maskError) {
+            console.error("Error applying mask:", maskError);
+            
+            // Fallback to original image if mask application fails
+            setCameras(prev => prev.map(c => 
+              c.id === camera.id ? { ...c, status: "idle" } : c
+            ));
+            
+            onImageCaptured(image);
+          }
+        } else {
+          // Image not sharp enough, use as-is
+          setCameras(prev => prev.map(c => 
+            c.id === camera.id ? { ...c, status: "idle" } : c
+          ));
+          
+          onImageCaptured(image);
+        }
         
         toast({
           title: "Image Captured",
@@ -107,15 +140,43 @@ export const useCameraCapture = ({
       console.log(`Capturing from all ${connectedCameras.length} connected cameras...`);
       
       for (const camera of connectedCameras) {
-        const image = await captureImage(camera.id, currentSession.id, currentAngle);
-        
-        if (image) {
-          await saveImageLocally(image);
-          onImageCaptured(image);
+        try {
+          const image = await captureImage(camera.id, currentSession.id, currentAngle);
+          
+          if (image) {
+            await saveImageLocally(image);
+            
+            // Apply background mask if image is sharp enough
+            if (image.sharpness && image.sharpness >= 80) {
+              try {
+                const maskedImage = await generateImageMask(image);
+                if (maskedImage.hasMask) {
+                  onImageCaptured(maskedImage);
+                } else {
+                  onImageCaptured(image);
+                }
+              } catch (maskError) {
+                console.error(`Error applying mask for camera ${camera.id}:`, maskError);
+                onImageCaptured(image);
+              }
+            } else {
+              onImageCaptured(image);
+            }
+          }
+        } catch (cameraError) {
+          console.error(`Error capturing from camera ${camera.id}:`, cameraError);
+          
+          // Update just this camera's status to error
+          setCameras(prev => prev.map(c => 
+            c.id === camera.id ? { ...c, status: "error" } : c
+          ));
+          
+          // Continue with next camera
+          continue;
         }
       }
       
-      // Reset camera statuses to idle
+      // Reset camera statuses to idle for connected cameras
       setCameras(prev => prev.map(c => 
         c.connected ? { ...c, status: "idle" } : c
       ));
