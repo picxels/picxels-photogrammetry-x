@@ -11,8 +11,8 @@ if (require.main === module) {
   // Configure middleware
   app.use(express.json());
   
-  // API routes
-  app.post('/api/execute-command', executeCommandHandler);
+  // API routes - explicitly type the route handler
+  app.post('/api/execute-command', (req, res) => executeCommandHandler(req, res));
   
   // Serve static files from the dist directory
   app.use(express.static(path.join(__dirname, '../../dist')));
