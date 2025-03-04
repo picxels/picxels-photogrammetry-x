@@ -5,8 +5,21 @@ import { CAMERA_DEVICE_PATHS, DEBUG_SETTINGS } from "@/config/jetson.config";
 
 // Check if running on Jetson platform
 const isJetsonPlatform = () => {
-  return navigator.userAgent.includes('Linux') && 
-         (typeof process !== 'undefined' && process.env?.JETSON_PLATFORM === 'true');
+  const isLinux = navigator.userAgent.includes('Linux');
+  const hasJetsonEnv = typeof process !== 'undefined' && 
+                      (process.env?.JETSON_PLATFORM === 'true' || 
+                       process.env?.TEGRA_PLATFORM === 'true');
+  const isTegra = typeof navigator !== 'undefined' && 
+                 navigator.userAgent.includes('Tegra');
+  
+  console.log("Platform detection:", { isLinux, hasJetsonEnv, isTegra });
+  
+  if (!isDevelopmentMode() && isLinux) {
+    console.log("Production mode on Linux, assuming Jetson platform");
+    return true;
+  }
+  
+  return isLinux && (hasJetsonEnv || isTegra);
 };
 
 // Check if we're in development or production mode
@@ -19,16 +32,13 @@ const isDevelopmentMode = () => {
  * This is necessary because the same camera can have different names in different regions
  */
 const mapCameraModelToType = (modelName: string): string => {
-  // Map Canon EOS 550D (European/Japanese name) to T2i (North American name)
   if (modelName.includes('550D')) {
     return 'T2i';
   }
-  // Map Canon EOS 600D (European/Japanese name) to T3i (North American name)
   if (modelName.includes('600D')) {
     return 'T3i';
   }
   
-  // Handle standard North American names
   if (modelName.includes('T2i') || modelName.includes('Rebel T2i')) {
     return 'T2i';
   }
@@ -36,20 +46,19 @@ const mapCameraModelToType = (modelName: string): string => {
     return 'T3i';
   }
   
-  // If no match, return the original name
   return modelName;
 };
 
 /**
  * Executes a shell command on the Jetson platform
- * @param command The command to execute
- * @returns Promise that resolves with stdout or rejects with an error
+ * This is critical for interacting with gphoto2
  */
 const executeCommand = async (command: string): Promise<string> => {
+  console.log(`Executing command: ${command}`);
+  
   if (isJetsonPlatform() || !isDevelopmentMode()) {
     try {
-      // For actual Jetson implementation, use the node-side API
-      // to execute shell commands rather than directly importing child_process
+      console.log("Executing via API endpoint");
       const response = await fetch('/api/execute-command', {
         method: 'POST',
         headers: {
@@ -59,20 +68,19 @@ const executeCommand = async (command: string): Promise<string> => {
       });
       
       if (!response.ok) {
-        throw new Error(`Command execution failed: ${command}`);
+        const errorText = await response.text();
+        console.error(`Command execution failed (${response.status}): ${errorText}`);
+        throw new Error(`Command execution failed: ${command} (${response.status}): ${errorText}`);
       }
       
       const data = await response.json();
-      return data.stdout;
+      console.log(`Command result:`, data);
+      return data.stdout || '';
     } catch (error) {
       console.error(`Error executing command '${command}':`, error);
       throw error;
     }
   } else {
-    // In development mode on non-Jetson platforms, simulate command execution
-    console.log(`[DEV] Simulating execution of: ${command}`);
-    
-    // Simulate gphoto2 --auto-detect
     if (command === 'gphoto2 --auto-detect') {
       if (DEBUG_SETTINGS.simulateBadConnection && Math.random() > 0.5) {
         return '';
@@ -85,7 +93,6 @@ Canon EOS 600D                 usb:001,009
 `;
     }
     
-    // Simulate gphoto2 --port=usb:xxx --summary
     if (command.includes('--summary')) {
       if (DEBUG_SETTINGS.simulateBadConnection && Math.random() > 0.3) {
         throw new Error('Camera not responding');
@@ -100,7 +107,6 @@ Model: Canon EOS 550D
 `;
     }
     
-    // Simulate gphoto2 capture
     if (command.includes('--capture-image-and-download')) {
       if (DEBUG_SETTINGS.simulateBadConnection && Math.random() > 0.7) {
         throw new Error('Camera capture failed');
@@ -116,37 +122,41 @@ New file is in location /tmp/picxels/captures/img_001.jpg
 
 /**
  * Parse gphoto2 --auto-detect output to get connected cameras
- * @param output The command output string from gphoto2 --auto-detect
- * @returns Array of detected cameras with their port information
  */
 const parseGphoto2Output = (output: string): { model: string, port: string }[] => {
+  console.log("Parsing gphoto2 output:", output);
   const cameras: { model: string, port: string }[] = [];
   const lines = output.split('\n');
   
-  // Find the line that has the header
   const headerIndex = lines.findIndex(line => 
     line.includes('Model') && line.includes('Port')
   );
   
+  console.log(`Header index: ${headerIndex}`);
+  
   if (headerIndex === -1 || headerIndex >= lines.length - 1) {
+    console.log("No cameras found in gphoto2 output");
     return cameras;
   }
   
-  // Skip the header and the dashed line
   for (let i = headerIndex + 2; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
     
-    // Parse the model and port - gphoto2 output has a specific format
-    // Example: Canon EOS 550D                 usb:001,007
+    console.log(`Processing line: ${line}`);
+    
     const match = line.match(/^(.+?)\s+usb:(.+?)$/);
     if (match) {
       const model = match[1].trim();
       const port = `usb:${match[2].trim()}`;
+      console.log(`Found camera: ${model} at ${port}`);
       cameras.push({ model, port });
+    } else {
+      console.log(`Line doesn't match expected format: ${line}`);
     }
   }
   
+  console.log(`Total cameras found: ${cameras.length}`);
   return cameras;
 };
 
@@ -158,45 +168,53 @@ const checkUSBCameraConnections = async (): Promise<{
   connected: boolean;
   detectedCameras: { model: string, port: string }[];
 }> => {
+  console.log("Checking for physical USB camera connections");
+  
   if (DEBUG_SETTINGS.forceDisableAllCameras) {
     console.log("All cameras forcibly disabled via debug settings");
     return { connected: false, detectedCameras: [] };
   }
   
   try {
-    console.log("Checking for physical USB camera connections");
-    
-    // Actual implementation to run on Jetson or in production
     if (isJetsonPlatform() || !isDevelopmentMode()) {
-      // Execute gphoto2 --auto-detect command to find connected cameras
-      console.log("Executing gphoto2 --auto-detect");
+      console.log("Executing gphoto2 --auto-detect on Jetson");
       
-      // Add a retry mechanism for more reliable camera detection
+      try {
+        await executeCommand('which gphoto2');
+      } catch (error) {
+        console.error("gphoto2 is not installed or not in PATH:", error);
+        return { connected: false, detectedCameras: [] };
+      }
+      
       let attempts = 0;
       const maxAttempts = 3;
       let stdout = '';
+      let success = false;
       
-      while (attempts < maxAttempts) {
+      while (attempts < maxAttempts && !success) {
         try {
+          console.log(`Camera detection attempt ${attempts + 1}`);
           stdout = await executeCommand('gphoto2 --auto-detect');
+          
           if (stdout && stdout.includes('Model')) {
-            break; // Successfully got camera data
+            success = true;
+            console.log("Successful camera detection");
+          } else {
+            console.log(`Camera detection attempt ${attempts + 1} failed, output:`, stdout);
           }
-          console.log(`Camera detection attempt ${attempts + 1} failed, retrying...`);
         } catch (err) {
           console.error(`Camera detection error (attempt ${attempts + 1}):`, err);
         }
         attempts++;
         
-        // Wait before retrying
-        if (attempts < maxAttempts) {
+        if (attempts < maxAttempts && !success) {
+          console.log(`Waiting before retry ${attempts}`);
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
       
       console.log("gphoto2 --auto-detect output:", stdout);
       
-      // Parse the output to get camera models and ports
       const detectedCameras = parseGphoto2Output(stdout);
       console.log("Parsed camera info:", detectedCameras);
       
@@ -206,7 +224,6 @@ const checkUSBCameraConnections = async (): Promise<{
       };
     }
     
-    // For development mode on non-Jetson platforms, return simulated data
     if (DEBUG_SETTINGS.simulateCameraConnection) {
       console.log("Using simulated camera connections");
       return { 
@@ -219,7 +236,6 @@ const checkUSBCameraConnections = async (): Promise<{
     }
     
     if (DEBUG_SETTINGS.simulateBadConnection) {
-      // Simulate intermittent connections for testing
       const random = Math.random();
       return { 
         connected: random > 0.5, 
@@ -230,7 +246,6 @@ const checkUSBCameraConnections = async (): Promise<{
       };
     }
     
-    // Default simulated data for development
     return { 
       connected: true, 
       detectedCameras: [
@@ -246,7 +261,6 @@ const checkUSBCameraConnections = async (): Promise<{
 
 /**
  * Check if a specific camera is physically connected and responsive
- * Makes a specific call to the camera to check its status
  */
 const isCameraResponding = async (cameraId: string, portInfo?: string): Promise<boolean> => {
   if (DEBUG_SETTINGS.forceDisableAllCameras) {
@@ -262,27 +276,29 @@ const isCameraResponding = async (cameraId: string, portInfo?: string): Promise<
         return false;
       }
       
-      // Add retry mechanism for more reliable camera checks
       let attempts = 0;
       const maxAttempts = 3;
       let isResponding = false;
       
       while (attempts < maxAttempts && !isResponding) {
         try {
-          // Try to get camera summary which will fail if camera is not responsive
           console.log(`Executing gphoto2 --port=${portInfo} --summary (attempt ${attempts + 1})`);
           const stdout = await executeCommand(`gphoto2 --port=${portInfo} --summary`);
           
-          // If we get a successful response with camera info, it's responding
-          isResponding = stdout.includes('Camera summary') && stdout.includes('Model');
-          if (isResponding) break;
+          if (stdout.includes('Camera summary') && stdout.includes('Model')) {
+            isResponding = true;
+            console.log(`Camera ${cameraId} responded successfully`);
+            break;
+          } else {
+            console.log(`Camera ${cameraId} response check unsuccessful, output:`, stdout);
+          }
         } catch (err) {
           console.error(`Camera response check error (attempt ${attempts + 1}):`, err);
         }
         attempts++;
         
-        // Wait before retrying
         if (attempts < maxAttempts && !isResponding) {
+          console.log(`Waiting before retry ${attempts}`);
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
@@ -291,22 +307,17 @@ const isCameraResponding = async (cameraId: string, portInfo?: string): Promise<
       return isResponding;
     }
     
-    // Simulate camera responsiveness for development mode
     if (DEBUG_SETTINGS.simulateCameraConnection) {
       return true;
     }
     
-    // Simulation for development mode with bad connections
     if (DEBUG_SETTINGS.simulateBadConnection) {
       return Math.random() > 0.3;
     }
     
-    // Default in development: return true
     return true;
-    
   } catch (error) {
     console.error(`Error checking camera ${cameraId} response:`, error);
-    // If we get a timeout or error, the camera is likely not responding
     return false;
   }
 };
@@ -319,10 +330,10 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
   console.log("Is Jetson platform:", isJetsonPlatform());
   console.log("Is development mode:", isDevelopmentMode());
   
-  // Simulate detection delay
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  if (!isJetsonPlatform() && isDevelopmentMode()) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
   
-  // Check for physical camera connections
   const { connected: hasUSBCameras, detectedCameras } = await checkUSBCameraConnections();
   console.log("USB cameras physically connected:", hasUSBCameras);
   console.log("Detected camera models:", detectedCameras);
@@ -330,12 +341,10 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
   const cameraDevices: CameraDevice[] = [];
   
   if (hasUSBCameras && detectedCameras.length > 0) {
-    // Process each detected camera
     for (const camera of detectedCameras) {
       const cameraType = mapCameraModelToType(camera.model);
-      const cameraId = cameraType.toLowerCase() + "-" + camera.port.split(',')[1]; // Use port number in ID
+      const cameraId = cameraType.toLowerCase() + "-" + camera.port.split(',')[1];
       
-      // Check if camera is responding
       const isConnected = await isCameraResponding(cameraId, camera.port);
       
       cameraDevices.push({
@@ -348,7 +357,6 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
       });
     }
   } else if (DEBUG_SETTINGS.simulateCameraConnection || isDevelopmentMode()) {
-    // In development mode with no physical cameras, add simulated cameras
     const devModeConnected = !DEBUG_SETTINGS.forceDisableAllCameras;
     
     cameraDevices.push({
@@ -371,14 +379,12 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
   }
   
   if (cameraDevices.length === 0 || !cameraDevices.some(camera => camera.connected)) {
-    // No cameras were found or none are connected, show warning
     toast({
       title: "Camera Connection Issue",
       description: "No cameras found or cameras are not responding. Check USB connections and power.",
       variant: "destructive"
     });
   } else {
-    // Show a success message if cameras are found
     const connectedCount = cameraDevices.filter(c => c.connected).length;
     if (connectedCount > 0) {
       toast({
@@ -392,12 +398,9 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
   return cameraDevices;
 };
 
-// Function to get sample images based on the environment
 const getSampleImageUrl = (cameraId: string, angle?: number): string => {
-  // Use different sample images in production vs development
   const isDev = isDevelopmentMode();
   
-  // Default images that are bundled with the application
   const defaultImages = [
     "/sample_images/sample1.jpg",
     "/sample_images/sample2.jpg",
@@ -405,7 +408,6 @@ const getSampleImageUrl = (cameraId: string, angle?: number): string => {
     "/sample_images/sample4.jpg"
   ];
   
-  // In development, use placeholder images from Unsplash
   if (isDev) {
     if (cameraId.includes("t2i")) {
       return "https://images.unsplash.com/photo-1568605114967-8130f3a36994";
@@ -414,7 +416,6 @@ const getSampleImageUrl = (cameraId: string, angle?: number): string => {
     }
   }
   
-  // In production, use our bundled sample images
   const imageIndex = (angle && angle > 0) 
     ? Math.floor((angle / 360) * defaultImages.length) % defaultImages.length 
     : Math.floor(Math.random() * defaultImages.length);
@@ -422,7 +423,6 @@ const getSampleImageUrl = (cameraId: string, angle?: number): string => {
   return defaultImages[imageIndex];
 };
 
-// Function to capture an image from the camera
 export const captureImage = async (
   cameraId: string,
   sessionId: string,
@@ -435,76 +435,80 @@ export const captureImage = async (
     const cameraType = cameraDevice[0].toLowerCase();
     let portInfo = "";
     
-    // Extract port info from camera ID if available
     if (cameraDevice.length > 1) {
       portInfo = `usb:001,${cameraDevice[1]}`;
     }
     
     if ((isJetsonPlatform() || !isDevelopmentMode()) && portInfo) {
-      // In production on Jetson, actually capture using gphoto2
       console.log(`Executing gphoto2 capture on port ${portInfo}`);
       
-      // Create the capture directory if it doesn't exist
       const captureDir = `/tmp/picxels/captures/${sessionId}`;
       await executeCommand(`mkdir -p ${captureDir}`);
       
-      // Generate a filename based on timestamp and camera
       const timestamp = Date.now();
       const filename = `${cameraType}_${timestamp}.jpg`;
       const filePath = `${captureDir}/${filename}`;
       
-      // Use gphoto2 to capture directly to the file
       const captureCommand = `gphoto2 --port=${portInfo} --capture-image-and-download --filename=${filePath}`;
       console.log(`Executing: ${captureCommand}`);
       
-      const stdout = await executeCommand(captureCommand);
-      console.log("Capture output:", stdout);
-      
-      if (!stdout.includes('New file')) {
-        console.error("Capture did not produce a new file");
-        throw new Error(`Failed to capture image: No file produced`);
+      try {
+        const stdout = await executeCommand(captureCommand);
+        console.log("Capture output:", stdout);
+        
+        if (!stdout.includes('New file')) {
+          console.error("Capture did not produce a new file");
+          throw new Error(`Failed to capture image: No file produced`);
+        }
+        
+        const fileCheckCommand = `ls -la ${filePath}`;
+        const fileCheckOutput = await executeCommand(fileCheckCommand);
+        console.log("File check output:", fileCheckOutput);
+        
+        if (!fileCheckOutput.includes(filename)) {
+          console.error("File does not exist after capture");
+          throw new Error(`Captured file not found: ${filePath}`);
+        }
+        
+        const publicPath = `/public/captures/${sessionId}`;
+        const publicFilePath = `${publicPath}/${filename}`;
+        
+        await executeCommand(`mkdir -p public/captures/${sessionId}`);
+        await executeCommand(`cp ${filePath} public/${publicFilePath}`);
+        
+        const previewUrl = publicFilePath;
+        
+        const sharpness = 85;
+        
+        const image: CapturedImage = {
+          id: `img-${timestamp}`,
+          sessionId,
+          path: filePath,
+          timestamp,
+          camera: cameraId,
+          angle,
+          previewUrl,
+          sharpness
+        };
+        
+        const cameraTypeForProfile = getCameraTypeFromId(cameraId);
+        const profiledImage = await applyColorProfile(image, cameraTypeForProfile);
+        
+        console.log("Image captured and color profile applied:", profiledImage);
+        return profiledImage;
+      } catch (error) {
+        console.error("Error during capture:", error);
+        throw error;
       }
-      
-      // If we got this far, capture was successful
-      // In a real implementation, we would now process the file and analyze sharpness
-      
-      // For now, simulate the rest of the processing with the sample image logic
-      const previewUrl = getSampleImageUrl(cameraId, angle);
-      
-      // Simulate sharpness detection (0-100)
-      const sharpness = Math.floor(Math.random() * 30) + 70;
-      
-      const image: CapturedImage = {
-        id: `img-${timestamp}`,
-        sessionId,
-        path: filePath,
-        timestamp,
-        camera: cameraId,
-        angle,
-        previewUrl,
-        sharpness
-      };
-      
-      // Apply color profile to the image
-      const cameraTypeForProfile = getCameraTypeFromId(cameraId);
-      const profiledImage = await applyColorProfile(image, cameraTypeForProfile);
-      
-      console.log("Image captured and color profile applied:", profiledImage);
-      return profiledImage;
     } else {
-      // In development, use the simulation code
-      // Simulate capture delay
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
-      // Generate a mock image path
       const timestamp = Date.now();
       const path = `/captures/${sessionId}/${cameraId}_${timestamp}.jpg`;
       
-      // Get appropriate sample image URL based on environment
       const previewUrl = getSampleImageUrl(cameraId, angle);
       console.log(`Using sample image: ${previewUrl}`);
       
-      // Simulate sharpness detection (0-100)
       const sharpness = Math.floor(Math.random() * 30) + 70;
       
       const image: CapturedImage = {
@@ -518,7 +522,6 @@ export const captureImage = async (
         sharpness
       };
       
-      // Simulate checking image sharpness and retaking if necessary
       if (sharpness < 80) {
         console.log(`Image sharpness (${sharpness}) below threshold, refocusing camera...`);
         toast({
@@ -527,17 +530,14 @@ export const captureImage = async (
           variant: "default"
         });
         
-        // Simulate refocusing delay
         await new Promise((resolve) => setTimeout(resolve, 800));
         
-        // Take another image with better sharpness
         const improvedSharpness = Math.floor(Math.random() * 10) + 85;
         image.sharpness = improvedSharpness;
         
         console.log(`Retaken image with improved sharpness: ${improvedSharpness}`);
       }
       
-      // Apply color profile to the image
       const cameraType = getCameraTypeFromId(cameraId);
       const profiledImage = await applyColorProfile(image, cameraType);
       
@@ -555,7 +555,6 @@ export const captureImage = async (
   }
 };
 
-// Function to create a new photo session
 export const createSession = (name: string = "New Session"): Session => {
   const timestamp = Date.now();
   const initialPass = createNewPass("Pass 1");
@@ -570,7 +569,6 @@ export const createSession = (name: string = "New Session"): Session => {
   };
 };
 
-// Function to create a new pass within a session
 export const createNewPass = (name: string = "New Pass"): Pass => {
   const timestamp = Date.now();
   return {
@@ -582,7 +580,6 @@ export const createNewPass = (name: string = "New Pass"): Pass => {
   };
 };
 
-// Function to add a pass to a session
 export const addPassToSession = (session: Session, passName: string): Session => {
   const newPass = createNewPass(passName);
   return {
@@ -592,7 +589,6 @@ export const addPassToSession = (session: Session, passName: string): Session =>
   };
 };
 
-// Function to add an image to a specific pass in a session
 export const addImageToPass = (
   session: Session,
   passId: string,
@@ -600,9 +596,7 @@ export const addImageToPass = (
 ): Session => {
   const passes = session.passes.map(pass => {
     if (pass.id === passId) {
-      // Add image to this pass
       const images = [...pass.images, image];
-      // Calculate overall image quality for the pass
       const totalSharpness = images.reduce((sum, img) => sum + (img.sharpness || 0), 0);
       const averageSharpness = images.length > 0 ? Math.round(totalSharpness / images.length) : 0;
       
@@ -615,8 +609,6 @@ export const addImageToPass = (
     return pass;
   });
   
-  // Also add to the flat images array for backward compatibility
-  // Convert CapturedImage to ImageData
   const newImageData: ImageData = {
     id: image.id,
     url: image.previewUrl,
@@ -628,7 +620,6 @@ export const addImageToPass = (
   
   const allImages = [...session.images, newImageData];
   
-  // Calculate overall session quality based on all passes
   const allPassImages = passes.flatMap(pass => pass.images);
   const totalSharpness = allPassImages.reduce((sum, img) => sum + (img.sharpness || 0), 0);
   const averageSharpness = allPassImages.length > 0 ? Math.round(totalSharpness / allPassImages.length) : 0;
@@ -642,7 +633,6 @@ export const addImageToPass = (
   };
 };
 
-// Function to rename a session
 export const renameSession = (
   session: Session,
   newName: string
@@ -654,7 +644,6 @@ export const renameSession = (
   };
 };
 
-// Function to rename a pass
 export const renamePass = (
   session: Session,
   passId: string,
@@ -671,7 +660,6 @@ export const renamePass = (
   };
 };
 
-// Function to mark a pass as complete
 export const completePass = (
   session: Session,
   passId: string
@@ -687,19 +675,15 @@ export const completePass = (
   };
 };
 
-// Function to simulate checking if an image is sharp enough
 export const checkImageSharpness = (image: CapturedImage): boolean => {
   return (image.sharpness || 0) >= 80;
 };
 
-// Function to simulate generating a mask for background removal
 export const generateImageMask = async (image: CapturedImage): Promise<CapturedImage> => {
   console.log(`Generating background mask for image: ${image.id}`);
   
-  // Simulate processing time
   await new Promise((resolve) => setTimeout(resolve, 1500));
   
-  // Return updated image with mask flag
   return {
     ...image,
     hasMask: true

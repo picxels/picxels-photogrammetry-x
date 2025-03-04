@@ -1,32 +1,29 @@
 
 import express from 'express';
 import path from 'path';
+import cors from 'cors';
 import { executeCommandHandler } from './api/routes/execute-command';
 
-// Start the server if this file is executed directly
-if (require.main === module) {
-  const app = express();
-  const port = process.env.PORT || 3000;
+// Create Express server
+const app = express();
+const PORT = process.env.PORT || 8080;
 
-  // Configure middleware
-  app.use(express.json());
-  
-  // API routes - use correct Express route handler pattern
-  app.post('/api/execute-command', executeCommandHandler);
-  
-  // Serve static files from the dist directory
-  app.use(express.static(path.join(__dirname, '../../dist')));
-  
-  // Handle all other routes by serving the index.html file
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../dist/index.html'));
-  });
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.resolve(__dirname, '../public')));
 
-  // Start the server
-  app.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}`);
-  });
-}
+// API routes
+app.post('/api/execute-command', executeCommandHandler);
 
-// Export the executeCommandHandler for use in other files
-export { executeCommandHandler };
+// Serve index.html for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.resolve(__dirname, '../index.html'));
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+export default app;

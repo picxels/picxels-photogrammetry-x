@@ -1,47 +1,90 @@
 
 import { Request, Response } from 'express';
-import { executeShellCommand } from '../execute-command';
+import { exec } from 'child_process';
+import { CAMERA_DEVICE_PATHS } from '@/config/jetson.config';
 
 /**
- * Express route handler for the execute-command endpoint
- * This validates the request and calls executeShellCommand
+ * Handler for executing shell commands, specifically for gphoto2 camera control
  */
-export function executeCommandHandler(req: Request, res: Response): void {
-  try {
-    // Validate the request body
-    const { command } = req.body;
-    
-    if (!command || typeof command !== 'string') {
-      res.status(400).json({ 
-        error: 'Invalid request',
-        message: 'Command is required and must be a string'
-      });
-      return;
+export const executeCommandHandler = (req: Request, res: Response) => {
+  const { command } = req.body;
+  
+  if (!command) {
+    console.error('No command provided');
+    return res.status(400).json({ error: 'No command provided' });
+  }
+  
+  console.log(`Executing command: ${command}`);
+  
+  // Validate the command for security
+  if (!isAllowedCommand(command)) {
+    console.error(`Command not allowed: ${command}`);
+    return res.status(403).json({ error: 'Command not allowed for security reasons' });
+  }
+  
+  // Execute the command
+  exec(command, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Command execution error: ${error.message}`);
+      console.error(`stderr: ${stderr}`);
+      return res.status(500).json({ error: error.message, stderr });
     }
     
-    // Execute the command (use Promise handling)
-    executeShellCommand(command)
-      .then(result => {
-        // Check if there was an error
-        if (result.error) {
-          res.status(400).json(result);
-        } else {
-          // Return successful response
-          res.status(200).json(result);
+    console.log(`Command executed successfully`);
+    console.log(`stdout: ${stdout}`);
+    
+    if (stderr) {
+      console.warn(`stderr (non-fatal): ${stderr}`);
+    }
+    
+    return res.status(200).json({ stdout, stderr });
+  });
+};
+
+/**
+ * Validates if a command is allowed for security reasons
+ * Only permits specific gphoto2 and related commands
+ */
+const isAllowedCommand = (command: string): boolean => {
+  const allowedCommands = CAMERA_DEVICE_PATHS.detection.allowedCommands;
+  const commandTemplates = CAMERA_DEVICE_PATHS.detection.commandTemplates;
+  
+  // Check if it's in the allowed commands list
+  for (const allowedCommand of allowedCommands) {
+    // Direct match
+    if (command === allowedCommand) {
+      return true;
+    }
+    
+    // Check if it matches a template
+    if (allowedCommand.includes('{')) {
+      // Replace placeholders with regex
+      const templateRegex = allowedCommand.replace(
+        /{(\w+)}/g,
+        (match, placeholder) => {
+          const template = commandTemplates[placeholder as keyof typeof commandTemplates];
+          return template ? `(${template})` : '.+';
         }
-      })
-      .catch(error => {
-        console.error('Error in execute command handler:', error);
-        res.status(500).json({ 
-          error: 'Internal server error',
-          message: error instanceof Error ? error.message : String(error)
-        });
-      });
-  } catch (error) {
-    console.error('Error in execute command handler:', error);
-    res.status(500).json({ 
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : String(error)
-    });
+      );
+      
+      const regex = new RegExp(`^${templateRegex}$`);
+      if (regex.test(command)) {
+        return true;
+      }
+    }
   }
-}
+  
+  // Special handling for common camera commands
+  if (command.startsWith('gphoto2 --auto-detect') || 
+      command.startsWith('which gphoto2') ||
+      command.startsWith('ls -la /tmp/picxels') ||
+      command.startsWith('mkdir -p /tmp/picxels') ||
+      command.startsWith('mkdir -p public/captures') ||
+      command.startsWith('cp /tmp/picxels/captures') ||
+      command.startsWith('ls -la public/captures')) {
+    return true;
+  }
+  
+  console.warn(`Command not in allowlist: ${command}`);
+  return false;
+};
