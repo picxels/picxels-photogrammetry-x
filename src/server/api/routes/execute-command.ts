@@ -21,17 +21,19 @@ const isCommandAllowed = (cmd: string): boolean => {
 };
 
 // Execute command handler (Express middleware)
-export const executeCommandHandler = (req: Request, res: Response) => {
+export const executeCommandHandler = (req: Request, res: Response): void => {
   const { command } = req.body;
   
   if (!command) {
-    return res.status(400).json({ error: 'Command is required' });
+    res.status(400).json({ error: 'Command is required' });
+    return;
   }
   
   // Security check
   if (!isCommandAllowed(command)) {
     console.error(`Unauthorized command attempted: ${command}`);
-    return res.status(403).json({ error: 'Command not allowed' });
+    res.status(403).json({ error: 'Command not allowed' });
+    return;
   }
   
   console.log(`Executing command: ${command}`);
@@ -40,7 +42,8 @@ export const executeCommandHandler = (req: Request, res: Response) => {
   exec(command, (error, stdout, stderr) => {
     if (error) {
       console.error(`Error executing command: ${error.message}`);
-      return res.status(500).json({ error: error.message, stderr });
+      res.status(500).json({ error: error.message, stderr });
+      return;
     }
     
     if (stderr) {
@@ -48,6 +51,6 @@ export const executeCommandHandler = (req: Request, res: Response) => {
     }
     
     console.log(`Command stdout: ${stdout}`);
-    return res.json({ stdout, stderr });
+    res.json({ stdout, stderr });
   });
 };
