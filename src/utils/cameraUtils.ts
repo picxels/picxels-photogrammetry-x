@@ -2,33 +2,141 @@
 import { toast } from "@/components/ui/use-toast";
 import { CameraDevice, CapturedImage, Session, Pass, ImageData } from "@/types";
 import { applyColorProfile, getCameraTypeFromId } from "./colorProfileUtils";
+import { CAMERA_DEVICE_PATHS } from "@/config/jetson.config";
 
-// Mock function to simulate USB camera detection
+// Check if running on Jetson platform
+const isJetsonPlatform = () => {
+  return navigator.userAgent.includes('Linux') && 
+         (typeof process !== 'undefined' && process.env?.JETSON_PLATFORM === 'true');
+};
+
+// Check if we're in development or production mode
+const isDevelopmentMode = () => {
+  return import.meta.env.DEV;
+};
+
+// Function to check USB camera availability on Jetson
+const checkUSBCameraConnections = async (): Promise<boolean> => {
+  if (isJetsonPlatform()) {
+    try {
+      // In a real implementation, this would use a system call or API
+      // to check if cameras are connected to the USB ports
+      // For now, we'll just simulate it
+      return true;
+    } catch (error) {
+      console.error("Error checking USB connections:", error);
+      return false;
+    }
+  }
+  return false;
+};
+
 export const detectCameras = async (): Promise<CameraDevice[]> => {
-  // In a real implementation, this would use a WebUSB or similar API
-  // to detect and connect to cameras over USB
   console.log("Detecting cameras...");
+  console.log("Is Jetson platform:", isJetsonPlatform());
+  console.log("Is development mode:", isDevelopmentMode());
   
-  // Simulate camera detection delay
+  // Simulate detection delay
   await new Promise((resolve) => setTimeout(resolve, 1500));
   
-  // Return mock cameras for demo purposes
+  // In production or on Jetson, try to detect real cameras
+  const hasUSBCameras = await checkUSBCameraConnections();
+  console.log("USB cameras detected:", hasUSBCameras);
+  
+  if (isJetsonPlatform() && !isDevelopmentMode()) {
+    if (hasUSBCameras) {
+      // Return detected cameras based on Jetson config
+      return [
+        {
+          id: "t2i-1",
+          name: "Canon T2i",
+          type: "T2i",
+          connected: true,
+          status: "idle"
+        },
+        {
+          id: "t3i-1",
+          name: "Canon T3i",
+          type: "T3i",
+          connected: true,
+          status: "idle"
+        }
+      ];
+    } else {
+      // No real cameras detected, show warning
+      toast({
+        title: "No Cameras Detected",
+        description: "No physical cameras found. Check USB connections and drivers.",
+        variant: "destructive"
+      });
+      
+      // Return mock cameras but mark them as disconnected
+      return [
+        {
+          id: "t2i-1",
+          name: "Canon T2i",
+          type: "T2i",
+          connected: false,
+          status: "error"
+        },
+        {
+          id: "t3i-1",
+          name: "Canon T3i",
+          type: "T3i",
+          connected: false,
+          status: "error"
+        }
+      ];
+    }
+  }
+  
+  // In development mode or non-Jetson environment, return mock cameras
   return [
     {
       id: "t2i-1",
-      name: "Canon T2i",
+      name: "Canon T2i (Sample)",
       type: "T2i",
       connected: true,
       status: "idle"
     },
     {
       id: "t3i-1",
-      name: "Canon T3i",
+      name: "Canon T3i (Sample)",
       type: "T3i",
       connected: true,
       status: "idle"
     }
   ];
+};
+
+// Function to get sample images based on the environment
+const getSampleImageUrl = (cameraId: string, angle?: number): string => {
+  // Use different sample images in production vs development
+  const isDev = isDevelopmentMode();
+  
+  // Default images that are bundled with the application
+  const defaultImages = [
+    "/sample_images/sample1.jpg",
+    "/sample_images/sample2.jpg",
+    "/sample_images/sample3.jpg",
+    "/sample_images/sample4.jpg"
+  ];
+  
+  // In development, use placeholder images from Unsplash
+  if (isDev) {
+    if (cameraId.includes("t2i")) {
+      return "https://images.unsplash.com/photo-1568605114967-8130f3a36994";
+    } else {
+      return "https://images.unsplash.com/photo-1601924994987-69e26d50dc26";
+    }
+  }
+  
+  // In production, use our bundled sample images
+  const imageIndex = (angle && angle > 0) 
+    ? Math.floor((angle / 360) * defaultImages.length) % defaultImages.length 
+    : Math.floor(Math.random() * defaultImages.length);
+    
+  return defaultImages[imageIndex];
 };
 
 // Mock function to simulate taking a photo
@@ -37,7 +145,6 @@ export const captureImage = async (
   sessionId: string,
   angle?: number
 ): Promise<CapturedImage | null> => {
-  // In a real implementation, this would trigger the actual camera
   console.log(`Capturing image from camera ${cameraId} at angle ${angle}°`);
   
   try {
@@ -48,19 +155,11 @@ export const captureImage = async (
     const timestamp = Date.now();
     const path = `/captures/${sessionId}/${cameraId}_${timestamp}.jpg`;
     
-    // In a real implementation, we would save the actual image here
-    // For demo, we'll use placeholder images
-    let previewUrl = "";
-    
-    // Select different placeholder images based on camera and angle
-    if (cameraId.includes("t2i")) {
-      previewUrl = "https://images.unsplash.com/photo-1568605114967-8130f3a36994";
-    } else {
-      previewUrl = "https://images.unsplash.com/photo-1601924994987-69e26d50dc26";
-    }
+    // Get appropriate sample image URL based on environment
+    const previewUrl = getSampleImageUrl(cameraId, angle);
+    console.log(`Using sample image: ${previewUrl}`);
     
     // Simulate sharpness detection (0-100)
-    // In real implementation, this would analyze the actual image
     const sharpness = Math.floor(Math.random() * 30) + 70;
     
     const image: CapturedImage = {

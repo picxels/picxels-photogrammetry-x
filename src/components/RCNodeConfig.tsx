@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Server, Link2, Shield, RefreshCw } from "lucide-react";
+import { Server, Link2, Shield, RefreshCw, Terminal, Copy } from "lucide-react";
 import { RCNodeConfig } from "@/types";
 import { loadRCNodeConfig, saveRCNodeConfig, testRCNodeConnection } from "@/utils/rcNodeService";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { toast } from "@/components/ui/use-toast";
 
 interface RCNodeConfigProps {
   onConnectionStatusChange?: (isConnected: boolean) => void;
@@ -19,6 +21,8 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
 }) => {
   const [config, setConfig] = useState<RCNodeConfig>(loadRCNodeConfig);
   const [isTesting, setIsTesting] = useState(false);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
 
   // Effect to test connection on initial load if both URL and token are present
   useEffect(() => {
@@ -32,13 +36,25 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Add debug log entry
+  const addLogEntry = (message: string) => {
+    const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+    setDebugLog(prev => [...prev, `[${timestamp}] ${message}`].slice(-10));
+  };
+
   const handleSaveConfig = () => {
     saveRCNodeConfig(config);
-    console.log("RC Node configuration saved:", config);
+    addLogEntry(`Config saved: URL=${config.nodeUrl}, Token=${config.authToken.substring(0, 8)}...`);
+    toast({
+      title: "Configuration Saved",
+      description: "RC Node configuration has been saved to local storage."
+    });
   };
 
   const handleTestConnection = async () => {
     setIsTesting(true);
+    addLogEntry(`Testing connection to ${config.nodeUrl}`);
+    
     try {
       const isConnected = await testRCNodeConnection(config);
       setConfig(prev => ({ ...prev, isConnected }));
@@ -46,9 +62,32 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
       if (onConnectionStatusChange) {
         onConnectionStatusChange(isConnected);
       }
+      
+      addLogEntry(`Connection test ${isConnected ? 'successful' : 'failed'}`);
     } finally {
       setIsTesting(false);
     }
+  };
+
+  const handleCurlCommand = () => {
+    const baseUrl = config.nodeUrl.endsWith('/') ? config.nodeUrl.slice(0, -1) : config.nodeUrl;
+    const curlCommand = `curl ${baseUrl}/node/status -H "Authorization: Bearer ${config.authToken}"`;
+    
+    navigator.clipboard.writeText(curlCommand)
+      .then(() => {
+        toast({
+          title: "Command Copied",
+          description: "cURL command copied to clipboard"
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to copy:", err);
+      });
+  };
+
+  const generateTestCommand = () => {
+    const baseUrl = config.nodeUrl.endsWith('/') ? config.nodeUrl.slice(0, -1) : config.nodeUrl;
+    return `curl ${baseUrl}/node/status -H "Authorization: Bearer ${config.authToken}"`;
   };
 
   return (
@@ -112,6 +151,48 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
             <span>{config.isConnected ? 'Connected to RC Node' : 'Not connected'}</span>
           </div>
         </div>
+        
+        <Collapsible open={showDebugInfo} onOpenChange={setShowDebugInfo} className="mt-4">
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full gap-1">
+              <Terminal className="h-4 w-4" />
+              {showDebugInfo ? "Hide Debugging Info" : "Show Debugging Info"}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2">
+            <div className="p-3 bg-muted rounded-md text-xs font-mono space-y-2">
+              <div className="flex justify-between items-center">
+                <p className="font-medium">Test Command:</p>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 px-2"
+                  onClick={handleCurlCommand}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+              <div className="p-2 bg-background/50 rounded overflow-x-auto whitespace-pre">
+                {generateTestCommand()}
+              </div>
+              
+              {debugLog.length > 0 && (
+                <>
+                  <p className="font-medium mt-2">Connection Log:</p>
+                  <div className="p-2 bg-background/50 rounded overflow-y-auto max-h-32">
+                    {debugLog.map((log, index) => (
+                      <div key={index} className="text-xs">{log}</div>
+                    ))}
+                  </div>
+                </>
+              )}
+              
+              <p className="text-xs text-muted-foreground mt-2">
+                You can use this command in a terminal to test the connection directly.
+              </p>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
       <CardFooter className="flex justify-between">
         <Button variant="outline" onClick={handleSaveConfig}>

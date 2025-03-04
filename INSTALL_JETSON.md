@@ -191,7 +191,22 @@ npm pkg set scripts.dev="vite --host --port 8080"
 npm pkg set scripts.build="vite build"
 ```
 
-### 8.5 Build the application
+### 8.5 Create sample images directory
+
+For demonstration purposes when no real cameras are connected:
+
+```bash
+# Create directory for sample images
+mkdir -p public/sample_images
+
+# Download some sample images
+curl -L "https://unsplash.com/photos/random?topics=product,object&orientation=landscape" -o public/sample_images/sample1.jpg
+curl -L "https://unsplash.com/photos/random?topics=product,object&orientation=landscape" -o public/sample_images/sample2.jpg
+curl -L "https://unsplash.com/photos/random?topics=product,object&orientation=landscape" -o public/sample_images/sample3.jpg
+curl -L "https://unsplash.com/photos/random?topics=product,object&orientation=landscape" -o public/sample_images/sample4.jpg
+```
+
+### 8.6 Build the application
 
 ```bash
 npm run build
@@ -291,6 +306,14 @@ If the motor doesn't respond:
 - Check GPIO pin configurations in `src/config/jetson.config.ts`
 - Verify wiring connections to the motor controller
 - Ensure you have the correct permissions for GPIO access
+
+### RC Node Connection Issues
+
+If you have trouble connecting to RC Node:
+- Check the URL format (make sure it doesn't have trailing slashes)
+- Verify the authentication token is correct
+- Try using the provided cURL command to test connectivity directly
+- Check RC Node logs for any errors or permission issues
 
 ### Performance Optimization
 

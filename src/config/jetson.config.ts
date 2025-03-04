@@ -59,3 +59,12 @@ export const PERFORMANCE_SETTINGS = {
   maxImagesInMemory: 12,
   useTensorCores: true
 };
+
+// Debug settings
+export const DEBUG_SETTINGS = {
+  enableVerboseLogging: true,
+  logNetworkRequests: true,
+  simulateCameraConnection: false,
+  simulateMotorConnection: false,
+  forceUseLocalSamples: false
+};

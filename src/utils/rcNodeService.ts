@@ -38,22 +38,40 @@ export const saveRCNodeConfig = (config: Partial<RCNodeConfig>): void => {
  */
 export const testRCNodeConnection = async (config: RCNodeConfig): Promise<boolean> => {
   try {
-    const url = `${config.nodeUrl}/node/status`;
+    // Make sure URL doesn't end with a slash to prevent double slashes
+    const baseUrl = config.nodeUrl.endsWith('/') ? config.nodeUrl.slice(0, -1) : config.nodeUrl;
+    const url = `${baseUrl}/node/status`;
+    
     console.log(`Testing connection to RC Node at: ${url}`);
+    console.log(`Using auth token: ${config.authToken.substring(0, 8)}...`);
     
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${config.authToken}`
+        'Authorization': `Bearer ${config.authToken}`,
+        'Accept': 'application/json'
       }
     });
     
+    console.log(`Response status: ${response.status}`);
+    
     if (!response.ok) {
-      throw new Error(`Connection failed with status: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`Connection error details: ${errorText}`);
+      throw new Error(`Connection failed with status: ${response.status} - ${errorText}`);
     }
     
-    const data = await response.json();
-    console.log("RC Node status:", data);
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      console.error("Failed to parse response as JSON:", parseError);
+      const responseText = await response.text();
+      console.log("Raw response:", responseText);
+      throw new Error("Invalid JSON response from server");
+    }
+    
+    console.log("RC Node status response:", data);
     
     toast({
       title: "Connection Successful",
@@ -64,9 +82,18 @@ export const testRCNodeConnection = async (config: RCNodeConfig): Promise<boolea
   } catch (error) {
     console.error("RC Node connection error:", error);
     
+    // More detailed error message
+    let errorMessage = "Failed to connect to RC Node. ";
+    
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      errorMessage += "Network error - server might be down or URL incorrect.";
+    } else if (error instanceof Error) {
+      errorMessage += error.message;
+    }
+    
     toast({
       title: "Connection Failed",
-      description: "Failed to connect to RC Node. Please check URL and Auth Token.",
+      description: errorMessage,
       variant: "destructive"
     });
     
@@ -83,6 +110,9 @@ export const sendRCNodeCommand = async (
   params: Record<string, string> = {}
 ): Promise<any> => {
   try {
+    // Make sure URL doesn't end with a slash
+    const baseUrl = config.nodeUrl.endsWith('/') ? config.nodeUrl.slice(0, -1) : config.nodeUrl;
+    
     // Construct query parameters
     const queryParams = new URLSearchParams();
     queryParams.append('name', commandName);
@@ -92,17 +122,21 @@ export const sendRCNodeCommand = async (
       queryParams.append(`param${index + 1}`, value);
     });
     
-    const url = `${config.nodeUrl}/project/command?${queryParams.toString()}`;
+    const url = `${baseUrl}/project/command?${queryParams.toString()}`;
+    console.log(`Sending RC Node command: ${commandName} to URL: ${url}`);
     
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${config.authToken}`
+        'Authorization': `Bearer ${config.authToken}`,
+        'Accept': 'application/json'
       }
     });
     
     if (!response.ok) {
-      throw new Error(`Command failed with status: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`Command error details: ${errorText}`);
+      throw new Error(`Command failed with status: ${response.status} - ${errorText}`);
     }
     
     return await response.json();
