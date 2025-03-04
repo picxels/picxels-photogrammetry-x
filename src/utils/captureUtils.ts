@@ -2,7 +2,7 @@
 import { toast } from "@/components/ui/use-toast";
 import { CapturedImage } from "@/types";
 import { isJetsonPlatform, isDevelopmentMode } from "./platformUtils";
-import { executeCommand } from "./commandUtils";
+import { executeCommand, releaseCamera, triggerAutofocus, setImageFormatToJpeg } from "./commandUtils";
 import { applyColorProfile, getCameraTypeFromId } from "./colorProfileUtils";
 import { getSampleImageUrl } from "./sampleImageUtils";
 import { checkImageSharpness, generateImageMask } from "./imageQualityUtils";
@@ -30,6 +30,7 @@ export const captureImage = async (
     if ((isJetsonPlatform() || !isDevelopmentMode()) && portInfo) {
       console.log(`Executing gphoto2 capture on port ${portInfo}`);
       
+      // Create capture directory
       const captureDir = `/tmp/picxels/captures/${sessionId}`;
       await executeCommand(`mkdir -p ${captureDir}`);
       
@@ -37,18 +38,37 @@ export const captureImage = async (
       const filename = `${cameraType}_${timestamp}.jpg`;
       const filePath = `${captureDir}/${filename}`;
       
-      const captureCommand = `gphoto2 --port=${portInfo} --capture-image-and-download --filename=${filePath}`;
+      // Release camera to ensure no other process is using it
+      await releaseCamera();
+      
+      // Trigger autofocus before capture
+      try {
+        await triggerAutofocus(portInfo);
+      } catch (error) {
+        console.warn("Autofocus failed, continuing with capture:", error);
+      }
+      
+      // Set image format to JPEG
+      try {
+        await setImageFormatToJpeg(portInfo);
+      } catch (error) {
+        console.warn("Setting image format failed, continuing with default format:", error);
+      }
+      
+      // Capture the image
+      const captureCommand = `gphoto2 --port=${portInfo} --capture-image-and-download --filename=${filePath} --force-overwrite`;
       console.log(`Executing: ${captureCommand}`);
       
       try {
         const stdout = await executeCommand(captureCommand);
         console.log("Capture output:", stdout);
         
-        if (!stdout.includes('New file')) {
+        if (!stdout.includes('New file') && !stdout.includes('Saving file')) {
           console.error("Capture did not produce a new file");
           throw new Error(`Failed to capture image: No file produced`);
         }
         
+        // Verify the file exists
         const fileCheckCommand = `ls -la ${filePath}`;
         const fileCheckOutput = await executeCommand(fileCheckCommand);
         console.log("File check output:", fileCheckOutput);
@@ -58,6 +78,7 @@ export const captureImage = async (
           throw new Error(`Captured file not found: ${filePath}`);
         }
         
+        // Copy to public directory for web access
         const publicPath = `/public/captures/${sessionId}`;
         const publicFilePath = `${publicPath}/${filename}`;
         
@@ -66,6 +87,8 @@ export const captureImage = async (
         
         const previewUrl = publicFilePath;
         
+        // In a real implementation, we would calculate sharpness using OpenCV
+        // For now, we'll simulate a good sharpness score
         const sharpness = 85;
         
         const image: CapturedImage = {
@@ -89,6 +112,7 @@ export const captureImage = async (
         throw error;
       }
     } else {
+      // Development mode simulation
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
       const timestamp = Date.now();

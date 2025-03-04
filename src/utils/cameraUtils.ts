@@ -6,7 +6,12 @@ import { CAMERA_DEVICE_PATHS } from "@/config/jetson.config";
 export { isJetsonPlatform, isDevelopmentMode } from './platformUtils';
 
 // Re-export from commandUtils
-export { executeCommand } from './commandUtils';
+export { 
+  executeCommand, 
+  releaseCamera, 
+  triggerAutofocus, 
+  setImageFormatToJpeg 
+} from './commandUtils';
 
 // Re-export from platformCommandUtils
 export { executeJetsonCommand, executeDevCommand } from './platformCommandUtils';
@@ -50,4 +55,3 @@ export {
   renamePass,
   completePass
 } from './sessionUtils';
-

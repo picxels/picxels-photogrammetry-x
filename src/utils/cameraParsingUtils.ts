@@ -20,8 +20,34 @@ export const parseGphoto2Output = (output: string): { model: string, port: strin
   
   console.log(`Header index: ${headerIndex}`);
   
-  if (headerIndex === -1 || headerIndex >= lines.length - 1) {
+  if (headerIndex === -1) {
+    console.log("No header found in gphoto2 output, trying alternative parsing");
+    // Try more direct parsing for devices without header formatting
+    for (const line of lines) {
+      if (line.includes('usb:') && (line.includes('Canon') || line.includes('EOS'))) {
+        const parts = line.trim().split(/\s+/);
+        // Last part should be the USB port
+        const port = parts[parts.length - 1].trim();
+        // Rest is likely the model
+        const model = parts.slice(0, -1).join(' ').trim();
+        
+        if (port && model) {
+          console.log(`Found camera via direct parsing: ${model} at ${port}`);
+          cameras.push({ model, port });
+        }
+      }
+    }
+    
+    if (cameras.length > 0) {
+      return cameras;
+    }
+    
     console.log("No cameras found in gphoto2 output");
+    return cameras;
+  }
+  
+  if (headerIndex >= lines.length - 1) {
+    console.log("Header found but no camera data in gphoto2 output");
     return cameras;
   }
   
@@ -62,6 +88,22 @@ export const parseGphoto2Output = (output: string): { model: string, port: strin
         console.log(`Found camera (alt pattern): ${model} at ${port}`);
         cameras.push({ model, port });
         continue;
+      }
+    }
+    
+    // Direct USB port detection - the most flexible approach
+    if (line.includes('usb:')) {
+      const usbPortMatch = line.match(/usb:[0-9]+,[0-9]+/);
+      if (usbPortMatch) {
+        const port = usbPortMatch[0];
+        // Everything before the USB port is likely the model
+        const modelMatch = line.match(/^(.+?)\s+usb:/);
+        if (modelMatch) {
+          const model = modelMatch[1].trim();
+          console.log(`Found camera (usb pattern): ${model} at ${port}`);
+          cameras.push({ model, port });
+          continue;
+        }
       }
     }
     

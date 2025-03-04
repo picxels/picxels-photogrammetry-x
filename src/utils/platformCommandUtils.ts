@@ -18,34 +18,63 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
   console.log("Command execution debug info:", debugInfo);
   
   try {
-    const response = await fetch('/api/execute-command', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ command }),
-    });
+    // Try multiple times with increasing timeouts
+    let attempts = 0;
+    const maxAttempts = 3;
+    let lastError: Error | null = null;
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Command execution failed (${response.status}): ${errorText}`);
-      toast({
-        title: "Command Execution Failed",
-        description: `Failed to execute: ${command.substring(0, 30)}...`,
-        variant: "destructive"
-      });
-      throw new Error(`Command execution failed: ${command} (${response.status}): ${errorText}`);
+    while (attempts < maxAttempts) {
+      try {
+        const timeout = 5000 + (attempts * 3000); // Increase timeout with each attempt
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        const response = await fetch('/api/execute-command', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ command }),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Command execution failed (${response.status}): ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log(`Command result:`, data);
+        
+        // Check for empty response in detection commands
+        if (command.includes('--auto-detect') && (!data.stdout || data.stdout.trim() === '')) {
+          console.warn("Empty response for auto-detect, retrying...");
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+        
+        return data.stdout || '';
+      } catch (error) {
+        lastError = error as Error;
+        console.warn(`Attempt ${attempts + 1}/${maxAttempts} failed:`, error);
+        attempts++;
+        
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
     }
     
-    const data = await response.json();
-    console.log(`Command result:`, data);
-    
-    // If we get an empty response but the command should return data
-    if (command.includes('--auto-detect') && (!data.stdout || data.stdout.trim() === '')) {
-      console.warn("Empty response for auto-detect, possible issue with command execution");
+    // If we reach here, all attempts failed
+    if (lastError) {
+      throw lastError;
+    } else {
+      throw new Error(`Command execution failed after ${maxAttempts} attempts`);
     }
-    
-    return data.stdout || '';
   } catch (error) {
     console.error(`Error executing command '${command}':`, error);
     toast({
@@ -62,6 +91,10 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
  */
 export const executeDevCommand = async (command: string): Promise<string> => {
   console.log(`Simulating command execution in dev mode: ${command}`);
+  
+  if (command.includes('pkill') || command.includes('--set-config')) {
+    return 'Command executed successfully';
+  }
   
   if (command === 'gphoto2 --auto-detect') {
     if (DEBUG_SETTINGS.simulateBadConnection && Math.random() > 0.5) {
@@ -98,6 +131,9 @@ New file is in location /tmp/picxels/captures/img_001.jpg
 `;
   }
   
+  if (command === 'which gphoto2') {
+    return '/usr/bin/gphoto2';
+  }
+  
   return 'Command executed successfully';
 };
-

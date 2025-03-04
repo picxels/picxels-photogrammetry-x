@@ -8,7 +8,7 @@ import { CAMERA_DEVICE_PATHS } from "@/config/jetson.config";
 export const validateCommand = (command: string): boolean => {
   // Simple validation for now - should be expanded with proper security checks
   const allowedCommands = [
-    'gphoto2', 'which', 'ls', 'mkdir', 'cp'
+    'gphoto2', 'which', 'ls', 'mkdir', 'cp', 'pkill', 'exiftool', 'convert'
   ];
   
   // Check if command starts with any of the allowed commands
@@ -35,4 +35,3 @@ export const sanitizeCommand = (command: string): string => {
   console.log(`Command sanitized: ${sanitized}`);
   return sanitized;
 };
-

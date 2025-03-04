@@ -22,13 +22,19 @@ export const isJetsonPlatform = () => {
   
   console.log("Platform detection:", { isLinux, hasJetsonEnv, isTegra, forceDetection });
   
+  // In production, force Jetson detection based on config
+  if (forceDetection) {
+    console.log("Force detecting as Jetson platform via config");
+    return true;
+  }
+  
   // In production on Linux, assume it's a Jetson platform
   if (!isDevelopmentMode() && isLinux) {
     console.log("Production mode on Linux, assuming Jetson platform");
     return true;
   }
   
-  return forceDetection || (isLinux && (hasJetsonEnv || isTegra));
+  return (isLinux && (hasJetsonEnv || isTegra));
 };
 
 /**
