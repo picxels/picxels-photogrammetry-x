@@ -21,10 +21,18 @@ export const useCameraControl = ({
   const [isCapturing, setIsCapturing] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [errorRetryCount, setErrorRetryCount] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const refreshCameras = useCallback(async () => {
     try {
-      setIsLoading(true);
+      // Only set loading true during the initial fetch, not on refreshes
+      if (!isRefreshing) {
+        setIsLoading(true);
+      } else {
+        // For refreshes, we use a separate state to avoid flashing the loading spinner
+        setIsRefreshing(true);
+      }
+      
       console.log("Refreshing camera status...");
       const detectedCameras = await detectCameras();
       setCameras(detectedCameras);
@@ -75,9 +83,11 @@ export const useCameraControl = ({
         }, 2000);
       }
     } finally {
+      // Always reset both loading states
       setIsLoading(false);
+      setIsRefreshing(false);
     }
-  }, [errorRetryCount]);
+  }, [errorRetryCount, isRefreshing]);
 
   useEffect(() => {
     // Initialize camera detection only once on component mount
@@ -86,6 +96,8 @@ export const useCameraControl = ({
     // Set up periodic camera status check
     const intervalId = setInterval(() => {
       if (!isCapturing && !isLoading) {
+        // For periodic checks, set isRefreshing to true to avoid loading spinner
+        setIsRefreshing(true);
         refreshCameras();
       }
     }, 60000); // Check every minute

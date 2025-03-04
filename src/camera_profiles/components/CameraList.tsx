@@ -19,7 +19,7 @@ const CameraList = ({
   onRefresh,
   isLoading
 }: CameraListProps) => {
-  if (cameras.length === 0) {
+  if (cameras.length === 0 && !isLoading) {
     return (
       <div className="py-8 flex flex-col items-center justify-center">
         <p className="text-muted-foreground">No cameras detected</p>
@@ -50,7 +50,7 @@ const CameraList = ({
           variant="outline" 
           size="sm"
           onClick={onRefresh}
-          disabled={isLoading || isCapturing}
+          disabled={isCapturing}
           className="mr-2"
         >
           <RefreshCw className="mr-2 h-4 w-4" /> Refresh Status
