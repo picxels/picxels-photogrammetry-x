@@ -1,3 +1,4 @@
+
 import { toast } from "@/components/ui/use-toast";
 import { CameraDevice, CapturedImage, Session, Pass, ImageData } from "@/types";
 import { applyColorProfile, getCameraTypeFromId } from "./colorProfileUtils";
@@ -64,7 +65,7 @@ const checkUSBCameraConnections = async (): Promise<{
   // connection status depends on debug settings
   return {
     connected: !DEBUG_SETTINGS.forceDisableAllCameras,
-    detectedCameras: []
+    detectedCameras: ["Canon EOS Rebel T2i", "Canon EOS Rebel T3i"] // Always return cameras in dev mode
   };
 };
 
@@ -94,7 +95,7 @@ const isCameraResponding = async (cameraId: string): Promise<boolean> => {
   }
   
   // When not on Jetson platform, camera status depends on debug settings in dev mode
-  // In production, we'll assume the cameras are not connected
+  // In development mode, we'll now assume cameras are always connected unless explicitly disabled
   return isDevelopmentMode() && !DEBUG_SETTINGS.forceDisableAllCameras;
 };
 
@@ -148,7 +149,7 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
   }
   
   // In development mode, return mock cameras with connection status
-  // based on debug settings
+  // based on debug settings, but ensure they're actually connected
   const devModeConnected = isDevelopmentMode() && !DEBUG_SETTINGS.forceDisableAllCameras;
   
   return [
