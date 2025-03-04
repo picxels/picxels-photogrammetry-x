@@ -101,3 +101,7 @@ export interface AnalysisResult {
   metadata?: Record<string, any>;
   tags?: string[];
 }
+
+// Import workflow types
+export * from './workflow';
+
