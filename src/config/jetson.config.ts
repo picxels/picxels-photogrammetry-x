@@ -107,6 +107,7 @@ export const DEBUG_SETTINGS = {
   simulateCameraConnection: false,  // Set to true to force simulate camera connections in dev mode
   simulateMotorConnection: false,
   forceUseLocalSamples: false,
+  forceJetsonPlatformDetection: true, // Force detection as Jetson platform on the actual Jetson
   
   // RC Node connection debug settings
   disableCors: true,         // If true, attempts to disable CORS for RC Node requests

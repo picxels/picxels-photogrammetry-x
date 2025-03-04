@@ -1,12 +1,15 @@
 
 import { CapturedImage } from "@/types";
 import { toast } from "@/components/ui/use-toast";
+import { isJetsonPlatform } from "./platformUtils";
 
 /**
  * Checks if an image is sharp enough based on its sharpness score
  */
 export const checkImageSharpness = (image: CapturedImage): boolean => {
-  return (image.sharpness || 0) >= 80;
+  // Consider a more lenient threshold for Jetson platform due to different processing
+  const threshold = isJetsonPlatform() ? 70 : 80;
+  return (image.sharpness || 0) >= threshold;
 };
 
 /**
@@ -17,13 +20,14 @@ export const generateImageMask = async (image: CapturedImage): Promise<CapturedI
   console.log(`Generating background mask for image: ${image.id}`);
   
   try {
-    // Simulate mask generation with a delay
-    // In a real implementation, this would call a segmentation model
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    // For Jetson platform, we'd use the TensorRT model
+    // For now, simulate mask generation with a delay
+    const delay = isJetsonPlatform() ? 2000 : 1500; // Longer delay on Jetson to simulate heavier processing
+    await new Promise((resolve) => setTimeout(resolve, delay));
     
     toast({
       title: "Mask Generated",
-      description: `Background mask created for image ${image.id.split('-')[1]}`
+      description: `Background mask created for image ${image.id.split('-')[1] || image.id}`
     });
     
     return {

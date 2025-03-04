@@ -25,9 +25,16 @@ export const checkUSBCameraConnections = async (): Promise<{
       console.log("Executing gphoto2 --auto-detect on Jetson");
       
       try {
-        await executeCommand('which gphoto2');
+        // First check if gphoto2 is installed
+        const whichResult = await executeCommand('which gphoto2');
+        console.log("gphoto2 location:", whichResult);
       } catch (error) {
         console.error("gphoto2 is not installed or not in PATH:", error);
+        toast({
+          title: "gphoto2 Not Found",
+          description: "gphoto2 is not installed or not in PATH. Install with: sudo apt-get install gphoto2",
+          variant: "destructive"
+        });
         return { connected: false, detectedCameras: [] };
       }
       
@@ -36,12 +43,13 @@ export const checkUSBCameraConnections = async (): Promise<{
       let stdout = '';
       let success = false;
       
+      // Try to execute the auto-detect command multiple times
       while (attempts < maxAttempts && !success) {
         try {
           console.log(`Camera detection attempt ${attempts + 1}`);
           stdout = await executeCommand('gphoto2 --auto-detect');
           
-          if (stdout && stdout.includes('Model')) {
+          if (stdout && (stdout.includes('Model') || stdout.includes('Canon'))) {
             success = true;
             console.log("Successful camera detection");
           } else {
@@ -60,6 +68,28 @@ export const checkUSBCameraConnections = async (): Promise<{
       
       console.log("gphoto2 --auto-detect output:", stdout);
       
+      // If we didn't get a valid response, check manually if we can see the camera in USB
+      if (!success) {
+        try {
+          console.log("Checking USB devices manually with lsusb");
+          const lsusbOutput = await executeCommand('lsusb');
+          console.log("lsusb output:", lsusbOutput);
+          
+          // Look for Canon cameras in lsusb output
+          if (lsusbOutput && lsusbOutput.toLowerCase().includes('canon')) {
+            console.log("Canon camera detected in lsusb output but not by gphoto2");
+            toast({
+              title: "Camera Connection Issue",
+              description: "Camera detected in USB but not by gphoto2. Try restarting the service.",
+              variant: "destructive"
+            });
+          }
+        } catch (err) {
+          console.error("lsusb check failed:", err);
+        }
+      }
+      
+      // Parse the output to get detected cameras
       const detectedCameras = parseGphoto2Output(stdout);
       console.log("Parsed camera info:", detectedCameras);
       
@@ -69,6 +99,7 @@ export const checkUSBCameraConnections = async (): Promise<{
       };
     }
     
+    // Development mode simulation
     if (DEBUG_SETTINGS.simulateCameraConnection) {
       console.log("Using simulated camera connections");
       return { 
@@ -100,6 +131,11 @@ export const checkUSBCameraConnections = async (): Promise<{
     };
   } catch (error) {
     console.error("Error checking USB connections:", error);
+    toast({
+      title: "Camera Connection Error",
+      description: "Failed to check for USB camera connections",
+      variant: "destructive"
+    });
     return { connected: false, detectedCameras: [] };
   }
 };
@@ -130,7 +166,7 @@ export const isCameraResponding = async (cameraId: string, portInfo?: string): P
           console.log(`Executing gphoto2 --port=${portInfo} --summary (attempt ${attempts + 1})`);
           const stdout = await executeCommand(`gphoto2 --port=${portInfo} --summary`);
           
-          if (stdout.includes('Camera summary') && stdout.includes('Model')) {
+          if (stdout.includes('Camera summary') || stdout.includes('Model')) {
             isResponding = true;
             console.log(`Camera ${cameraId} responded successfully`);
             break;

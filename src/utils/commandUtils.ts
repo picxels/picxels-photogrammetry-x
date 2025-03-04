@@ -1,6 +1,7 @@
 
 import { isJetsonPlatform, isDevelopmentMode } from "./platformUtils";
 import { DEBUG_SETTINGS } from "@/config/jetson.config";
+import { toast } from "@/components/ui/use-toast";
 
 /**
  * Executes a shell command on the Jetson platform
@@ -11,7 +12,16 @@ export const executeCommand = async (command: string): Promise<string> => {
   
   if (isJetsonPlatform() || !isDevelopmentMode()) {
     try {
-      console.log("Executing via API endpoint");
+      console.log("Executing via API endpoint on Jetson");
+      
+      // Add direct debugging information
+      const debugInfo = {
+        isJetson: isJetsonPlatform(),
+        isDev: isDevelopmentMode(),
+        command: command
+      };
+      console.log("Command execution debug info:", debugInfo);
+      
       const response = await fetch('/api/execute-command', {
         method: 'POST',
         headers: {
@@ -23,14 +33,30 @@ export const executeCommand = async (command: string): Promise<string> => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`Command execution failed (${response.status}): ${errorText}`);
+        toast({
+          title: "Command Execution Failed",
+          description: `Failed to execute: ${command.substring(0, 30)}...`,
+          variant: "destructive"
+        });
         throw new Error(`Command execution failed: ${command} (${response.status}): ${errorText}`);
       }
       
       const data = await response.json();
       console.log(`Command result:`, data);
+      
+      // If we get an empty response but the command should return data
+      if (command.includes('--auto-detect') && (!data.stdout || data.stdout.trim() === '')) {
+        console.warn("Empty response for auto-detect, possible issue with command execution");
+      }
+      
       return data.stdout || '';
     } catch (error) {
       console.error(`Error executing command '${command}':`, error);
+      toast({
+        title: "Command Error",
+        description: "Error communicating with camera. Check connections.",
+        variant: "destructive"
+      });
       throw error;
     }
   } else {
