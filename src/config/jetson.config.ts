@@ -1,4 +1,3 @@
-
 /**
  * Jetson Orin Nano Configuration
  * 
@@ -105,7 +104,6 @@ export const DEBUG_SETTINGS = {
   enableVerboseLogging: true,
   logNetworkRequests: true,
   simulateCameraConnection: false,  // Set to true to force simulate camera connections in dev mode
-  // Removed duplicate simulateBadConnection here (was defined twice)
   simulateMotorConnection: false,
   forceUseLocalSamples: false,
   

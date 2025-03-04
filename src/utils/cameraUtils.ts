@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { CameraDevice, CapturedImage, Session, Pass, ImageData } from "@/types";
 import { applyColorProfile, getCameraTypeFromId } from "./colorProfileUtils";
@@ -82,7 +81,7 @@ const executeCommand = async (command: string): Promise<string> => {
 Model                          Port                                            
 ----------------------------------------------------------
 Canon EOS 550D                 usb:001,007
-Canon EOS 600D                 usb:002,005
+Canon EOS 600D                 usb:001,009
 `;
     }
     
@@ -214,7 +213,7 @@ const checkUSBCameraConnections = async (): Promise<{
         connected: true, 
         detectedCameras: [
           { model: "Canon EOS 550D", port: "usb:001,007" },
-          { model: "Canon EOS 600D", port: "usb:002,005" }
+          { model: "Canon EOS 600D", port: "usb:001,009" }
         ]
       };
     }
@@ -226,7 +225,7 @@ const checkUSBCameraConnections = async (): Promise<{
         connected: random > 0.5, 
         detectedCameras: random > 0.5 ? [
           { model: "Canon EOS 550D", port: "usb:001,007" },
-          { model: "Canon EOS 600D", port: "usb:002,005" }
+          { model: "Canon EOS 600D", port: "usb:001,009" }
         ] : []
       };
     }
@@ -236,7 +235,7 @@ const checkUSBCameraConnections = async (): Promise<{
       connected: true, 
       detectedCameras: [
         { model: "Canon EOS 550D", port: "usb:001,007" },
-        { model: "Canon EOS 600D", port: "usb:002,005" }
+        { model: "Canon EOS 600D", port: "usb:001,009" }
       ]
     };
   } catch (error) {
@@ -365,7 +364,7 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
       id: "t3i-1",
       name: "Canon EOS 600D",
       type: "T3i",
-      port: "usb:002,005",
+      port: "usb:001,009",
       connected: devModeConnected,
       status: devModeConnected ? "idle" : "error"
     });
