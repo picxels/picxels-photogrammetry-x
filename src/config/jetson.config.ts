@@ -105,7 +105,7 @@ export const DEBUG_SETTINGS = {
   enableVerboseLogging: true,
   logNetworkRequests: true,
   simulateCameraConnection: false,  // Set to true to force simulate camera connections in dev mode
-  simulateBadConnection: false,     // Simulate intermittent camera connections for testing
+  // Removed duplicate simulateBadConnection here (was defined twice)
   simulateMotorConnection: false,
   forceUseLocalSamples: false,
   

@@ -11,7 +11,7 @@ if (require.main === module) {
   // Configure middleware
   app.use(express.json());
   
-  // API routes
+  // API routes - Fixed: use app.post instead of direct assignment
   app.post('/api/execute-command', executeCommandHandler);
   
   // Serve static files from the dist directory
