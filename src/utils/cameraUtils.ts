@@ -8,6 +8,12 @@ export { isJetsonPlatform, isDevelopmentMode } from './platformUtils';
 // Re-export from commandUtils
 export { executeCommand } from './commandUtils';
 
+// Re-export from platformCommandUtils
+export { executeJetsonCommand, executeDevCommand } from './platformCommandUtils';
+
+// Re-export from commandValidationUtils
+export { validateCommand, sanitizeCommand } from './commandValidationUtils';
+
 // Re-export from cameraModelUtils
 export { mapCameraModelToType } from './cameraModelUtils';
 
@@ -44,3 +50,4 @@ export {
   renamePass,
   completePass
 } from './sessionUtils';
+
