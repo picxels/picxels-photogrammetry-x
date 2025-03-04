@@ -4,21 +4,24 @@ import path from 'path';
 import cors from 'cors';
 import { executeCommandHandler } from './api/routes/execute-command';
 
-// Create Express server
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.resolve(__dirname, '../public')));
+app.use(express.urlencoded({ extended: true }));
 
 // API routes
 app.post('/api/execute-command', executeCommandHandler);
 
-// Serve index.html for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(path.resolve(__dirname, '../index.html'));
+// Serve static files
+app.use(express.static(path.join(__dirname, '../../public')));
+
+// Simple error handling
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Server error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 // Start server
