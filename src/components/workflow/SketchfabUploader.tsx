@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Check, X, Upload, PencilIcon, TagIcon } from 'lucide-react';
 import { SketchfabMetadata, SocialMediaShare } from '@/types/workflow';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import SocialMediaShare from './SocialMediaShare';
+import SocialMediaSharing from './SocialMediaShare';
 
 interface SketchfabUploaderProps {
   open: boolean;
@@ -207,7 +207,7 @@ const SketchfabUploader: React.FC<SketchfabUploaderProps> = ({
           </TabsContent>
 
           <TabsContent value="sharing" className="space-y-4 py-4">
-            <SocialMediaShare 
+            <SocialMediaSharing 
               socialSharing={metadata.socialSharing || defaultSocialSharing}
               onSocialSharingChange={handleSocialSharingChange}
               storeLink={metadata.storeLink || ''}

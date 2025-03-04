@@ -4,17 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SocialMediaShare } from '@/types/workflow';
+import type { SocialMediaShare } from '@/types/workflow';
 import { Twitter, Instagram, Facebook, Share2, MessageSquare } from 'lucide-react';
 
-interface SocialMediaShareProps {
+interface SocialMediaSharingProps {
   socialSharing: SocialMediaShare[];
   onSocialSharingChange: (socialSharing: SocialMediaShare[]) => void;
   storeLink: string;
   onStoreLinkChange: (storeLink: string) => void;
 }
 
-const SocialMediaShare: React.FC<SocialMediaShareProps> = ({
+const SocialMediaSharing: React.FC<SocialMediaSharingProps> = ({
   socialSharing,
   onSocialSharingChange,
   storeLink,
@@ -108,4 +108,4 @@ const SocialMediaShare: React.FC<SocialMediaShareProps> = ({
   );
 };
 
-export default SocialMediaShare;
+export default SocialMediaSharing;
