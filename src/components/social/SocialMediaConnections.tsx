@@ -8,6 +8,7 @@ import { toast } from '@/components/ui/use-toast';
 import { SocialMediaAccount, SocialMediaConnectionState } from '@/types/social';
 import PlatformCard from './PlatformCard';
 import { v4 as uuidv4 } from 'uuid';
+import { Textarea } from '@/components/ui/textarea';
 
 const SocialMediaConnections: React.FC = () => {
   const [connectionState, setConnectionState] = useState<SocialMediaConnectionState>({
@@ -22,6 +23,10 @@ const SocialMediaConnections: React.FC = () => {
     ],
     isConnecting: false
   });
+
+  const [captionTemplate, setCaptionTemplate] = useState<string>(
+    "Check out my new 3D scan of {model_name}! #3DScan #Photogrammetry"
+  );
 
   const platforms: SocialMediaAccount['platform'][] = [
     'instagram', 'twitter', 'facebook', 'tiktok', 'reddit'
@@ -68,6 +73,10 @@ const SocialMediaConnections: React.FC = () => {
 
   const getConnectedAccount = (platform: SocialMediaAccount['platform']) => {
     return connectionState.accounts.find(account => account.platform === platform);
+  };
+
+  const handleCaptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCaptionTemplate(e.target.value);
   };
 
   return (
@@ -127,12 +136,13 @@ const SocialMediaConnections: React.FC = () => {
           <div className="space-y-4">
             <div className="flex flex-col space-y-1">
               <label className="text-sm font-medium">Default Caption Template</label>
-              <textarea 
-                className="min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              <Textarea 
+                className="min-h-[80px]"
                 placeholder="Check out my new 3D scan of {model_name}! #3DScan #Photogrammetry"
-                defaultValue="Check out my new 3D scan of {model_name}! #3DScan #Photogrammetry"
+                value={captionTemplate}
+                onChange={handleCaptionChange}
               />
-              <p className="text-xs text-muted-foreground">Use {model_name} as a placeholder for your model name</p>
+              <p className="text-xs text-muted-foreground">Use {"{model_name}"} as a placeholder for your model name</p>
             </div>
           </div>
         </CardContent>
