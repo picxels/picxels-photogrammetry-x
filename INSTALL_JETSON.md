@@ -180,7 +180,18 @@ CREATE TABLE accounts (
 EOF
 ```
 
-### 8.4 Build the application
+### 8.4 Add script to package.json
+
+Before building the application, we need to add a start script to the package.json file:
+
+```bash
+# Add the start script to package.json
+npm pkg set scripts.start="vite preview --host --port 8080"
+npm pkg set scripts.dev="vite --host --port 8080"
+npm pkg set scripts.build="vite build"
+```
+
+### 8.5 Build the application
 
 ```bash
 npm run build
@@ -225,6 +236,10 @@ npm run dev
 ### 10.2 For production
 
 ```bash
+# First build the application
+npm run build
+
+# Then start the production server
 npm run start
 ```
 
@@ -245,6 +260,19 @@ If you encounter issues with Node.js:
 - For ESM related errors, check the "type" field in package.json
 - If you experience memory issues during builds: `export NODE_OPTIONS=--max-old-space-size=8192`
 - For package compatibility issues, check the error logs and update to compatible versions
+
+### Script Not Found Errors
+
+If you encounter "missing script" errors like "npm error Missing script: start":
+- Make sure you've added the required scripts to package.json using the commands in section 8.4
+- You can manually edit package.json to add:
+  ```json
+  "scripts": {
+    "dev": "vite --host --port 8080",
+    "build": "vite build",
+    "start": "vite preview --host --port 8080"
+  }
+  ```
 
 ### Model Path Issues
 
