@@ -23,15 +23,20 @@ sudo apt upgrade -y
 ### 1.2 Install essential dependencies
 
 ```bash
-sudo apt install -y git curl wget nodejs npm python3-pip libgphoto2-dev libjpeg-dev \
+sudo apt install -y git curl wget libgphoto2-dev libjpeg-dev \
   libpng-dev libtiff-dev libwebp-dev libopenjp2-7-dev libtbb-dev sqlite3 libsqlite3-dev
 ```
 
-### 1.3 Install Node.js 18 (if not already installed)
+### 1.3 Install Node.js 22.x (if not already installed)
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+# Install Node.js 22.x
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
+
+# Verify installation
+node -v  # Should output v22.x.x
+npm -v   # Should output around 10.x.x
 ```
 
 ## 2. Install CUDA and TensorRT (if not already installed)
@@ -233,6 +238,13 @@ The application will be available at http://localhost:8080 by default.
 4. Your accounts will be securely stored in the local SQLite database
 
 ## 12. Troubleshooting
+
+### Node.js Compatibility Issues
+
+If you encounter issues with Node.js:
+- For ESM related errors, check the "type" field in package.json
+- If you experience memory issues during builds: `export NODE_OPTIONS=--max-old-space-size=8192`
+- For package compatibility issues, check the error logs and update to compatible versions
 
 ### Model Path Issues
 
