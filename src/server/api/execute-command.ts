@@ -77,7 +77,9 @@ function matchesTemplate(command: string, template: string): boolean {
   
   for (const [key, pattern] of Object.entries(templateVars)) {
     const placeholder = `\\{${key}\\}`;
-    regexPattern = regexPattern.replace(new RegExp(placeholder, 'g'), pattern);
+    // Use string pattern directly, ensuring it's a string
+    const regexValue = String(pattern);
+    regexPattern = regexPattern.replace(new RegExp(placeholder, 'g'), regexValue);
   }
   
   // Test the command against the regex pattern

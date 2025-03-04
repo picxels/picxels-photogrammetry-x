@@ -2,29 +2,31 @@
 import { Request, Response } from 'express';
 import { executeShellCommand } from '../execute-command';
 
+/**
+ * Express route handler for the execute-command endpoint
+ * This validates the request and calls executeShellCommand
+ */
 export async function executeCommandHandler(req: Request, res: Response) {
   try {
-    // Ensure this is a POST request
-    if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method not allowed' });
-    }
-
-    // Get the command from the request body
+    // Validate the request body
     const { command } = req.body;
     
     if (!command || typeof command !== 'string') {
-      return res.status(400).json({ error: 'Missing or invalid command' });
+      return res.status(400).json({ 
+        error: 'Invalid request',
+        message: 'Command is required and must be a string'
+      });
     }
-
+    
     // Execute the command
     const result = await executeShellCommand(command);
     
-    // If there was an error, return it
+    // Check if there was an error
     if (result.error) {
-      return res.status(500).json(result);
+      return res.status(400).json(result);
     }
-
-    // Return the result
+    
+    // Return successful response
     return res.status(200).json(result);
   } catch (error) {
     console.error('Error in execute command handler:', error);

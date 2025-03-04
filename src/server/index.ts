@@ -1,7 +1,7 @@
 
 import express from 'express';
-import { executeCommandHandler } from './api/routes/execute-command';
 import path from 'path';
+import { executeCommandHandler } from './api/routes/execute-command';
 
 // Start the server if this file is executed directly
 if (require.main === module) {
@@ -28,5 +28,5 @@ if (require.main === module) {
   });
 }
 
-// Export the app for use in other files
+// Export the executeCommandHandler for use in other files
 export { executeCommandHandler };
