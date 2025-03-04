@@ -8,14 +8,20 @@ export { isJetsonPlatform, isDevelopmentMode } from './platformUtils';
 // Re-export from commandUtils
 export { executeCommand } from './commandUtils';
 
-// Re-export from cameraDetection
+// Re-export from cameraModelUtils
+export { mapCameraModelToType } from './cameraModelUtils';
+
+// Re-export from cameraParsingUtils
+export { parseGphoto2Output } from './cameraParsingUtils';
+
+// Re-export from cameraConnectionUtils
 export { 
-  mapCameraModelToType,
-  parseGphoto2Output,
   checkUSBCameraConnections,
-  isCameraResponding,
-  detectCameras
-} from './cameraDetection';
+  isCameraResponding
+} from './cameraConnectionUtils';
+
+// Re-export from cameraDiscoveryUtils
+export { detectCameras } from './cameraDiscoveryUtils';
 
 // Re-export from captureUtils
 export {
