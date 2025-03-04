@@ -6,12 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Server, Link2, Shield, RefreshCw, Terminal, Copy, AlertCircle } from "lucide-react";
+import { Server, Link2, Shield, RefreshCw, Terminal, Copy, AlertCircle, Check, X } from "lucide-react";
 import { RCNodeConfig } from "@/types";
-import { loadRCNodeConfig, saveRCNodeConfig, testRCNodeConnection, testServerReachable } from "@/utils/rcNodeService";
+import { 
+  loadRCNodeConfig, 
+  saveRCNodeConfig, 
+  testRCNodeConnection, 
+  testServerReachable,
+  testRCNodeConnectionAdvanced 
+} from "@/utils/rcNodeService";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { DEBUG_SETTINGS } from "@/config/jetson.config";
 
 interface RCNodeConfigProps {
   onConnectionStatusChange?: (isConnected: boolean) => void;
@@ -23,9 +30,10 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
   const [config, setConfig] = useState<RCNodeConfig>(loadRCNodeConfig);
   const [isTesting, setIsTesting] = useState(false);
   const [isServerReachable, setIsServerReachable] = useState<boolean | null>(null);
-  const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [showDebugInfo, setShowDebugInfo] = useState(DEBUG_SETTINGS.rcNodeDebugMode);
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [advancedResults, setAdvancedResults] = useState<any>(null);
 
   // Effect to test connection on initial load if both URL and token are present
   useEffect(() => {
@@ -42,7 +50,7 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
   // Add debug log entry
   const addLogEntry = (message: string) => {
     const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
-    setDebugLog(prev => [...prev, `[${timestamp}] ${message}`].slice(-15)); // Keep last 15 messages
+    setDebugLog(prev => [...prev, `[${timestamp}] ${message}`].slice(-20)); // Keep last 20 messages
   };
 
   const handleSaveConfig = () => {
@@ -78,6 +86,43 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
     return result.reachable;
   };
 
+  const handleTestConnectionAdvanced = async () => {
+    setIsTesting(true);
+    setConnectionError(null);
+    setAdvancedResults(null);
+    
+    addLogEntry("Running advanced connection diagnostics...");
+    
+    try {
+      // First check server reachability
+      await checkServerReachable();
+      
+      // Then run advanced tests
+      const advancedTest = await testRCNodeConnectionAdvanced(config);
+      
+      addLogEntry(`Advanced test result: ${advancedTest.success ? 'SUCCESS' : 'FAILED'}`);
+      addLogEntry(advancedTest.message);
+      
+      setAdvancedResults(advancedTest);
+      
+      if (advancedTest.success) {
+        setConfig(prev => ({ ...prev, isConnected: true }));
+        
+        if (onConnectionStatusChange) {
+          onConnectionStatusChange(true);
+        }
+      } else {
+        setConnectionError(advancedTest.message);
+      }
+    } catch (error) {
+      console.error("Advanced connection test error:", error);
+      setConnectionError(error.message);
+      addLogEntry(`Advanced test error: ${error.message}`);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   const handleTestConnection = async () => {
     setIsTesting(true);
     setConnectionError(null);
@@ -110,7 +155,7 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
       addLogEntry(`Connection test ${isConnected ? 'successful' : 'failed'}`);
       
       if (!isConnected) {
-        setConnectionError("Connection failed. Check console for details.");
+        setConnectionError("Connection failed. See console for details.");
       }
     } finally {
       setIsTesting(false);
@@ -137,6 +182,18 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
   const generateTestCommand = () => {
     const baseUrl = config.nodeUrl.endsWith('/') ? config.nodeUrl.slice(0, -1) : config.nodeUrl;
     return `curl ${baseUrl}/node/status -H "Authorization: Bearer ${config.authToken}"`;
+  };
+
+  const handleBrowserCommand = () => {
+    const baseUrl = config.nodeUrl.endsWith('/') ? config.nodeUrl.slice(0, -1) : config.nodeUrl;
+    const url = `${baseUrl}/node/status?authToken=${config.authToken}`;
+    
+    window.open(url, '_blank');
+    
+    toast({
+      title: "Opening Browser Test",
+      description: "Testing RC Node connection in a new browser tab"
+    });
   };
 
   return (
@@ -228,25 +285,80 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-2">
             <div className="p-3 bg-muted rounded-md text-xs font-mono space-y-2">
-              <div className="flex justify-between items-center">
-                <p className="font-medium">Test Command:</p>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-6 px-2"
-                  onClick={handleCurlCommand}
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
+              <div className="flex justify-between items-center mb-2">
+                <p className="font-medium">Connection Test Commands:</p>
               </div>
-              <div className="p-2 bg-background/50 rounded overflow-x-auto whitespace-pre">
-                {generateTestCommand()}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <p>cURL Command:</p>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 px-2"
+                      onClick={handleCurlCommand}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="p-2 bg-background/50 rounded overflow-x-auto whitespace-pre text-xs">
+                    {generateTestCommand()}
+                  </div>
+                </div>
+                
+                <div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="w-full mb-2"
+                    onClick={handleBrowserCommand}
+                  >
+                    Open in Browser
+                  </Button>
+                  
+                  <Button 
+                    size="sm" 
+                    variant="secondary" 
+                    className="w-full"
+                    onClick={handleTestConnectionAdvanced}
+                    disabled={isTesting}
+                  >
+                    {isTesting ? (
+                      <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                    ) : null}
+                    Run Advanced Diagnostics
+                  </Button>
+                </div>
               </div>
+              
+              {advancedResults && (
+                <div className="border rounded p-2 mb-4 bg-background/50">
+                  <p className="font-medium flex items-center">
+                    Advanced Test Results: 
+                    {advancedResults.success ? (
+                      <Check className="h-4 w-4 text-green-500 ml-2" />
+                    ) : (
+                      <X className="h-4 w-4 text-red-500 ml-2" />
+                    )}
+                  </p>
+                  <p className="text-xs mt-1">{advancedResults.message}</p>
+                  
+                  {advancedResults.details && (
+                    <div className="mt-2 text-xs">
+                      <p>Details:</p>
+                      <pre className="p-1 bg-black/10 overflow-auto max-h-20 rounded text-xs mt-1">
+                        {JSON.stringify(advancedResults.details, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              )}
               
               {debugLog.length > 0 && (
                 <>
                   <p className="font-medium mt-2">Connection Log:</p>
-                  <div className="p-2 bg-background/50 rounded overflow-y-auto max-h-32">
+                  <div className="p-2 bg-background/50 rounded overflow-y-auto max-h-40">
                     {debugLog.map((log, index) => (
                       <div key={index} className="text-xs">{log}</div>
                     ))}
@@ -254,20 +366,26 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
                 </>
               )}
               
-              <p className="text-xs text-muted-foreground mt-2">
-                You can use this command in a terminal to test the connection directly. If the terminal works but the app doesn't, it might be a CORS issue.
-              </p>
-              
               <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
                 <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400">Troubleshooting Tips:</p>
                 <ul className="text-xs ml-4 list-disc text-muted-foreground mt-1 space-y-1">
                   <li>Make sure the URL has no trailing slash</li>
-                  <li>Verify the auth token is correct</li>
+                  <li>Verify the auth token is correct (case sensitive)</li>
                   <li>Check that the RC Node server is running</li>
                   <li>Try accessing the URL directly in a browser</li>
-                  <li>Check network settings and firewalls</li>
+                  <li>Check network settings/firewalls (port 8000 open)</li>
+                  <li>Try on same device with curl to rule out CORS</li>
+                  <li>If curl works but the app doesn't, it's likely a CORS issue</li>
+                  <li>Check if RC Node allows cross-origin requests</li>
                 </ul>
               </div>
+              
+              <p className="text-xs text-muted-foreground mt-4">
+                Debugging Mode: {DEBUG_SETTINGS.rcNodeDebugMode ? "Enabled" : "Disabled"}<br/>
+                CORS Mode: {DEBUG_SETTINGS.disableCors ? "Disabled (no-cors)" : "Enabled (cors)"}<br/>
+                Ignore HTTPS Errors: {DEBUG_SETTINGS.ignoreHttpsErrors ? "Yes" : "No"}<br/>
+                Force XHR: {DEBUG_SETTINGS.forceUseXhr ? "Yes" : "No"}
+              </p>
             </div>
           </CollapsibleContent>
         </Collapsible>

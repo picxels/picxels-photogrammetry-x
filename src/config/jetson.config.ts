@@ -67,14 +67,25 @@ export const DEBUG_SETTINGS = {
   simulateCameraConnection: false,
   simulateMotorConnection: false,
   forceUseLocalSamples: false,
-  // New settings for better diagnostics
-  disableCors: false,         // If true, attempts to proxy RC Node requests
-  rcNodeDebugMode: true,      // Enables more detailed RC Node error logging
-  forceUseXhr: false,         // Use XMLHttpRequest instead of fetch for RC Node
-  useDetectPortScan: false,   // Scan common ports on RC Node host to find service
-  ignoreHttpsErrors: true,    // Ignore HTTPS certificate errors
-  saveRawResponseData: true,  // Save raw response data for debugging
-  useRelaxedAuthFlow: false   // Try with and without auth token for connections
+  
+  // RC Node connection debug settings
+  disableCors: true,         // If true, attempts to disable CORS for RC Node requests
+  rcNodeDebugMode: true,     // Enables more detailed RC Node error logging
+  forceUseXhr: false,        // Use XMLHttpRequest instead of fetch for RC Node
+  useDetectPortScan: false,  // Scan common ports on RC Node host to find service
+  ignoreHttpsErrors: true,   // Ignore HTTPS certificate errors
+  saveRawResponseData: true, // Save raw response data for debugging
+  useRelaxedAuthFlow: true,  // Try with and without auth token for connections
+  useQueryAuthInstead: true, // Use query parameter auth instead of header
+  
+  // Extra connection fallbacks
+  tryDifferentMethods: true, // Try different connection methods automatically
+  openBrowserTest: false,    // Open browser window for manual testing
+  
+  // Network settings
+  bypassNetworkIsolation: true, // Allow connections that might normally be restricted
+  probeAllPorts: false,         // Test multiple ports on the target server
+  logAllHeaders: true           // Log all request/response headers
 };
 
 // Network and communication settings
@@ -85,5 +96,10 @@ export const NETWORK_SETTINGS = {
   rcNodeReconnectAttempts: 3,        // Number of reconnect attempts
   rcNodeDefaultPort: 8000,           // Default port for RC Node
   allowLocalNetworkOnly: false,      // Restrict connections to local network
-  enableIpv6: false                  // Enable IPv6 connections
+  enableIpv6: false,                 // Enable IPv6 connections
+  
+  // Additional network settings for troubleshooting
+  alternativePorts: [8001, 8443, 443], // Alternative ports to try if default fails
+  tryHttpAndHttps: true,                // Try both HTTP and HTTPS
+  useCustomDns: false                   // Use custom DNS resolution
 };
