@@ -148,3 +148,33 @@ export const NETWORK_SETTINGS = {
   tryHttpAndHttps: true,                // Try both HTTP and HTTPS
   useCustomDns: false                   // Use custom DNS resolution
 };
+
+// Script configurations
+export const SCRIPT_CONFIGS = {
+  // Required npm scripts that should be added to package.json
+  // Note: These must be added manually since we can't modify package.json directly
+  requiredScripts: {
+    start: "vite preview --host --port 8080",
+    dev: "vite --host --port 8080",
+    build: "vite build"
+  },
+  
+  // Instructions for adding missing scripts
+  setupInstructions: [
+    "npm pkg set scripts.start=\"vite preview --host --port 8080\"",
+    "npm pkg set scripts.dev=\"vite --host --port 8080\"",
+    "npm pkg set scripts.build=\"vite build\""
+  ],
+  
+  // Alternative start command if npm scripts aren't available
+  alternativeStartCommand: "npx vite preview --host --port 8080",
+  
+  // Systemd service configuration
+  systemdServiceName: "picxels",
+  systemdServicePath: "/etc/systemd/system/picxels.service",
+  
+  // Extra paths for troubleshooting
+  logPath: "/var/log/picxels",
+  tempPath: "/tmp/picxels"
+};
+
