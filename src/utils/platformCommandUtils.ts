@@ -2,12 +2,16 @@
 import { isJetsonPlatform, isDevelopmentMode } from "./platformUtils";
 import { DEBUG_SETTINGS } from "@/config/jetson.config";
 import { toast } from "@/components/ui/use-toast";
+import { executeCommand as executeShellCommand } from 'child_process';
+import { promisify } from 'util';
+
+const execPromise = promisify(executeShellCommand);
 
 /**
  * Execute a shell command on the Jetson platform
  */
 export const executeJetsonCommand = async (command: string): Promise<string> => {
-  console.log("Executing via API endpoint on Jetson");
+  console.log("Executing command:", command);
   
   // Add direct debugging information
   const debugInfo = {
@@ -27,44 +31,12 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
       try {
         const timeout = 5000 + (attempts * 3000); // Increase timeout with each attempt
         
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        // Call the Python script directly
+        console.log("Executing Python command handler");
+        const result = await execPromise(`python3 /path/to/your/script.py "${command.replace(/"/g, '\\"')}"`);
+        console.log(`Command result:`, result);
         
-        // Use correct API endpoint path
-        console.log("Sending request to /api/execute-command endpoint");
-        const response = await fetch('/api/execute-command', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ command }),
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            console.error("API endpoint not found. Make sure the server is running and the endpoint exists.");
-            throw new Error(`API endpoint not found (404). Server might not be running.`);
-          } else {
-            const errorText = await response.text();
-            throw new Error(`Command execution failed (${response.status}): ${errorText}`);
-          }
-        }
-        
-        const data = await response.json();
-        console.log(`Command result:`, data);
-        
-        // Check for empty response in detection commands
-        if (command.includes('--auto-detect') && (!data.stdout || data.stdout.trim() === '')) {
-          console.warn("Empty response for auto-detect, retrying...");
-          attempts++;
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          continue;
-        }
-        
-        return data.stdout || '';
+        return result.stdout || '';
       } catch (error) {
         lastError = error as Error;
         console.warn(`Attempt ${attempts + 1}/${maxAttempts} failed:`, error);
@@ -74,12 +46,6 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
-    }
-    
-    // In development mode, fall back to simulated responses if the API endpoint is not available
-    if (isDevelopmentMode() && lastError?.message?.includes("404")) {
-      console.warn("API endpoint not available in development mode, using simulated responses");
-      return executeDevCommand(command);
     }
     
     // If we reach here, all attempts failed
@@ -92,77 +58,21 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
     console.error(`Error executing command '${command}':`, error);
     
     // Show more informative toast error
-    if ((error as Error).message.includes("404")) {
-      toast({
-        title: "API Endpoint Not Found",
-        description: "Camera communication API not available. Using simulated data.",
-        variant: "destructive"
-      });
-      
-      // Fall back to dev command in case of API unavailability
-      if (isDevelopmentMode()) {
-        return executeDevCommand(command);
-      }
-    } else {
-      toast({
-        title: "Command Error",
-        description: "Error communicating with camera. Check connections.",
-        variant: "destructive"
-      });
-    }
+    toast({
+      title: "Command Execution Failed",
+      description: "Failed to execute camera command. Check the Python script and connections.",
+      variant: "destructive"
+    });
     
     throw error;
   }
 };
 
 /**
- * Simulate command execution in development mode
+ * This function is kept for API compatibility, but now throws an error 
+ * since we no longer want to simulate commands
  */
 export const executeDevCommand = async (command: string): Promise<string> => {
-  console.log(`Simulating command execution in dev mode: ${command}`);
-  
-  if (command.includes('pkill') || command.includes('--set-config')) {
-    return 'Command executed successfully';
-  }
-  
-  if (command === 'gphoto2 --auto-detect') {
-    if (DEBUG_SETTINGS.simulateBadConnection && Math.random() > 0.5) {
-      return '';
-    }
-    return `
-Model                          Port                                            
-----------------------------------------------------------
-Canon EOS 550D                 usb:001,007
-Canon EOS 600D                 usb:001,009
-`;
-  }
-  
-  if (command.includes('--summary')) {
-    if (DEBUG_SETTINGS.simulateBadConnection && Math.random() > 0.3) {
-      throw new Error('Camera not responding');
-    }
-    return `
-Camera summary:                                                                
-Manufacturer: Canon Inc.
-Model: Canon EOS 550D
-  Version: 1.0.9
-  Serial Number: 2147483647
-  Vendor Extension ID: 0xb (1.0)
-`;
-  }
-  
-  if (command.includes('--capture-image-and-download')) {
-    if (DEBUG_SETTINGS.simulateBadConnection && Math.random() > 0.7) {
-      throw new Error('Camera capture failed');
-    }
-    return `
-New file is in location /tmp/picxels/captures/img_001.jpg
-`;
-  }
-  
-  if (command === 'which gphoto2') {
-    return '/usr/bin/gphoto2';
-  }
-  
-  return 'Command executed successfully';
+  console.log(`Development mode simulation is disabled. Command was: ${command}`);
+  throw new Error("Development mode simulation is disabled. Use real camera connections.");
 };

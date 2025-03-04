@@ -1,10 +1,8 @@
 
 import { toast } from "@/components/ui/use-toast";
 import { CapturedImage } from "@/types";
-import { isJetsonPlatform, isDevelopmentMode } from "./platformUtils";
 import { executeCommand, releaseCamera, triggerAutofocus, setImageFormatToJpeg } from "./commandUtils";
 import { applyColorProfile, getCameraTypeFromId } from "./colorProfileUtils";
-import { getSampleImageUrl } from "./sampleImageUtils";
 import { checkImageSharpness, generateImageMask } from "./imageQualityUtils";
 import { CAMERA_DEVICE_PATHS } from "@/config/jetson.config";
 
@@ -27,106 +25,74 @@ export const captureImage = async (
       portInfo = `usb:001,${cameraDevice[1]}`;
     }
     
-    if ((isJetsonPlatform() || !isDevelopmentMode()) && portInfo) {
-      console.log(`Executing gphoto2 capture on port ${portInfo}`);
+    console.log(`Executing gphoto2 capture on port ${portInfo}`);
+    
+    // Create capture directory
+    const captureDir = `/tmp/picxels/captures/${sessionId}`;
+    await executeCommand(`mkdir -p ${captureDir}`);
+    
+    const timestamp = Date.now();
+    const filename = `${cameraType}_${timestamp}.jpg`;
+    const filePath = `${captureDir}/${filename}`;
+    
+    // Release camera to ensure no other process is using it
+    await releaseCamera();
+    
+    // Trigger autofocus before capture
+    try {
+      await triggerAutofocus(portInfo);
+    } catch (error) {
+      console.warn("Autofocus failed, continuing with capture:", error);
+    }
+    
+    // Set image format to JPEG
+    try {
+      await setImageFormatToJpeg(portInfo);
+    } catch (error) {
+      console.warn("Setting image format failed, continuing with default format:", error);
+    }
+    
+    // Capture the image
+    const captureCommand = `gphoto2 --port=${portInfo} --capture-image-and-download --filename=${filePath} --force-overwrite`;
+    console.log(`Executing: ${captureCommand}`);
+    
+    try {
+      const stdout = await executeCommand(captureCommand);
+      console.log("Capture output:", stdout);
       
-      // Create capture directory
-      const captureDir = `/tmp/picxels/captures/${sessionId}`;
-      await executeCommand(`mkdir -p ${captureDir}`);
-      
-      const timestamp = Date.now();
-      const filename = `${cameraType}_${timestamp}.jpg`;
-      const filePath = `${captureDir}/${filename}`;
-      
-      // Release camera to ensure no other process is using it
-      await releaseCamera();
-      
-      // Trigger autofocus before capture
-      try {
-        await triggerAutofocus(portInfo);
-      } catch (error) {
-        console.warn("Autofocus failed, continuing with capture:", error);
+      if (!stdout.includes('New file') && !stdout.includes('Saving file')) {
+        console.error("Capture did not produce a new file");
+        throw new Error(`Failed to capture image: No file produced`);
       }
       
-      // Set image format to JPEG
-      try {
-        await setImageFormatToJpeg(portInfo);
-      } catch (error) {
-        console.warn("Setting image format failed, continuing with default format:", error);
+      // Verify the file exists
+      const fileCheckCommand = `ls -la ${filePath}`;
+      const fileCheckOutput = await executeCommand(fileCheckCommand);
+      console.log("File check output:", fileCheckOutput);
+      
+      if (!fileCheckOutput.includes(filename)) {
+        console.error("File does not exist after capture");
+        throw new Error(`Captured file not found: ${filePath}`);
       }
       
-      // Capture the image
-      const captureCommand = `gphoto2 --port=${portInfo} --capture-image-and-download --filename=${filePath} --force-overwrite`;
-      console.log(`Executing: ${captureCommand}`);
+      // Copy to public directory for web access
+      const publicPath = `/public/captures/${sessionId}`;
+      const publicFilePath = `${publicPath}/${filename}`;
       
-      try {
-        const stdout = await executeCommand(captureCommand);
-        console.log("Capture output:", stdout);
-        
-        if (!stdout.includes('New file') && !stdout.includes('Saving file')) {
-          console.error("Capture did not produce a new file");
-          throw new Error(`Failed to capture image: No file produced`);
-        }
-        
-        // Verify the file exists
-        const fileCheckCommand = `ls -la ${filePath}`;
-        const fileCheckOutput = await executeCommand(fileCheckCommand);
-        console.log("File check output:", fileCheckOutput);
-        
-        if (!fileCheckOutput.includes(filename)) {
-          console.error("File does not exist after capture");
-          throw new Error(`Captured file not found: ${filePath}`);
-        }
-        
-        // Copy to public directory for web access
-        const publicPath = `/public/captures/${sessionId}`;
-        const publicFilePath = `${publicPath}/${filename}`;
-        
-        await executeCommand(`mkdir -p public/captures/${sessionId}`);
-        await executeCommand(`cp ${filePath} public/${publicFilePath}`);
-        
-        const previewUrl = publicFilePath;
-        
-        // In a real implementation, we would calculate sharpness using OpenCV
-        // For now, we'll simulate a good sharpness score
-        const sharpness = 85;
-        
-        const image: CapturedImage = {
-          id: `img-${timestamp}`,
-          sessionId,
-          path: filePath,
-          timestamp,
-          camera: cameraId,
-          angle,
-          previewUrl,
-          sharpness
-        };
-        
-        const cameraTypeForProfile = getCameraTypeFromId(cameraId);
-        const profiledImage = await applyColorProfile(image, cameraTypeForProfile);
-        
-        console.log("Image captured and color profile applied:", profiledImage);
-        return profiledImage;
-      } catch (error) {
-        console.error("Error during capture:", error);
-        throw error;
-      }
-    } else {
-      // Development mode simulation
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await executeCommand(`mkdir -p public/captures/${sessionId}`);
+      await executeCommand(`cp ${filePath} public/${publicFilePath}`);
       
-      const timestamp = Date.now();
-      const path = `/captures/${sessionId}/${cameraId}_${timestamp}.jpg`;
+      const previewUrl = publicFilePath;
       
-      const previewUrl = getSampleImageUrl(cameraId, angle);
-      console.log(`Using sample image: ${previewUrl}`);
-      
-      const sharpness = Math.floor(Math.random() * 30) + 70;
+      // Calculate sharpness using the Python script
+      const sharpnessCommand = `python3 /path/to/your/sharpness.py "${filePath}"`;
+      const sharpnessOutput = await executeCommand(sharpnessCommand);
+      const sharpness = parseInt(sharpnessOutput.trim()) || 85; // Default to 85 if parsing fails
       
       const image: CapturedImage = {
         id: `img-${timestamp}`,
         sessionId,
-        path,
+        path: filePath,
         timestamp,
         camera: cameraId,
         angle,
@@ -134,27 +100,14 @@ export const captureImage = async (
         sharpness
       };
       
-      if (sharpness < 80) {
-        console.log(`Image sharpness (${sharpness}) below threshold, refocusing camera...`);
-        toast({
-          title: "Refocusing Camera",
-          description: `Image sharpness (${sharpness}/100) too low. Refocusing and retaking.`,
-          variant: "default"
-        });
-        
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        
-        const improvedSharpness = Math.floor(Math.random() * 10) + 85;
-        image.sharpness = improvedSharpness;
-        
-        console.log(`Retaken image with improved sharpness: ${improvedSharpness}`);
-      }
-      
-      const cameraType = getCameraTypeFromId(cameraId);
-      const profiledImage = await applyColorProfile(image, cameraType);
+      const cameraTypeForProfile = getCameraTypeFromId(cameraId);
+      const profiledImage = await applyColorProfile(image, cameraTypeForProfile);
       
       console.log("Image captured and color profile applied:", profiledImage);
       return profiledImage;
+    } catch (error) {
+      console.error("Error during capture:", error);
+      throw error;
     }
   } catch (error) {
     console.error("Error capturing image:", error);
