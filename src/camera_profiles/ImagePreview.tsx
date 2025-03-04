@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Image as ImageIcon, Eye, Download, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,8 +24,12 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ session, onDeleteImage, pro
   };
 
   const getGroupedImages = () => {
+    // Convert session.images (ImageData[]) to CapturedImage[] for display
+    // In a real app, we'd want to restructure this to directly use passes instead
+    const allImages: CapturedImage[] = session.passes.flatMap(pass => pass.images);
+    
     // Group by camera type
-    const grouped = session.images.reduce<Record<string, CapturedImage[]>>((acc, image) => {
+    const grouped = allImages.reduce<Record<string, CapturedImage[]>>((acc, image) => {
       const camera = image.camera;
       if (!acc[camera]) {
         acc[camera] = [];

@@ -6,6 +6,7 @@ import MotorControl from "@/camera_profiles/MotorControl";
 import FileManager from "@/camera_profiles/FileManager";
 import SubjectAnalysis from "@/camera_profiles/SubjectAnalysis";
 import RCNodeConfig from "@/components/RCNodeConfig";
+import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { CapturedImage, MotorPosition, Session, AnalysisResult, Pass } from "@/types";
 import { createSession, addImageToPass, renameSession, generateImageMask, createNewPass } from "@/utils/cameraUtils";
@@ -57,9 +58,19 @@ const Index = () => {
         const maskedImage = await generateImageMask(image);
         
         setSession((prevSession) => {
-          const updatedImages = prevSession.images.map((img) => 
-            img.id === maskedImage.id ? maskedImage : img
-          );
+          const updatedImages = prevSession.images.map((img) => {
+            if (img.id === maskedImage.id) {
+              return {
+                id: maskedImage.id,
+                url: maskedImage.previewUrl,
+                camera: maskedImage.camera,
+                angle: maskedImage.angle || 0,
+                timestamp: new Date(maskedImage.timestamp),
+                hasMask: maskedImage.hasMask
+              };
+            }
+            return img;
+          });
           
           const updatedPasses = prevSession.passes.map(pass => {
             if (pass.id === passId) {
@@ -210,7 +221,6 @@ const Index = () => {
               currentSession={session}
               onImageCaptured={handleImageCaptured}
               currentAngle={currentPosition.angle}
-              currentPass={currentPass}
             />
             
             <MotorControl 
@@ -239,7 +249,6 @@ const Index = () => {
             session={session}
             onDeleteImage={handleDeleteImage}
             processingImages={processingImages}
-            currentPass={currentPass}
           />
         </div>
         

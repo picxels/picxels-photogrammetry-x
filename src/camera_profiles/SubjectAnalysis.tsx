@@ -72,16 +72,18 @@ const SubjectAnalysis: React.FC<SubjectAnalysisProps> = ({
               <p className="text-lg font-semibold mt-1">{result.subject}</p>
             </div>
             
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Related Tags</h4>
-              <div className="flex flex-wrap gap-1">
-                {result.tags.map((tag, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
+            {result.tags && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">Related Tags</h4>
+                <div className="flex flex-wrap gap-1">
+                  {result.tags.map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
             
             <div className="mt-4 text-center">
               <p className="text-sm text-muted-foreground">

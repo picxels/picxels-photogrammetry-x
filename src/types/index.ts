@@ -61,6 +61,8 @@ export interface CapturedImage {
   previewUrl: string;
   sharpness?: number;
   hasMask?: boolean;
+  hasColorProfile?: boolean;
+  colorProfileType?: string;
 }
 
 export interface CameraProfile {
@@ -89,6 +91,7 @@ export interface MotorSettings {
   acceleration: number;
   scanSteps: number;
   pauseTimeBetweenSteps: number;
+  currentPosition?: MotorPosition;
 }
 
 export interface AnalysisResult {
@@ -96,4 +99,5 @@ export interface AnalysisResult {
   confidence: number;
   suggestions?: string[];
   metadata?: Record<string, any>;
+  tags?: string[];
 }

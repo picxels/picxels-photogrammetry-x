@@ -4,9 +4,12 @@ import { toast } from "@/components/ui/use-toast";
 
 // Default motor settings
 export const defaultMotorSettings: MotorSettings = {
-  stepsPerRevolution: 200,
+  stepsPerRotation: 200,
+  stepSize: 1.8,
   maxSpeed: 10,
   acceleration: 2,
+  scanSteps: 24,
+  pauseTimeBetweenSteps: 500,
   currentPosition: {
     angle: 0,
     step: 0
@@ -31,11 +34,11 @@ export const moveMotorToPosition = async (
   settings: MotorSettings,
   targetPosition: MotorPosition
 ): Promise<MotorPosition> => {
-  const startPosition = settings.currentPosition;
+  const startPosition = settings.currentPosition || { angle: 0, step: 0 };
   console.log(`Moving motor from ${startPosition.angle}° to ${targetPosition.angle}°`);
   
   // Calculate steps to move
-  const degreesPerStep = 360 / settings.stepsPerRevolution;
+  const degreesPerStep = 360 / settings.stepsPerRotation;
   const stepsToMove = Math.round((targetPosition.angle - startPosition.angle) / degreesPerStep);
   const targetStep = startPosition.step + stepsToMove;
   
@@ -78,7 +81,7 @@ export const performFullScan = async (
       const angle = i * degreesPerStep;
       const position: MotorPosition = {
         angle,
-        step: Math.round(angle / (360 / settings.stepsPerRevolution))
+        step: Math.round(angle / (360 / settings.stepsPerRotation))
       };
       
       // Move to position

@@ -1,5 +1,6 @@
+
 import { toast } from "@/components/ui/use-toast";
-import { CameraDevice, CapturedImage, Session, Pass } from "@/types";
+import { CameraDevice, CapturedImage, Session, Pass, ImageData } from "@/types";
 import { applyColorProfile, getCameraTypeFromId } from "./colorProfileUtils";
 
 // Mock function to simulate USB camera detection
@@ -170,7 +171,17 @@ export const addImageToPass = (
   });
   
   // Also add to the flat images array for backward compatibility
-  const allImages = [...session.images, image];
+  // Convert CapturedImage to ImageData
+  const newImageData: ImageData = {
+    id: image.id,
+    url: image.previewUrl,
+    camera: image.camera,
+    angle: image.angle || 0,
+    timestamp: new Date(image.timestamp),
+    hasMask: image.hasMask
+  };
+  
+  const allImages = [...session.images, newImageData];
   
   // Calculate overall session quality based on all passes
   const allPassImages = passes.flatMap(pass => pass.images);

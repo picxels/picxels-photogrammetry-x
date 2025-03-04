@@ -24,7 +24,7 @@ export function useMotorControl({ onPositionChanged, onScanStep }: UseMotorContr
       try {
         const motorSettings = await initializeMotor();
         setSettings(motorSettings);
-        setTargetAngle(motorSettings.currentPosition.angle);
+        setTargetAngle(motorSettings.currentPosition?.angle || 0);
       } catch (error) {
         console.error("Failed to initialize motor:", error);
         toast({
@@ -49,7 +49,7 @@ export function useMotorControl({ onPositionChanged, onScanStep }: UseMotorContr
       
       const targetPosition: MotorPosition = {
         angle: targetAngle,
-        step: Math.round(targetAngle / (360 / settings.stepsPerRevolution))
+        step: Math.round(targetAngle / (360 / settings.stepsPerRotation))
       };
       
       const newPosition = await moveMotorToPosition(settings, targetPosition);
