@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from "react";
 import { Camera, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,9 +26,31 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
   const refreshCameras = useCallback(async () => {
     try {
       setIsLoading(true);
+      console.log("Manually refreshing camera status...");
       const detectedCameras = await detectCameras();
       setCameras(detectedCameras);
       setLastUpdateTime(new Date());
+      
+      // Show toast with detection results
+      if (detectedCameras.length === 0) {
+        toast({
+          title: "No Cameras Detected",
+          description: "No cameras were found. Please check connections and try again.",
+          variant: "destructive"
+        });
+      } else if (!detectedCameras.some(camera => camera.connected)) {
+        toast({
+          title: "Cameras Disconnected",
+          description: "Cameras were detected but are not responding. Check power and connections.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Cameras Refreshed",
+          description: `Found ${detectedCameras.filter(c => c.connected).length} connected cameras.`,
+          variant: "default"
+        });
+      }
     } catch (error) {
       console.error("Failed to detect cameras:", error);
       toast({
@@ -41,10 +64,8 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
   }, []);
 
   useEffect(() => {
-    // Initialize camera detection only once
+    // Initialize camera detection only once on component mount
     refreshCameras();
-    
-    // No recurring timer here anymore
   }, [refreshCameras]);
 
   const handleCapture = async (camera: CameraDevice) => {
@@ -53,10 +74,12 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
     try {
       setIsCapturing(true);
       
-      // Update camera status
-      setCameras(cameras.map(c => 
+      // Update camera status to capturing
+      setCameras(prev => prev.map(c => 
         c.id === camera.id ? { ...c, status: "capturing" } : c
       ));
+      
+      console.log(`Capturing image from ${camera.name} (${camera.id})...`);
       
       // Trigger the capture
       const image = await captureImage(camera.id, currentSession.id, currentAngle);
@@ -65,8 +88,8 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
         // Save the image locally
         await saveImageLocally(image);
         
-        // Update camera status
-        setCameras(cameras.map(c => 
+        // Update camera status back to idle
+        setCameras(prev => prev.map(c => 
           c.id === camera.id ? { ...c, status: "idle" } : c
         ));
         
@@ -77,6 +100,17 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
           title: "Image Captured",
           description: `${camera.name} captured an image successfully.`
         });
+      } else {
+        // If image is null, there was a problem
+        setCameras(prev => prev.map(c => 
+          c.id === camera.id ? { ...c, status: "error" } : c
+        ));
+        
+        toast({
+          title: "Capture Failed",
+          description: `Failed to capture image from ${camera.name}.`,
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error("Capture failed:", error);
@@ -86,15 +120,12 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
         variant: "destructive"
       });
       
-      // Reset camera status
-      setCameras(cameras.map(c => 
+      // Reset camera status to error
+      setCameras(prev => prev.map(c => 
         c.id === camera.id ? { ...c, status: "error" } : c
       ));
     } finally {
       setIsCapturing(false);
-      
-      // Refresh camera status after capture attempt
-      setTimeout(refreshCameras, 1000);
     }
   };
 
@@ -104,27 +135,32 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
     try {
       setIsCapturing(true);
       
-      // Update all camera statuses
-      setCameras(cameras.map(c => ({ ...c, status: "capturing" })));
+      // Update all camera statuses to capturing
+      setCameras(prev => prev.map(c => 
+        c.connected ? { ...c, status: "capturing" } : c
+      ));
       
       // Capture from each camera sequentially
-      for (const camera of cameras) {
-        if (camera.connected) {
-          const image = await captureImage(camera.id, currentSession.id, currentAngle);
-          
-          if (image) {
-            await saveImageLocally(image);
-            onImageCaptured(image);
-          }
+      const connectedCameras = cameras.filter(c => c.connected);
+      console.log(`Capturing from all ${connectedCameras.length} connected cameras...`);
+      
+      for (const camera of connectedCameras) {
+        const image = await captureImage(camera.id, currentSession.id, currentAngle);
+        
+        if (image) {
+          await saveImageLocally(image);
+          onImageCaptured(image);
         }
       }
       
-      // Reset camera statuses
-      setCameras(cameras.map(c => ({ ...c, status: "idle" })));
+      // Reset camera statuses to idle
+      setCameras(prev => prev.map(c => 
+        c.connected ? { ...c, status: "idle" } : c
+      ));
       
       toast({
         title: "Capture Complete",
-        description: "Images captured from all connected cameras."
+        description: `Images captured from all ${connectedCameras.length} connected cameras.`
       });
     } catch (error) {
       console.error("Capture all failed:", error);
@@ -134,12 +170,12 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
         variant: "destructive"
       });
       
-      // Reset camera statuses
-      setCameras(cameras.map(c => ({ ...c, status: "error" })));
+      // Reset camera statuses to error
+      setCameras(prev => prev.map(c => ({ ...c, status: "error" })));
     } finally {
       setIsCapturing(false);
       
-      // Refresh camera status after capture attempt
+      // Refresh camera status after capture attempt is complete
       setTimeout(refreshCameras, 1000);
     }
   };
