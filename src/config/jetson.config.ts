@@ -1,4 +1,3 @@
-
 /**
  * Jetson Orin Nano Configuration
  * 
@@ -39,7 +38,14 @@ export const CAMERA_DEVICE_PATHS = {
   gphoto2SupportedModels: [
     "Canon EOS Rebel T2i",
     "Canon EOS Rebel T3i"
-  ]
+  ],
+  // Camera detection settings
+  detection: {
+    checkIntervalMs: 5000,           // How often to check for camera connection changes
+    requiredResponseTimeoutMs: 2000, // Timeout for camera response
+    usbBusCheckCommand: "lsusb",     // Command to check USB bus
+    gphoto2ListCommand: "gphoto2 --auto-detect" // Command to list detected cameras
+  }
 };
 
 // System requirements
@@ -86,6 +92,11 @@ export const DEBUG_SETTINGS = {
   bypassNetworkIsolation: true, // Allow connections that might normally be restricted
   probeAllPorts: false,         // Test multiple ports on the target server
   logAllHeaders: true           // Log all request/response headers
+  
+  // Camera debug options
+  cameraDebugMode: true,        // Enable camera debug messages
+  simulateBadConnection: false, // Simulate intermittent camera connections
+  forceDisableAllCameras: false // Force all cameras to appear disconnected
 };
 
 // Network and communication settings

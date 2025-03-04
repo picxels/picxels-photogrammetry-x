@@ -1,8 +1,7 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { CameraDevice, CapturedImage, Session, Pass, ImageData } from "@/types";
 import { applyColorProfile, getCameraTypeFromId } from "./colorProfileUtils";
-import { CAMERA_DEVICE_PATHS } from "@/config/jetson.config";
+import { CAMERA_DEVICE_PATHS, DEBUG_SETTINGS } from "@/config/jetson.config";
 
 // Check if running on Jetson platform
 const isJetsonPlatform = () => {
@@ -15,20 +14,88 @@ const isDevelopmentMode = () => {
   return import.meta.env.DEV;
 };
 
-// Function to check USB camera availability on Jetson
-const checkUSBCameraConnections = async (): Promise<boolean> => {
+/**
+ * Checks for physical USB camera connections on Jetson platform
+ * This function would actually check the USB ports on the Jetson device
+ */
+const checkUSBCameraConnections = async (): Promise<{
+  connected: boolean;
+  detectedCameras: string[];
+}> => {
+  if (DEBUG_SETTINGS.forceDisableAllCameras) {
+    console.log("All cameras forcibly disabled via debug settings");
+    return { connected: false, detectedCameras: [] };
+  }
+  
   if (isJetsonPlatform()) {
     try {
-      // In a real implementation, this would use a system call or API
-      // to check if cameras are connected to the USB ports
-      // For now, we'll just simulate it
-      return true;
+      console.log("Checking for physical USB camera connections on Jetson platform");
+      
+      // In a real implementation, this would use a system call to check:
+      // 1. If USB devices are physically connected
+      // 2. If the connected devices are cameras
+      // 3. If the cameras are powered on and responding
+      
+      // This would be implemented with commands like:
+      // - `lsusb` to check for USB devices
+      // - `gphoto2 --auto-detect` to check for supported cameras
+      // - Testing if the camera responds to basic commands
+      
+      // For now, we're simulating the check
+      if (DEBUG_SETTINGS.simulateBadConnection) {
+        // Simulate intermittent connections for testing
+        const random = Math.random();
+        return { 
+          connected: random > 0.5, 
+          detectedCameras: random > 0.5 ? ["Canon EOS Rebel T2i", "Canon EOS Rebel T3i"] : []
+        };
+      }
+      
+      // This is a placeholder for the actual implementation
+      // In a real implementation, we would parse the output of lsusb and gphoto2
+      return { connected: false, detectedCameras: [] };
     } catch (error) {
       console.error("Error checking USB connections:", error);
-      return false;
+      return { connected: false, detectedCameras: [] };
     }
   }
-  return false;
+  
+  // When not on Jetson platform and in development mode, 
+  // connection status depends on debug settings
+  return {
+    connected: !DEBUG_SETTINGS.forceDisableAllCameras,
+    detectedCameras: []
+  };
+};
+
+/**
+ * Check if a specific camera is physically connected and responsive
+ */
+const isCameraResponding = async (cameraId: string): Promise<boolean> => {
+  if (DEBUG_SETTINGS.forceDisableAllCameras) {
+    return false;
+  }
+  
+  if (isJetsonPlatform()) {
+    // In a real implementation, this would send a command to the specific camera
+    // and check if it responds within a timeout period
+    
+    // For example, with gphoto2:
+    // `gphoto2 --port=usb:001,006 --summary`
+    
+    // For now, we're simulating the check
+    if (DEBUG_SETTINGS.simulateBadConnection) {
+      // Simulate some cameras not responding
+      return Math.random() > 0.3;
+    }
+    
+    // This is a placeholder for the actual implementation
+    return false;
+  }
+  
+  // When not on Jetson platform, camera status depends on debug settings in dev mode
+  // In production, we'll assume the cameras are not connected
+  return isDevelopmentMode() && !DEBUG_SETTINGS.forceDisableAllCameras;
 };
 
 export const detectCameras = async (): Promise<CameraDevice[]> => {
@@ -39,72 +106,65 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
   // Simulate detection delay
   await new Promise((resolve) => setTimeout(resolve, 1500));
   
-  // In production or on Jetson, try to detect real cameras
-  const hasUSBCameras = await checkUSBCameraConnections();
-  console.log("USB cameras detected:", hasUSBCameras);
+  // Check for physical camera connections
+  const { connected: hasUSBCameras, detectedCameras } = await checkUSBCameraConnections();
+  console.log("USB cameras physically connected:", hasUSBCameras);
+  console.log("Detected camera models:", detectedCameras);
   
-  if (isJetsonPlatform() && !isDevelopmentMode()) {
-    if (hasUSBCameras) {
-      // Return detected cameras based on Jetson config
-      return [
-        {
-          id: "t2i-1",
-          name: "Canon T2i",
-          type: "T2i",
-          connected: true,
-          status: "idle"
-        },
-        {
-          id: "t3i-1",
-          name: "Canon T3i",
-          type: "T3i",
-          connected: true,
-          status: "idle"
-        }
-      ];
-    } else {
-      // No real cameras detected, show warning
+  // In production on Jetson, check for real cameras
+  if (isJetsonPlatform()) {
+    const cameraDevices: CameraDevice[] = [];
+    
+    // Canon T2i camera
+    const t2iConnected = await isCameraResponding("t2i-1");
+    cameraDevices.push({
+      id: "t2i-1",
+      name: "Canon T2i",
+      type: "T2i",
+      connected: t2iConnected,
+      status: t2iConnected ? "idle" : "error"
+    });
+    
+    // Canon T3i camera
+    const t3iConnected = await isCameraResponding("t3i-1");
+    cameraDevices.push({
+      id: "t3i-1",
+      name: "Canon T3i",
+      type: "T3i",
+      connected: t3iConnected,
+      status: t3iConnected ? "idle" : "error"
+    });
+    
+    if (!cameraDevices.some(camera => camera.connected)) {
+      // No cameras are connected, show warning
       toast({
-        title: "No Cameras Detected",
-        description: "No physical cameras found. Check USB connections and drivers.",
+        title: "No Cameras Connected",
+        description: "No physical cameras found or cameras are not responding. Check USB connections, power, and drivers.",
         variant: "destructive"
       });
-      
-      // Return mock cameras but mark them as disconnected
-      return [
-        {
-          id: "t2i-1",
-          name: "Canon T2i",
-          type: "T2i",
-          connected: false,
-          status: "error"
-        },
-        {
-          id: "t3i-1",
-          name: "Canon T3i",
-          type: "T3i",
-          connected: false,
-          status: "error"
-        }
-      ];
     }
+    
+    return cameraDevices;
   }
   
-  // In development mode or non-Jetson environment, return mock cameras
+  // In development mode, return mock cameras with connection status
+  // based on debug settings
+  const devModeConnected = isDevelopmentMode() && !DEBUG_SETTINGS.forceDisableAllCameras;
+  
   return [
     {
       id: "t2i-1",
       name: "Canon T2i (Sample)",
       type: "T2i",
-      connected: true,
-      status: "idle"
+      connected: devModeConnected,
+      status: devModeConnected ? "idle" : "error"
     },
     {
       id: "t3i-1",
       name: "Canon T3i (Sample)",
       type: "T3i",
-      connected: true,
-      status: "idle"
+      connected: devModeConnected,
+      status: devModeConnected ? "idle" : "error"
     }
   ];
 };

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { Camera } from "lucide-react";
+
+import { useEffect, useState, useCallback } from "react";
+import { Camera, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,7 @@ import { toast } from "@/components/ui/use-toast";
 import { captureImage, detectCameras } from "@/utils/cameraUtils";
 import { saveImageLocally } from "@/utils/fileSystem";
 import { cn } from "@/lib/utils";
+import { CAMERA_DEVICE_PATHS } from "@/config/jetson.config";
 
 interface CameraControlProps {
   currentSession: Session;
@@ -19,29 +21,46 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
 
-  useEffect(() => {
-    const initCameras = async () => {
-      try {
-        const detectedCameras = await detectCameras();
-        setCameras(detectedCameras);
-      } catch (error) {
-        console.error("Failed to detect cameras:", error);
-        toast({
-          title: "Camera Detection Failed",
-          description: "Could not detect connected cameras. Please check USB connections.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initCameras();
+  const refreshCameras = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const detectedCameras = await detectCameras();
+      setCameras(detectedCameras);
+      setLastUpdateTime(new Date());
+    } catch (error) {
+      console.error("Failed to detect cameras:", error);
+      toast({
+        title: "Camera Detection Failed",
+        description: "Could not detect connected cameras. Please check USB connections.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    // Initialize camera detection
+    refreshCameras();
+    
+    // Set up periodic camera status check
+    const checkInterval = CAMERA_DEVICE_PATHS.detection?.checkIntervalMs || 5000;
+    const intervalId = setInterval(async () => {
+      // Only refresh if not currently capturing
+      if (!isCapturing) {
+        await refreshCameras();
+      }
+    }, checkInterval);
+    
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [refreshCameras, isCapturing]);
+
   const handleCapture = async (camera: CameraDevice) => {
-    if (isCapturing) return;
+    if (isCapturing || !camera.connected) return;
     
     try {
       setIsCapturing(true);
@@ -85,6 +104,9 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
       ));
     } finally {
       setIsCapturing(false);
+      
+      // Refresh camera status after capture attempt
+      setTimeout(refreshCameras, 1000);
     }
   };
 
@@ -128,6 +150,9 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
       setCameras(cameras.map(c => ({ ...c, status: "error" })));
     } finally {
       setIsCapturing(false);
+      
+      // Refresh camera status after capture attempt
+      setTimeout(refreshCameras, 1000);
     }
   };
 
@@ -140,6 +165,11 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
         </CardTitle>
         <CardDescription>
           Manage and trigger connected cameras
+          {lastUpdateTime && (
+            <div className="text-xs text-muted-foreground mt-1">
+              Last updated: {lastUpdateTime.toLocaleTimeString()}
+            </div>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -154,12 +184,9 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
             <Button 
               variant="outline" 
               className="mt-4"
-              onClick={() => {
-                setIsLoading(true);
-                detectCameras().then(setCameras).finally(() => setIsLoading(false));
-              }}
+              onClick={refreshCameras}
             >
-              Refresh
+              <RefreshCw className="mr-2 h-4 w-4" /> Refresh
             </Button>
           </div>
         ) : (
@@ -167,7 +194,10 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
             {cameras.map((camera) => (
               <div 
                 key={camera.id}
-                className="flex items-center justify-between p-4 rounded-md border border-border/40 hover:bg-background/40 transition-colors"
+                className={cn(
+                  "flex items-center justify-between p-4 rounded-md border border-border/40 hover:bg-background/40 transition-colors",
+                  !camera.connected && "bg-muted/30"
+                )}
               >
                 <div className="flex items-center gap-3">
                   <div 
@@ -179,7 +209,7 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
                           : camera.status === "capturing" 
                             ? "bg-amber-500" 
                             : "bg-green-500" 
-                        : "bg-muted"
+                        : "bg-red-500" // Red for disconnected
                     )}
                   />
                   <div>
@@ -190,7 +220,10 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
                 <div className="flex items-center gap-2">
                   <Badge 
                     variant={camera.connected ? "outline" : "secondary"}
-                    className="text-xs"
+                    className={cn(
+                      "text-xs",
+                      !camera.connected && "bg-red-500/10 text-red-500 hover:bg-red-500/20"
+                    )}
                   >
                     {camera.connected ? "Connected" : "Disconnected"}
                   </Badge>
@@ -204,6 +237,18 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
                 </div>
               </div>
             ))}
+            
+            <div className="flex justify-end">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={refreshCameras}
+                disabled={isLoading || isCapturing}
+                className="mr-2"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" /> Refresh Status
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>
