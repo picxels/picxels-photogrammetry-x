@@ -1,7 +1,7 @@
 
 import express from 'express';
 import cors from 'cors';
-import executeCommandRouter from './api/execute-command';
+import registerExecuteCommandRoutes from './api/execute-command';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -10,8 +10,12 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// API Routes
-app.use('/api/execute-command', executeCommandRouter);
+// Create API routes
+const apiRouter = express.Router();
+registerExecuteCommandRoutes(apiRouter);
+
+// Use the API router with a prefix
+app.use('/api', apiRouter);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
