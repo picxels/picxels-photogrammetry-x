@@ -49,6 +49,8 @@ export const CAMERA_DEVICE_PATHS = {
     checkIntervalMs: 5000,           // How often to check for camera connection changes
     requiredResponseTimeoutMs: 5000, // Timeout for camera response
     maxCaptureTimeoutMs: 15000,      // Maximum time to wait for image capture (15 seconds)
+    maxRetryAttempts: 3,             // Maximum number of retry attempts for commands
+    retryDelayMs: 1000,              // Delay between retry attempts in milliseconds
     
     // Commands for camera detection and interaction
     usbBusCheckCommand: "lsusb",     // Command to check USB bus
@@ -102,7 +104,8 @@ export const PERFORMANCE_SETTINGS = {
 export const DEBUG_SETTINGS = {
   enableVerboseLogging: true,
   logNetworkRequests: true,
-  simulateCameraConnection: false,
+  simulateCameraConnection: false,  // Set to true to force simulate camera connections in dev mode
+  simulateBadConnection: false,     // Simulate intermittent camera connections for testing
   simulateMotorConnection: false,
   forceUseLocalSamples: false,
   

@@ -21,6 +21,7 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
   const [isLoading, setIsLoading] = useState(true);
   const [isCapturing, setIsCapturing] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
+  const [errorRetryCount, setErrorRetryCount] = useState(0);
 
   const refreshCameras = useCallback(async () => {
     try {
@@ -29,6 +30,9 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
       const detectedCameras = await detectCameras();
       setCameras(detectedCameras);
       setLastUpdateTime(new Date());
+      
+      // Reset retry count on successful detection
+      setErrorRetryCount(0);
       
       // Show toast with detection results
       if (detectedCameras.length === 0) {
@@ -44,28 +48,51 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
           variant: "destructive"
         });
       } else {
+        const connectedCount = detectedCameras.filter(c => c.connected).length;
         toast({
           title: "Cameras Refreshed",
-          description: `Found ${detectedCameras.filter(c => c.connected).length} connected cameras.`,
+          description: `Found ${connectedCount} connected ${connectedCount === 1 ? 'camera' : 'cameras'}.`,
           variant: "default"
         });
       }
     } catch (error) {
       console.error("Failed to detect cameras:", error);
+      
+      // Increment retry count
+      const newRetryCount = errorRetryCount + 1;
+      setErrorRetryCount(newRetryCount);
+      
+      // Show error message with retry information
       toast({
         title: "Camera Detection Failed",
-        description: "Could not detect connected cameras. Please check USB connections.",
+        description: `Could not detect connected cameras. ${newRetryCount < 3 ? "Retrying automatically..." : "Please check USB connections."}`,
         variant: "destructive"
       });
+      
+      // Auto retry up to 3 times
+      if (newRetryCount < 3) {
+        setTimeout(() => {
+          refreshCameras();
+        }, 2000);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [errorRetryCount]);
 
   useEffect(() => {
     // Initialize camera detection only once on component mount
     refreshCameras();
-  }, [refreshCameras]);
+    
+    // Set up periodic camera status check
+    const intervalId = setInterval(() => {
+      if (!isCapturing && !isLoading) {
+        refreshCameras();
+      }
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(intervalId);
+  }, [refreshCameras, isCapturing, isLoading]);
 
   const handleCapture = async (camera: CameraDevice) => {
     if (isCapturing || !camera.connected) return;
@@ -107,15 +134,18 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
         
         toast({
           title: "Capture Failed",
-          description: `Failed to capture image from ${camera.name}.`,
+          description: `Failed to capture image from ${camera.name}. Trying to reconnect...`,
           variant: "destructive"
         });
+        
+        // Try to reconnect to the camera
+        await refreshCameras();
       }
     } catch (error) {
       console.error("Capture failed:", error);
       toast({
         title: "Capture Failed",
-        description: "Failed to capture or save the image.",
+        description: "Failed to capture or save the image. Refreshing camera connection...",
         variant: "destructive"
       });
       
@@ -123,6 +153,9 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
       setCameras(prev => prev.map(c => 
         c.id === camera.id ? { ...c, status: "error" } : c
       ));
+      
+      // Try to reconnect to the camera
+      await refreshCameras();
     } finally {
       setIsCapturing(false);
     }

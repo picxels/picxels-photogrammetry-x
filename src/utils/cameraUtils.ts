@@ -171,7 +171,30 @@ const checkUSBCameraConnections = async (): Promise<{
     if (isJetsonPlatform() || !isDevelopmentMode()) {
       // Execute gphoto2 --auto-detect command to find connected cameras
       console.log("Executing gphoto2 --auto-detect");
-      const stdout = await executeCommand('gphoto2 --auto-detect');
+      
+      // Add a retry mechanism for more reliable camera detection
+      let attempts = 0;
+      const maxAttempts = 3;
+      let stdout = '';
+      
+      while (attempts < maxAttempts) {
+        try {
+          stdout = await executeCommand('gphoto2 --auto-detect');
+          if (stdout && stdout.includes('Model')) {
+            break; // Successfully got camera data
+          }
+          console.log(`Camera detection attempt ${attempts + 1} failed, retrying...`);
+        } catch (err) {
+          console.error(`Camera detection error (attempt ${attempts + 1}):`, err);
+        }
+        attempts++;
+        
+        // Wait before retrying
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
       console.log("gphoto2 --auto-detect output:", stdout);
       
       // Parse the output to get camera models and ports
@@ -185,6 +208,17 @@ const checkUSBCameraConnections = async (): Promise<{
     }
     
     // For development mode on non-Jetson platforms, return simulated data
+    if (DEBUG_SETTINGS.simulateCameraConnection) {
+      console.log("Using simulated camera connections");
+      return { 
+        connected: true, 
+        detectedCameras: [
+          { model: "Canon EOS 550D", port: "usb:001,007" },
+          { model: "Canon EOS 600D", port: "usb:002,005" }
+        ]
+      };
+    }
+    
     if (DEBUG_SETTINGS.simulateBadConnection) {
       // Simulate intermittent connections for testing
       const random = Math.random();
@@ -229,17 +263,41 @@ const isCameraResponding = async (cameraId: string, portInfo?: string): Promise<
         return false;
       }
       
-      // Try to get camera summary which will fail if camera is not responsive
-      console.log(`Executing gphoto2 --port=${portInfo} --summary`);
-      const stdout = await executeCommand(`gphoto2 --port=${portInfo} --summary`);
+      // Add retry mechanism for more reliable camera checks
+      let attempts = 0;
+      const maxAttempts = 3;
+      let isResponding = false;
       
-      // If we get a successful response with camera info, it's responding
-      const isResponding = stdout.includes('Camera summary') && stdout.includes('Model');
+      while (attempts < maxAttempts && !isResponding) {
+        try {
+          // Try to get camera summary which will fail if camera is not responsive
+          console.log(`Executing gphoto2 --port=${portInfo} --summary (attempt ${attempts + 1})`);
+          const stdout = await executeCommand(`gphoto2 --port=${portInfo} --summary`);
+          
+          // If we get a successful response with camera info, it's responding
+          isResponding = stdout.includes('Camera summary') && stdout.includes('Model');
+          if (isResponding) break;
+        } catch (err) {
+          console.error(`Camera response check error (attempt ${attempts + 1}):`, err);
+        }
+        attempts++;
+        
+        // Wait before retrying
+        if (attempts < maxAttempts && !isResponding) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
       console.log(`Camera ${cameraId} responsive: ${isResponding}`);
       return isResponding;
     }
     
-    // Simulation for development mode
+    // Simulate camera responsiveness for development mode
+    if (DEBUG_SETTINGS.simulateCameraConnection) {
+      return true;
+    }
+    
+    // Simulation for development mode with bad connections
     if (DEBUG_SETTINGS.simulateBadConnection) {
       return Math.random() > 0.3;
     }
@@ -290,7 +348,7 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
         status: isConnected ? "idle" : "error"
       });
     }
-  } else if (isDevelopmentMode()) {
+  } else if (DEBUG_SETTINGS.simulateCameraConnection || isDevelopmentMode()) {
     // In development mode with no physical cameras, add simulated cameras
     const devModeConnected = !DEBUG_SETTINGS.forceDisableAllCameras;
     
@@ -320,6 +378,16 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
       description: "No cameras found or cameras are not responding. Check USB connections and power.",
       variant: "destructive"
     });
+  } else {
+    // Show a success message if cameras are found
+    const connectedCount = cameraDevices.filter(c => c.connected).length;
+    if (connectedCount > 0) {
+      toast({
+        title: "Cameras Detected",
+        description: `${connectedCount} ${connectedCount === 1 ? 'camera' : 'cameras'} successfully connected.`,
+        variant: "default"
+      });
+    }
   }
   
   return cameraDevices;
