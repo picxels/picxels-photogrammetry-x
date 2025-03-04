@@ -30,7 +30,7 @@ export async function executeCommandHandler(req: Request, res: Response) {
     console.error('Error in execute command handler:', error);
     return res.status(500).json({ 
       error: 'Internal server error',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 }
