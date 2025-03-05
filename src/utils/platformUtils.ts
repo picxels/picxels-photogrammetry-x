@@ -2,17 +2,37 @@
 import { DEBUG_SETTINGS } from "@/config/jetson.config";
 
 /**
- * Always return true since we're now running directly on the Jetson platform
+ * Detects if we're running on the Jetson platform by checking:
+ * 1. If forced via DEBUG_SETTINGS
+ * 2. If API server is available 
  */
 export const isJetsonPlatform = () => {
-  console.log("Platform detection: Using real Jetson platform");
+  // Check if we're forcing Jetson detection via DEBUG settings
+  if (DEBUG_SETTINGS?.forceJetsonPlatformDetection) {
+    console.log("Platform detection: Using real Jetson platform (forced via DEBUG_SETTINGS)");
+    return true;
+  }
+  
+  // We'll consider we're on Jetson if the API is available
+  try {
+    // In the browser, if API is known to be unavailable, we're not on Jetson
+    if (typeof window !== 'undefined' && window.DEBUG_SETTINGS?.simulateCameraConnection) {
+      console.log("Platform detection: Not on Jetson platform (API unavailable)");
+      return false;
+    }
+  } catch (e) {
+    console.error("Error in platform detection:", e);
+  }
+  
+  // Default to true for compatibility with existing code
+  console.log("Platform detection: Assuming Jetson platform");
   return true;
 };
 
 /**
  * Check if we're in development or production mode
- * Now returns false so we always use real hardware
  */
 export const isDevelopmentMode = () => {
-  return false;
+  // In a real environment, we should detect this properly
+  return process.env.NODE_ENV === 'development';
 };

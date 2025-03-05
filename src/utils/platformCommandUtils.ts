@@ -14,18 +14,46 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
     isJetson: isJetsonPlatform(),
     isDev: isDevelopmentMode(),
     command: command,
-    usingSimulation: true
+    usingSimulation: false
   };
   console.log("Command execution debug info:", debugInfo);
   
-  toast({
-    title: "Simulation Mode Active",
-    description: "Running in simulation mode - using mock camera data",
-    variant: "default"
-  });
-  
-  // Always use mock data for preview environment
-  return getMockCommandResponse(command);
+  try {
+    // Attempt to execute the command through the API
+    const response = await fetch('/api/execute-command', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ command }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API returned status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data.output || '';
+  } catch (error) {
+    console.error("Error executing command via API:", error);
+    
+    // If we're in a development environment, show toast and use mock data
+    if (window.DEBUG_SETTINGS?.simulateCameraConnection || !isJetsonPlatform()) {
+      console.warn("Falling back to simulation for command:", command);
+      
+      toast({
+        title: "API Connection Error",
+        description: "Using simulation mode as fallback. API server on port 3001 is not responding.",
+        variant: "destructive"
+      });
+      
+      // Return mock data as fallback
+      return getMockCommandResponse(command);
+    }
+    
+    // In production, we want to fail if the API is unreachable
+    throw new Error(`Failed to execute command: ${error.message}`);
+  }
 };
 
 /**

@@ -9,6 +9,13 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   plugins: [
     react(),
@@ -21,7 +28,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   define: {
-    // Prevent server-side modules from being bundled for the browser
+    // This helps separate server vs client code
     'process.env.SERVER_SIDE': JSON.stringify(false),
   },
 }));
