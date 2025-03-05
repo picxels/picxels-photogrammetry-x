@@ -66,8 +66,8 @@ export const isCameraResponding = async (cameraId: string, portInfo?: string): P
     }
     
     // Otherwise check if camera is actually responding
-    const result = await cameraService.checkCameraStatus(cameraId, portInfo);
-    return result.connected;
+    const result = await cameraService.isCameraResponding(cameraId, portInfo);
+    return result;
   } catch (error) {
     console.error("Error checking camera responsiveness:", error);
     return false;
