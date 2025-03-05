@@ -42,44 +42,45 @@ const AppWithHealthCheck = () => {
     
     // Only retry once if explicitly requested (e.g., by clicking a retry button)
     // Don't set up automatic retries that could cause flickering
-  }, [retryCount]);
+  }, [retryCount, apiHealthy]);
 
   // While checking
   if (apiHealthy === null) {
-    return <div className="flex h-screen items-center justify-center">Checking system health...</div>;
+    return <div className="flex h-screen items-center justify-center bg-background text-foreground">
+      <div className="flex flex-col items-center">
+        <div className="h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin mb-4" />
+        <p>Checking system health...</p>
+      </div>
+    </div>;
   }
 
-  // If API is unhealthy but we have the DEBUG flag to allow running without it
+  // Always allow the app to run in simulation mode if API is unavailable
   if (apiHealthy === false) {
-    // Check if we should allow the app to run in demo/simulated mode
+    console.log('API is unavailable - running in simulation mode');
+    
     try {
-      // Access the config via window to avoid import cycle
-      const allowSimulation = window.DEBUG_SETTINGS?.simulateCameraConnection;
-      
-      if (allowSimulation) {
-        console.log('Allowing app to run in simulation mode despite API being unavailable');
-        return <App />;
-      }
+      // Make simulation mode available globally
+      window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {};
+      window.DEBUG_SETTINGS.simulateCameraConnection = true;
     } catch (err) {
-      console.log('Could not check simulation settings:', err);
+      console.error('Could not set simulation settings:', err);
     }
     
-    // Default error message
-    return (
-      <div className="flex h-screen flex-col items-center justify-center p-4 text-center">
-        <h1 className="text-xl font-bold text-red-500">Backend Connection Error</h1>
-        <p className="mt-2 max-w-md text-gray-600">
-          Cannot connect to the camera control backend. Please ensure the server is running.
+    // Show a brief message then proceed to the app
+    setTimeout(() => {
+      setError(null);
+    }, 3000);
+    
+    return error ? (
+      <div className="flex h-screen flex-col items-center justify-center p-4 text-center bg-background text-foreground">
+        <h1 className="text-xl font-bold text-yellow-500">API Unavailable</h1>
+        <p className="mt-2 max-w-md text-muted-foreground">
+          Camera control API is unavailable. Running in simulation mode.
         </p>
-        {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
-        <button 
-          className="mt-4 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600" 
-          onClick={() => setRetryCount(prev => prev + 1)}
-        >
-          Retry Connection
-        </button>
+        {error && <p className="mt-2 text-sm text-muted-foreground">{error}</p>}
+        <p className="mt-4 text-sm animate-pulse">Starting application in simulation mode...</p>
       </div>
-    );
+    ) : <App />;
   }
 
   // If API is healthy, render the app
