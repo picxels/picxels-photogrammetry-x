@@ -40,8 +40,7 @@ export const useCameraControl = ({
 
   // Use a ref to track if we've initialized
   const initializedRef = useRef(false);
-  const intervalRef = useRef<number | null>(null);
-
+  
   useEffect(() => {
     // Initialize camera detection only once on component mount
     // Only if not initialized yet
@@ -50,27 +49,12 @@ export const useCameraControl = ({
       refreshCameras();
     }
     
-    // Set up periodic camera status check
-    if (!intervalRef.current) {
-      intervalRef.current = window.setInterval(() => {
-        if (!isCapturing && !isLoading && !isRefreshing) {
-          console.log("Running periodic camera status check...");
-          // For periodic checks, set isRefreshing to true to avoid loading spinner
-          setIsRefreshing(true);
-          refreshCameras();
-        } else {
-          console.log("Skipping periodic camera check because another operation is in progress");
-        }
-      }, 60000); // Check every minute
-    }
+    // No auto-refresh interval to prevent flickering
     
     return () => {
-      if (intervalRef.current) {
-        window.clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      // Cleanup function is empty since we no longer create an interval
     };
-  }, [refreshCameras, isCapturing, isLoading, isRefreshing, setIsRefreshing]);
+  }, [refreshCameras]);
 
   return {
     cameras,

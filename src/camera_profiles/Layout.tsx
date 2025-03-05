@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -10,11 +11,9 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, className }) => {
-  const { isLoading, refreshCameras } = useCameraDetection();
+  const { isLoading } = useCameraDetection();
 
-  React.useEffect(() => {
-    refreshCameras();
-  }, [refreshCameras]);
+  // Removed the refreshCameras call from here to prevent multiple detection attempts
 
   return (
     <div className={cn(

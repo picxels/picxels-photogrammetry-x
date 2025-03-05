@@ -35,18 +35,13 @@ const AppWithHealthCheck = () => {
       }
     };
 
-    checkApiHealth();
-    
-    // Set up auto-retry if API check fails
-    if (apiHealthy === false && retryCount < 3) {
-      const timer = setTimeout(() => {
-        console.log(`Retrying API health check (attempt ${retryCount + 1}/3)...`);
-        setRetryCount(prev => prev + 1);
-        checkApiHealth();
-      }, 5000); // Retry every 5 seconds, up to 3 times
-      
-      return () => clearTimeout(timer);
+    // Only check once initially
+    if (apiHealthy === null) {
+      checkApiHealth();
     }
+    
+    // Only retry once if explicitly requested (e.g., by clicking a retry button)
+    // Don't set up automatic retries that could cause flickering
   }, [retryCount]);
 
   // While checking
@@ -79,7 +74,7 @@ const AppWithHealthCheck = () => {
         {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
         <button 
           className="mt-4 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600" 
-          onClick={() => window.location.reload()}
+          onClick={() => setRetryCount(prev => prev + 1)}
         >
           Retry Connection
         </button>
