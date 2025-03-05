@@ -1,5 +1,7 @@
+
 import { toast } from "@/components/ui/use-toast";
 import { CAMERA_DEVICE_PATHS } from "@/config/jetson.config";
+import { cameraService } from "@/services/cameraService";
 
 // Re-export from platformUtils
 export { isJetsonPlatform, isDevelopmentMode } from './platformUtils';
@@ -54,3 +56,6 @@ export {
   renamePass,
   completePass
 } from './sessionUtils';
+
+// Export camera service
+export { cameraService } from '@/services/cameraService';
