@@ -15,8 +15,10 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Command execution endpoint
-app.post('/api/execute-command', executeCommand);
+// Command execution endpoint - Fix the route handler registration
+app.post('/api/execute-command', (req, res) => {
+  return executeCommand(req, res);
+});
 
 // Start the server
 app.listen(PORT, () => {
