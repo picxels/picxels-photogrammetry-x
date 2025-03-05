@@ -2,10 +2,10 @@
 import { isJetsonPlatform, isDevelopmentMode } from "./platformUtils";
 import { DEBUG_SETTINGS } from "@/config/jetson.config";
 import { toast } from "@/components/ui/use-toast";
-import { executeCommand as executeShellCommand } from 'child_process';
+import { exec } from 'child_process';
 import { promisify } from 'util';
 
-const execPromise = promisify(executeShellCommand);
+const execPromise = promisify(exec);
 
 /**
  * Execute a shell command on the Jetson platform
