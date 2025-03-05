@@ -18,8 +18,34 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
   console.log("Command execution debug info:", debugInfo);
   
   try {
+    // Check if the API endpoint is actually available first with a HEAD request
+    try {
+      const headCheck = await fetch('/api/health', { method: 'HEAD' });
+      if (!headCheck.ok) {
+        console.warn('API health check failed, endpoints may not be available');
+      }
+    } catch (error) {
+      console.warn('API health check failed:', error);
+      // In a demo/development environment, we can return mock data instead of failing
+      if (DEBUG_SETTINGS.simulateCameraConnection) {
+        console.log('Simulating command execution in development mode');
+        if (command.includes('--auto-detect')) {
+          return 'Model                          Port\n' +
+                 '------------------------------------------------------\n' +
+                 'Canon EOS 550D                 usb:001,004\n';
+        } else if (command.includes('which gphoto2')) {
+          return '/usr/bin/gphoto2';
+        } else if (command.includes('--summary') || command.includes('lsusb')) {
+          return 'Camera detected';
+        }
+        return ''; // Empty string for other commands
+      }
+      
+      // If we're not simulating, at least don't crash the app
+      throw new Error(`API not available. Is the backend server running? Error: ${error.message}`);
+    }
+    
     // In a browser context, we need to send the command to a backend API
-    // Instead of directly executing it with Node.js child_process
     const response = await fetch('/api/execute-command', {
       method: 'POST',
       headers: {
@@ -47,7 +73,8 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
       variant: "destructive"
     });
     
-    throw error;
+    // We're throwing a controlled error string that other parts of the code can handle
+    throw new Error(`Command execution failed: ${error.message}`);
   }
 };
 
