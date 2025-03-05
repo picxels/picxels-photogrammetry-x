@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { executeCommand, releaseCamera } from "./commandUtils";
 import { parseGphoto2Output } from "./cameraParsingUtils";

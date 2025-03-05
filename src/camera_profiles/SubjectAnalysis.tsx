@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ScanSearch, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";

@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { CameraDevice } from "@/types";
 import { mapCameraModelToType } from "./cameraModelUtils";

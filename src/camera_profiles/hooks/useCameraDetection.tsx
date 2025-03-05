@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { CameraDevice } from "@/types";
 import { toast } from "@/components/ui/use-toast";
@@ -69,6 +68,13 @@ export const useCameraDetection = () => {
         setTimeout(() => {
           refreshCameras();
         }, 2000);
+      } else {
+        // Provide suggestions for troubleshooting
+        toast({
+          title: "Troubleshooting Suggestions",
+          description: "1. Ensure cameras are powered on.\n2. Check USB connections.\n3. Restart the application.",
+          variant: "default"
+        });
       }
     } finally {
       // Always reset both loading states

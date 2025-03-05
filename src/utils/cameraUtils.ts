@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { CAMERA_DEVICE_PATHS } from "@/config/jetson.config";
 
@@ -14,7 +13,7 @@ export {
 } from './commandUtils';
 
 // Re-export from platformCommandUtils
-export { executeJetsonCommand, executeDevCommand } from './platformCommandUtils';
+export { executeJetsonCommand } from './platformCommandUtils';
 
 // Re-export from commandValidationUtils
 export { validateCommand, sanitizeCommand } from './commandValidationUtils';
