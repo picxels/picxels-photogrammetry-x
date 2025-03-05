@@ -2,10 +2,6 @@
 import { isJetsonPlatform, isDevelopmentMode } from "./platformUtils";
 import { DEBUG_SETTINGS } from "@/config/jetson.config";
 import { toast } from "@/components/ui/use-toast";
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execPromise = promisify(exec);
 
 /**
  * Execute a shell command on the Jetson platform
@@ -22,45 +18,32 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
   console.log("Command execution debug info:", debugInfo);
   
   try {
-    // Try multiple times with increasing timeouts
-    let attempts = 0;
-    const maxAttempts = 3;
-    let lastError: Error | null = null;
+    // In a browser context, we need to send the command to a backend API
+    // Instead of directly executing it with Node.js child_process
+    const response = await fetch('/api/execute-command', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ command }),
+    });
     
-    while (attempts < maxAttempts) {
-      try {
-        const timeout = 5000 + (attempts * 3000); // Increase timeout with each attempt
-        
-        // Call the Python script directly
-        console.log("Executing Python command handler");
-        const result = await execPromise(`python3 /path/to/your/script.py "${command.replace(/"/g, '\\"')}"`);
-        console.log(`Command result:`, result);
-        
-        return result.stdout || '';
-      } catch (error) {
-        lastError = error as Error;
-        console.warn(`Attempt ${attempts + 1}/${maxAttempts} failed:`, error);
-        attempts++;
-        
-        if (attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API error (${response.status}): ${errorText}`);
     }
     
-    // If we reach here, all attempts failed
-    if (lastError) {
-      throw lastError;
-    } else {
-      throw new Error(`Command execution failed after ${maxAttempts} attempts`);
-    }
+    const result = await response.json();
+    console.log(`Command result:`, result);
+    
+    return result.output || '';
   } catch (error) {
     console.error(`Error executing command '${command}':`, error);
     
     // Show more informative toast error
     toast({
       title: "Command Execution Failed",
-      description: "Failed to execute camera command. Check the Python script and connections.",
+      description: "Failed to execute camera command. Check the API endpoint and connections.",
       variant: "destructive"
     });
     
