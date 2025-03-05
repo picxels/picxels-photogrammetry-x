@@ -39,7 +39,7 @@ app.post('/api/execute-command', async (req, res) => {
 
 // Only start the server if we're running this file directly
 // and not importing it as a module
-if (require.main === module || process.env.SERVER_SIDE === 'true') {
+if (import.meta.url === `file://${process.argv[1]}` || process.env.SERVER_SIDE === 'true') {
   app.listen(PORT, () => {
     console.log(`API Server running on port ${PORT}`);
   });

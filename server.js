@@ -7,5 +7,5 @@ process.env.SERVER_SIDE = 'true';
 
 console.log('API Server starting...');
 
-// Import and start the server
-require('./src/server/index.js');
+// Import and start the server using ES Module syntax
+import './src/server/index.js';
