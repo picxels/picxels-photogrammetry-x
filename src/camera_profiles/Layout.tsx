@@ -1,7 +1,8 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useCameraDetection } from "@/camera_profiles/hooks/useCameraDetection";
+import LoadingSpinner from "@/camera_profiles/components/LoadingSpinner";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,6 +10,12 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, className }) => {
+  const { isLoading, refreshCameras } = useCameraDetection();
+
+  React.useEffect(() => {
+    refreshCameras();
+  }, [refreshCameras]);
+
   return (
     <div className={cn(
       "min-h-screen bg-gradient-to-br from-background to-secondary",
@@ -31,7 +38,11 @@ const Layout: React.FC<LayoutProps> = ({ children, className }) => {
         </div>
       </header>
       <main className="container py-6 px-4 md:py-8 animate-fade-in">
-        {children}
+        {isLoading ? (
+          <LoadingSpinner message="Initializing cameras..." />
+        ) : (
+          children
+        )}
       </main>
     </div>
   );

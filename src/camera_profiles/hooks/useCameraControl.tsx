@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { CapturedImage, Session } from "@/types";
 import { useCameraDetection } from "./useCameraDetection";

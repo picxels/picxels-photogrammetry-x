@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { CameraDevice, CapturedImage, Session } from "@/types";
 import { toast } from "@/components/ui/use-toast";

@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { CapturedImage } from "@/types";
 import { executeCommand, releaseCamera, triggerAutofocus, setImageFormatToJpeg } from "./commandUtils";
@@ -102,6 +101,18 @@ export const captureImage = async (
       
       const cameraTypeForProfile = getCameraTypeFromId(cameraId);
       const profiledImage = await applyColorProfile(image, cameraTypeForProfile);
+      
+      // Apply background mask if the image is sharp enough
+      if (checkImageSharpness(profiledImage)) {
+        try {
+          const maskedImage = await generateImageMask(profiledImage);
+          if (maskedImage.hasMask) {
+            return maskedImage;
+          }
+        } catch (maskError) {
+          console.error("Error applying mask:", maskError);
+        }
+      }
       
       console.log("Image captured and color profile applied:", profiledImage);
       return profiledImage;
