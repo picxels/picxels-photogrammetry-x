@@ -3,6 +3,17 @@ import { createRoot } from 'react-dom/client';
 import { useEffect, useState } from 'react';
 import App from './App.tsx';
 import './index.css';
+import { startServer } from './server/index.ts';
+
+// Attempt to start the server in development mode
+if (import.meta.env.DEV) {
+  console.log('Attempting to start backend server in development mode...');
+  try {
+    startServer();
+  } catch (err) {
+    console.error('Error starting server:', err);
+  }
+}
 
 // Simple component to check API health
 const AppWithHealthCheck = () => {
