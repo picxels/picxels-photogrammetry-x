@@ -6,58 +6,13 @@ import './index.css';
 
 // Simple component to check API health and start in simulation mode if needed
 const AppWithHealthCheck = () => {
-  const [apiHealthy, setApiHealthy] = useState<boolean | null>(null);
+  const [simMode, setSimMode] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    const checkApiHealth = async () => {
-      try {
-        // Attempt API health check
-        const response = await fetch('/api/health', { 
-          method: 'GET',
-          // Add cache busting parameter
-          headers: { 'Cache-Control': 'no-cache' } 
-        });
-        
-        if (response.ok) {
-          console.log('API health check successful');
-          setApiHealthy(true);
-        } else {
-          console.error(`API returned status: ${response.status}`);
-          setApiHealthy(false);
-          setError(`API returned status: ${response.status}`);
-        }
-      } catch (err) {
-        console.error('API health check failed:', err);
-        setApiHealthy(false);
-        setError(`API connection error: ${err.message}`);
-      }
-    };
-
-    // Only check once initially
-    if (apiHealthy === null) {
-      checkApiHealth();
-    }
+    console.log('Running in simulation mode by default');
     
-    // Only retry once if explicitly requested (e.g., by clicking a retry button)
-    // Don't set up automatic retries that could cause flickering
-  }, [retryCount, apiHealthy]);
-
-  // While checking
-  if (apiHealthy === null) {
-    return <div className="flex h-screen items-center justify-center bg-background text-foreground">
-      <div className="flex flex-col items-center">
-        <div className="h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin mb-4" />
-        <p>Checking system health...</p>
-      </div>
-    </div>;
-  }
-
-  // Always allow the app to run in simulation mode if API is unavailable
-  if (apiHealthy === false) {
-    console.log('API is unavailable - running in simulation mode');
-    
+    // Enable simulation mode
     try {
       // Make simulation mode available globally
       window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {
@@ -69,46 +24,52 @@ const AppWithHealthCheck = () => {
         forceJetsonPlatformDetection: false
       };
       window.DEBUG_SETTINGS.simulateCameraConnection = true;
+      window.DEBUG_SETTINGS.simulateMotorConnection = true;
     } catch (err) {
       console.error('Could not set simulation settings:', err);
+      setError("Failed to initialize simulation mode");
     }
     
-    // Show a brief message then proceed to the app
-    setTimeout(() => {
+    // A brief delay to show the simulation mode message
+    const timer = setTimeout(() => {
       setError(null);
     }, 3000);
     
-    return error ? (
-      <div className="flex h-screen flex-col items-center justify-center p-4 text-center bg-background text-foreground">
-        <h1 className="text-xl font-bold text-yellow-500">API Unavailable</h1>
-        <p className="mt-2 max-w-md text-muted-foreground">
-          Camera control API is unavailable. Running in simulation mode.
-        </p>
-        {error && <p className="mt-2 text-sm text-muted-foreground">{error}</p>}
-        <p className="mt-4 text-sm animate-pulse">Starting application in simulation mode...</p>
-      </div>
-    ) : <App />;
-  }
-
-  // If API is healthy, render the app
-  return <App />;
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Always show a simulation banner initially
+  return error ? (
+    <div className="flex h-screen flex-col items-center justify-center p-4 text-center bg-background text-foreground">
+      <h1 className="text-xl font-bold text-yellow-500">Camera API Unavailable</h1>
+      <p className="mt-2 max-w-md text-muted-foreground">
+        Running in simulation mode. No camera hardware will be accessed.
+      </p>
+      {error && <p className="mt-2 text-sm text-muted-foreground">{error}</p>}
+      <p className="mt-4 text-sm animate-pulse">Starting application in simulation mode...</p>
+    </div>
+  ) : <App />;
 };
 
-// Make DEBUG_SETTINGS available on window for the health check
+// Make DEBUG_SETTINGS available on window
 try {
   // Create a default DEBUG_SETTINGS object with required properties
   window.DEBUG_SETTINGS = {
-    enableVerboseLogging: false,
-    logNetworkRequests: false,
-    simulateCameraConnection: false,
-    simulateMotorConnection: false,
+    enableVerboseLogging: true,
+    logNetworkRequests: true,
+    simulateCameraConnection: true,
+    simulateMotorConnection: true,
     forceUseLocalSamples: false,
     forceJetsonPlatformDetection: false
   };
   
   // Then try to load config values from jetson.config
   import('@/config/jetson.config').then(config => {
-    window.DEBUG_SETTINGS = config.DEBUG_SETTINGS;
+    window.DEBUG_SETTINGS = {
+      ...config.DEBUG_SETTINGS,
+      simulateCameraConnection: true,
+      simulateMotorConnection: true
+    };
   }).catch(err => {
     console.warn('Failed to load jetson config, using defaults:', err);
   });

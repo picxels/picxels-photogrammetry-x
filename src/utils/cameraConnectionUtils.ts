@@ -10,7 +10,7 @@ export const checkUSBCameraConnections = async (): Promise<{
   connected: boolean;
   detectedCameras: { model: string, port: string }[];
 }> => {
-  console.log("Checking for physical USB camera connections");
+  console.log("Checking for physical USB camera connections (simulation mode)");
   
   try {
     console.log("Using CameraService to detect cameras");
@@ -18,31 +18,7 @@ export const checkUSBCameraConnections = async (): Promise<{
     // Use the cameraService to detect cameras
     const detectedCameras = await cameraService.detectCameras();
     
-    if (detectedCameras.length === 0) {
-      console.log("No cameras detected");
-      
-      // Check if gphoto2 is installed as a fallback
-      try {
-        const whichResult = await executeCommand('which gphoto2');
-        console.log("gphoto2 location:", whichResult);
-        
-        if (!whichResult || whichResult.trim() === '') {
-          toast({
-            title: "gphoto2 Not Found",
-            description: "gphoto2 is not installed or not in PATH. Install with: sudo apt-get install gphoto2",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        console.error("gphoto2 is not installed or not in PATH:", error);
-        toast({
-          title: "gphoto2 Not Found",
-          description: "gphoto2 is not installed or not in PATH. Install with: sudo apt-get install gphoto2",
-          variant: "destructive"
-        });
-      }
-    }
-    
+    // In simulation mode, always show successful detection
     return { 
       connected: detectedCameras.length > 0, 
       detectedCameras 
@@ -50,11 +26,19 @@ export const checkUSBCameraConnections = async (): Promise<{
   } catch (error) {
     console.error("Error checking USB connections:", error);
     toast({
-      title: "Camera Connection Error",
-      description: "Failed to check for USB camera connections",
-      variant: "destructive"
+      title: "Simulation Mode Active",
+      description: "Camera detection is simulated. No real cameras will be detected.",
+      variant: "default"
     });
-    return { connected: false, detectedCameras: [] };
+    
+    // Return simulated camera data in case of error
+    return { 
+      connected: true, 
+      detectedCameras: [
+        { model: "Canon EOS 550D (Simulated)", port: "usb:001,004" },
+        { model: "Canon EOS 600D (Simulated)", port: "usb:001,005" }
+      ] 
+    };
   }
 };
 
@@ -62,7 +46,9 @@ export const checkUSBCameraConnections = async (): Promise<{
  * Check if a specific camera is physically connected and responsive
  */
 export const isCameraResponding = async (cameraId: string, portInfo?: string): Promise<boolean> => {
-  return cameraService.isCameraResponding(cameraId, portInfo);
+  // In simulation mode, always return true after a short delay to simulate checking
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return true;
 };
 
 // Importing executeCommand for the gphoto2 installation check

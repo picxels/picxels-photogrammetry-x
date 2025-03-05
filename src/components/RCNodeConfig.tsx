@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,9 +33,13 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [advancedResults, setAdvancedResults] = useState<any>(null);
+  const [simulationBadgeVisible, setSimulationBadgeVisible] = useState(true);
 
-  // Effect to test connection on initial load if both URL and token are present
   useEffect(() => {
+    addLogEntry("Running in SIMULATION MODE - no real API connections will be made");
+    
+    setSimulationBadgeVisible(true);
+    
     const testInitialConnection = async () => {
       if (config.nodeUrl && config.authToken) {
         await handleTestConnection();
@@ -47,14 +50,12 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Add debug log entry
   const addLogEntry = (message: string) => {
     const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
-    setDebugLog(prev => [...prev, `[${timestamp}] ${message}`].slice(-20)); // Keep last 20 messages
+    setDebugLog(prev => [...prev, `[${timestamp}] ${message}`].slice(-20));
   };
 
   const handleSaveConfig = () => {
-    // Remove trailing slash for consistency
     const normalizedUrl = config.nodeUrl.endsWith('/') 
       ? config.nodeUrl.slice(0, -1) 
       : config.nodeUrl;
@@ -75,15 +76,13 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
   };
 
   const checkServerReachable = async () => {
-    if (!config.nodeUrl) return;
+    if (!config.nodeUrl) return false;
     
-    addLogEntry(`Checking if server is reachable: ${config.nodeUrl}`);
-    const result = await testServerReachable(config.nodeUrl);
+    addLogEntry(`Checking if server is reachable: ${config.nodeUrl} (SIMULATION)`);
+    setIsServerReachable(true);
+    addLogEntry(`Server reachability (SIMULATED): YES`);
     
-    setIsServerReachable(result.reachable);
-    addLogEntry(`Server reachability: ${result.reachable ? 'YES' : 'NO - ' + result.error}`);
-    
-    return result.reachable;
+    return true;
   };
 
   const handleTestConnectionAdvanced = async () => {
@@ -94,10 +93,8 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
     addLogEntry("Running advanced connection diagnostics...");
     
     try {
-      // First check server reachability
       await checkServerReachable();
       
-      // Then run advanced tests
       const advancedTest = await testRCNodeConnectionAdvanced(config);
       
       addLogEntry(`Advanced test result: ${advancedTest.success ? 'SUCCESS' : 'FAILED'}`);
@@ -127,43 +124,22 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
     setIsTesting(true);
     setConnectionError(null);
     
-    // First check if server is reachable at all
-    const isReachable = await checkServerReachable();
-    if (!isReachable) {
-      addLogEntry(`Server is not reachable at ${config.nodeUrl}`);
-      setConnectionError(`Server is not reachable at ${config.nodeUrl}. Check if the server is running and the URL is correct.`);
-      setIsTesting(false);
-      
-      if (onConnectionStatusChange) {
-        onConnectionStatusChange(false);
-      }
-      
-      return;
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    addLogEntry(`Testing connection to ${config.nodeUrl} (SIMULATION)`);
+    
+    setConfig(prev => ({ ...prev, isConnected: true }));
+    
+    if (onConnectionStatusChange) {
+      onConnectionStatusChange(true);
     }
     
-    // Then test the actual RC Node connection with auth
-    addLogEntry(`Testing connection to ${config.nodeUrl}`);
+    addLogEntry(`Connection test SIMULATED - pretending connection is successful`);
     
-    try {
-      const isConnected = await testRCNodeConnection(config);
-      setConfig(prev => ({ ...prev, isConnected }));
-      
-      if (onConnectionStatusChange) {
-        onConnectionStatusChange(isConnected);
-      }
-      
-      addLogEntry(`Connection test ${isConnected ? 'successful' : 'failed'}`);
-      
-      if (!isConnected) {
-        setConnectionError("Connection failed. See console for details.");
-      }
-    } finally {
-      setIsTesting(false);
-    }
+    setIsTesting(false);
   };
 
   const handleCurlCommand = () => {
-    // Remove trailing slash for consistency
     const baseUrl = config.nodeUrl.endsWith('/') ? config.nodeUrl.slice(0, -1) : config.nodeUrl;
     const curlCommand = `curl ${baseUrl}/node/status -H "Authorization: Bearer ${config.authToken}"`;
     
@@ -207,9 +183,19 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
               Connected
             </Badge>
           )}
+          {simulationBadgeVisible && (
+            <Badge variant="outline" className="ml-2 bg-yellow-500/10 text-yellow-500 border-yellow-500/20">
+              Simulation Mode
+            </Badge>
+          )}
         </CardTitle>
         <CardDescription>
           Connect to the Reality Capture Node for photogrammetry processing
+          {simulationBadgeVisible && (
+            <div className="mt-2 text-yellow-500 text-xs font-medium">
+              Running in simulation mode - no real connections will be made
+            </div>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

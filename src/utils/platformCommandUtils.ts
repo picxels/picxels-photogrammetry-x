@@ -13,75 +13,19 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
   const debugInfo = {
     isJetson: isJetsonPlatform(),
     isDev: isDevelopmentMode(),
-    command: command
+    command: command,
+    usingSimulation: true
   };
   console.log("Command execution debug info:", debugInfo);
   
-  try {
-    // Check if the API endpoint is actually available first with a HEAD request
-    let apiAvailable = false;
-    try {
-      const headCheck = await fetch('/api/health', { 
-        method: 'HEAD',
-        headers: { 'Cache-Control': 'no-cache' }
-      });
-      apiAvailable = headCheck.ok;
-      if (!apiAvailable) {
-        console.warn('API health check failed, endpoints may not be available');
-      }
-    } catch (error) {
-      console.warn('API health check failed:', error);
-      apiAvailable = false;
-    }
-    
-    // If API is not available or we're explicitly in simulation mode, return mock data
-    if (!apiAvailable || DEBUG_SETTINGS.simulateCameraConnection) {
-      console.log('API unavailable or simulation mode enabled, returning mock data');
-      return getMockCommandResponse(command);
-    }
-      
-    // In a browser context, we need to send the command to a backend API
-    try {
-      const response = await fetch('/api/execute-command', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
-        body: JSON.stringify({ command }),
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`API error (${response.status}): ${errorText}`);
-        
-        // Return mock data instead of failing
-        return getMockCommandResponse(command);
-      }
-      
-      const result = await response.json();
-      console.log(`Command result:`, result);
-      
-      return result.output || '';
-    } catch (error) {
-      console.error(`Error executing command '${command}':`, error);
-      
-      // Return mock data instead of failing
-      return getMockCommandResponse(command);
-    }
-  } catch (error) {
-    console.error(`Error executing command '${command}':`, error);
-    
-    // Show more informative toast error
-    toast({
-      title: "Command Execution Failed",
-      description: "Failed to execute camera command. Simulation mode enabled.",
-      variant: "destructive"
-    });
-    
-    // Return mock data instead of failing
-    return getMockCommandResponse(command);
-  }
+  toast({
+    title: "Simulation Mode Active",
+    description: "Running in simulation mode - using mock camera data",
+    variant: "default"
+  });
+  
+  // Always use mock data for preview environment
+  return getMockCommandResponse(command);
 };
 
 /**
