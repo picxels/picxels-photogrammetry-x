@@ -14,6 +14,7 @@ const AppWithHealthCheck = () => {
     const checkApiHealth = async () => {
       try {
         console.log('Checking API health...');
+        // First try HEAD request which is more efficient
         const response = await fetch('/api/health', { 
           method: 'HEAD',
           headers: { 'Cache-Control': 'no-cache' }
@@ -24,9 +25,22 @@ const AppWithHealthCheck = () => {
           setApiAvailable(true);
           setError(null);
         } else {
-          console.warn('API health check failed with status:', response.status);
-          setApiAvailable(false);
-          setError(`API server returned status ${response.status}`);
+          // Fallback to GET request in case HEAD isn't implemented correctly
+          console.log('HEAD request failed, trying GET...');
+          const getResponse = await fetch('/api/health', { 
+            method: 'GET',
+            headers: { 'Cache-Control': 'no-cache' }
+          });
+          
+          if (getResponse.ok) {
+            console.log('API is available (via GET)!');
+            setApiAvailable(true);
+            setError(null);
+          } else {
+            console.warn('API health check failed with status:', getResponse.status);
+            setApiAvailable(false);
+            setError(`API server returned status ${getResponse.status}`);
+          }
         }
       } catch (err) {
         console.error('API health check error:', err);
@@ -59,6 +73,12 @@ const AppWithHealthCheck = () => {
       // Update simulation settings based on API availability
       window.DEBUG_SETTINGS.simulateCameraConnection = apiAvailable === false;
       window.DEBUG_SETTINGS.simulateMotorConnection = apiAvailable === false;
+      
+      if (apiAvailable) {
+        console.log('API is available - disabling simulation modes');
+      } else if (apiAvailable === false) {
+        console.log('API is unavailable - enabling simulation modes');
+      }
     } catch (err) {
       console.error('Could not set simulation settings:', err);
     }
@@ -78,7 +98,7 @@ const AppWithHealthCheck = () => {
             <li>Make sure the API server is running on port 3001</li>
             <li>Check for console errors in your terminal</li>
             <li>Ensure there are no firewall issues blocking port 3001</li>
-            <li>Try running <code className="bg-yellow-200 dark:bg-yellow-800/50 px-1 rounded">node src/server/index.js</code> directly</li>
+            <li>Try running <code className="bg-yellow-200 dark:bg-yellow-800/50 px-1 rounded">node server.js</code> directly</li>
           </ol>
         </div>
         {error && <p className="mt-4 text-sm text-red-400">{error}</p>}

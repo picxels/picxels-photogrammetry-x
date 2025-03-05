@@ -43,9 +43,14 @@ const executeCommand = async (command) => {
   }
 };
 
-// Health check endpoint
+// Health check endpoint - support both GET and HEAD methods
+app.head('/api/health', (req, res) => {
+  console.log('API health check called (HEAD)');
+  res.status(200).end();
+});
+
 app.get('/api/health', (req, res) => {
-  console.log('API health check called');
+  console.log('API health check called (GET)');
   res.json({ status: 'ok', message: 'Server is running' });
 });
 

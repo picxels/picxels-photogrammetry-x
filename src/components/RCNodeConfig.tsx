@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,12 +34,32 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [advancedResults, setAdvancedResults] = useState<any>(null);
-  const [simulationBadgeVisible, setSimulationBadgeVisible] = useState(true);
+  const [simulationMode, setSimulationMode] = useState(false);
 
   useEffect(() => {
-    addLogEntry("Running in SIMULATION MODE - no real API connections will be made");
+    // Check if the API is reachable
+    const checkApiAvailability = async () => {
+      try {
+        const response = await fetch('/api/health', { method: 'HEAD' });
+        const apiAvailable = response.ok;
+        
+        // Only enable simulation if API is not available
+        const shouldSimulate = !apiAvailable;
+        setSimulationMode(shouldSimulate);
+        
+        if (shouldSimulate) {
+          addLogEntry("Running in SIMULATION MODE - no real API connections will be made");
+        } else {
+          addLogEntry("API server is available - using normal operation mode");
+        }
+      } catch (error) {
+        console.error("Error checking API availability:", error);
+        setSimulationMode(true);
+        addLogEntry("Error checking API, defaulting to SIMULATION MODE");
+      }
+    };
     
-    setSimulationBadgeVisible(true);
+    checkApiAvailability();
     
     const testInitialConnection = async () => {
       if (config.nodeUrl && config.authToken) {
@@ -78,11 +99,25 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
   const checkServerReachable = async () => {
     if (!config.nodeUrl) return false;
     
-    addLogEntry(`Checking if server is reachable: ${config.nodeUrl} (SIMULATION)`);
-    setIsServerReachable(true);
-    addLogEntry(`Server reachability (SIMULATED): YES`);
-    
-    return true;
+    if (simulationMode) {
+      addLogEntry(`Checking if server is reachable: ${config.nodeUrl} (SIMULATION)`);
+      setIsServerReachable(true);
+      addLogEntry(`Server reachability (SIMULATED): YES`);
+      return true;
+    } else {
+      // Perform an actual check
+      try {
+        addLogEntry(`Checking if server is reachable: ${config.nodeUrl}`);
+        const result = await testServerReachable(config.nodeUrl);
+        setIsServerReachable(result.reachable);
+        addLogEntry(`Server reachability: ${result.reachable ? 'YES' : 'NO - ' + result.error}`);
+        return result.reachable;
+      } catch (error) {
+        addLogEntry(`Server reachability check error: ${error.message}`);
+        setIsServerReachable(false);
+        return false;
+      }
+    }
   };
 
   const handleTestConnectionAdvanced = async () => {
@@ -95,21 +130,43 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
     try {
       await checkServerReachable();
       
-      const advancedTest = await testRCNodeConnectionAdvanced(config);
-      
-      addLogEntry(`Advanced test result: ${advancedTest.success ? 'SUCCESS' : 'FAILED'}`);
-      addLogEntry(advancedTest.message);
-      
-      setAdvancedResults(advancedTest);
-      
-      if (advancedTest.success) {
+      if (simulationMode) {
+        // Simulate test in simulation mode
+        await new Promise(resolve => setTimeout(resolve, 800));
+        const mockResult = {
+          success: true,
+          message: "Advanced test successful (SIMULATED)",
+          details: {
+            version: "1.0.0",
+            mode: "Simulation",
+            testTime: new Date().toISOString()
+          }
+        };
+        setAdvancedResults(mockResult);
+        addLogEntry(`Advanced test result: SUCCESS (SIMULATED)`);
         setConfig(prev => ({ ...prev, isConnected: true }));
         
         if (onConnectionStatusChange) {
           onConnectionStatusChange(true);
         }
       } else {
-        setConnectionError(advancedTest.message);
+        // Perform real test
+        const advancedTest = await testRCNodeConnectionAdvanced(config);
+        
+        addLogEntry(`Advanced test result: ${advancedTest.success ? 'SUCCESS' : 'FAILED'}`);
+        addLogEntry(advancedTest.message);
+        
+        setAdvancedResults(advancedTest);
+        
+        if (advancedTest.success) {
+          setConfig(prev => ({ ...prev, isConnected: true }));
+          
+          if (onConnectionStatusChange) {
+            onConnectionStatusChange(true);
+          }
+        } else {
+          setConnectionError(advancedTest.message);
+        }
       }
     } catch (error) {
       console.error("Advanced connection test error:", error);
@@ -124,17 +181,48 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
     setIsTesting(true);
     setConnectionError(null);
     
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    addLogEntry(`Testing connection to ${config.nodeUrl} (SIMULATION)`);
-    
-    setConfig(prev => ({ ...prev, isConnected: true }));
-    
-    if (onConnectionStatusChange) {
-      onConnectionStatusChange(true);
+    if (simulationMode) {
+      // Simulate connection test
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      addLogEntry(`Testing connection to ${config.nodeUrl} (SIMULATION)`);
+      
+      setConfig(prev => ({ ...prev, isConnected: true }));
+      
+      if (onConnectionStatusChange) {
+        onConnectionStatusChange(true);
+      }
+      
+      addLogEntry(`Connection test SIMULATED - pretending connection is successful`);
+    } else {
+      // Attempt real connection
+      addLogEntry(`Testing connection to ${config.nodeUrl}`);
+      
+      try {
+        const success = await testRCNodeConnection(config);
+        
+        setConfig(prev => ({ ...prev, isConnected: success }));
+        
+        if (onConnectionStatusChange) {
+          onConnectionStatusChange(success);
+        }
+        
+        if (success) {
+          addLogEntry(`Connection test successful`);
+        } else {
+          addLogEntry(`Connection test failed`);
+          setConnectionError("Connection failed. Check the URL, auth token, and ensure the RC Node is running.");
+        }
+      } catch (error) {
+        addLogEntry(`Connection test error: ${error.message}`);
+        setConnectionError(error.message);
+        setConfig(prev => ({ ...prev, isConnected: false }));
+        
+        if (onConnectionStatusChange) {
+          onConnectionStatusChange(false);
+        }
+      }
     }
-    
-    addLogEntry(`Connection test SIMULATED - pretending connection is successful`);
     
     setIsTesting(false);
   };
@@ -183,7 +271,7 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
               Connected
             </Badge>
           )}
-          {simulationBadgeVisible && (
+          {simulationMode && (
             <Badge variant="outline" className="ml-2 bg-yellow-500/10 text-yellow-500 border-yellow-500/20">
               Simulation Mode
             </Badge>
@@ -191,7 +279,7 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
         </CardTitle>
         <CardDescription>
           Connect to the Reality Capture Node for photogrammetry processing
-          {simulationBadgeVisible && (
+          {simulationMode && (
             <div className="mt-2 text-yellow-500 text-xs font-medium">
               Running in simulation mode - no real connections will be made
             </div>
@@ -370,7 +458,8 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
                 Debugging Mode: {DEBUG_SETTINGS.rcNodeDebugMode ? "Enabled" : "Disabled"}<br/>
                 CORS Mode: {DEBUG_SETTINGS.disableCors ? "Disabled (no-cors)" : "Enabled (cors)"}<br/>
                 Ignore HTTPS Errors: {DEBUG_SETTINGS.ignoreHttpsErrors ? "Yes" : "No"}<br/>
-                Force XHR: {DEBUG_SETTINGS.forceUseXhr ? "Yes" : "No"}
+                Force XHR: {DEBUG_SETTINGS.forceUseXhr ? "Yes" : "No"}<br/>
+                Simulation Mode: {simulationMode ? "Active" : "Inactive"}
               </p>
             </div>
           </CollapsibleContent>
