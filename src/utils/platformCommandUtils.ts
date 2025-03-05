@@ -55,30 +55,7 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
         const errorText = await response.text();
         console.error(`API error (${response.status}): ${errorText}`);
         
-        // Try again with direct API call if the proxy might be misconfigured
-        if (response.status === 404 && !window.location.hostname.includes('localhost')) {
-          try {
-            console.log('Trying alternate API endpoint...');
-            const altResponse = await fetch('http://localhost:3001/api/execute-command', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache'
-              },
-              body: JSON.stringify({ command }),
-            });
-            
-            if (altResponse.ok) {
-              const result = await altResponse.json();
-              console.log(`Command result from alt endpoint:`, result);
-              return result.output || '';
-            }
-          } catch (altError) {
-            console.error('Alternate API endpoint also failed:', altError);
-          }
-        }
-        
-        // If API fails but we can provide mock data, do so instead of failing
+        // Return mock data instead of failing
         return getMockCommandResponse(command);
       }
       

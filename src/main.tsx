@@ -3,19 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { useEffect, useState } from 'react';
 import App from './App.tsx';
 import './index.css';
-import { startServer } from './server/index.ts';
 
-// Attempt to start the server in development mode
-if (import.meta.env.DEV) {
-  console.log('Attempting to start backend server in development mode...');
-  try {
-    startServer();
-  } catch (err) {
-    console.error('Error starting server:', err);
-  }
-}
-
-// Simple component to check API health
+// Simple component to check API health and start in simulation mode if needed
 const AppWithHealthCheck = () => {
   const [apiHealthy, setApiHealthy] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +109,8 @@ try {
   // Then try to load config values from jetson.config
   import('@/config/jetson.config').then(config => {
     window.DEBUG_SETTINGS = config.DEBUG_SETTINGS;
+  }).catch(err => {
+    console.warn('Failed to load jetson config, using defaults:', err);
   });
 } catch (err) {
   console.error('Failed to load debug settings:', err);

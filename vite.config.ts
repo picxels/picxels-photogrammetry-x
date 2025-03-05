@@ -28,4 +28,8 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  define: {
+    // Prevent server-side modules from being bundled for the browser
+    'process.env.SERVER_SIDE': JSON.stringify(false),
+  },
 }));
