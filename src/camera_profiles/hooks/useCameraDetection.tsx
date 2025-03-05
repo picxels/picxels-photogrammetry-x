@@ -12,12 +12,22 @@ export const useCameraDetection = () => {
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [errorRetryCount, setErrorRetryCount] = useState(0);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [initTimeoutId, setInitTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
   const refreshCameras = useCallback(async () => {
     try {
       // Only set loading true during the initial fetch, not on refreshes
       if (!isRefreshing) {
         setIsLoading(true);
+        
+        // Set a timeout to exit loading state even if detection fails
+        const timeoutId = setTimeout(() => {
+          console.log("Force exiting loading state after timeout");
+          setIsLoading(false);
+          setHasInitialized(true);
+        }, 10000);
+        
+        setInitTimeoutId(timeoutId);
       } else {
         // For refreshes, we use a separate state to avoid flashing the loading spinner
         setIsRefreshing(true);
@@ -40,6 +50,26 @@ export const useCameraDetection = () => {
             connected: false,
             status: "error"
           }));
+        } else if (DEBUG_SETTINGS.simulateCameraConnection) {
+          // Create some mock cameras if we're in simulation mode
+          detectedCameras = [
+            {
+              id: "canon-001",
+              name: "Canon EOS 550D",
+              type: "DSLR",
+              port: "usb:001,004",
+              connected: false,
+              status: "error"
+            },
+            {
+              id: "canon-002",
+              name: "Canon EOS 600D",
+              type: "DSLR",
+              port: "usb:001,005",
+              connected: false,
+              status: "error"
+            }
+          ];
         }
         
         // Show error toast
@@ -56,6 +86,12 @@ export const useCameraDetection = () => {
       // Reset retry count on successful detection
       setErrorRetryCount(0);
       setHasInitialized(true);
+      
+      // Clear the timeout if detection completes successfully
+      if (initTimeoutId) {
+        clearTimeout(initTimeoutId);
+        setInitTimeoutId(null);
+      }
       
       // Only show toast notifications after the first initialization
       if (hasInitialized) {
@@ -93,30 +129,40 @@ export const useCameraDetection = () => {
       if (hasInitialized) {
         toast({
           title: "Camera Detection Failed",
-          description: `Could not detect connected cameras. ${newRetryCount < 3 ? "Retrying automatically..." : "Please check USB connections."}`,
+          description: `Could not detect connected cameras. Please check USB connections.`,
           variant: "destructive"
         });
       }
       
-      // Auto retry up to 3 times
-      if (newRetryCount < 3) {
-        setTimeout(() => {
-          refreshCameras();
-        }, 2000);
-      } else {
-        // Provide suggestions for troubleshooting
-        toast({
-          title: "Troubleshooting Suggestions",
-          description: "1. Ensure cameras are powered on.\n2. Check USB connections.\n3. Restart the application.",
-          variant: "default"
-        });
-      }
+      // No auto-retries to prevent flickering
+      
+      // Provide suggestions for troubleshooting
+      toast({
+        title: "Troubleshooting Suggestions",
+        description: "1. Ensure cameras are powered on.\n2. Check USB connections.\n3. Restart the application.",
+        variant: "default"
+      });
     } finally {
       // Always reset both loading states
       setIsLoading(false);
       setIsRefreshing(false);
+      
+      // Clear timeout if it's still active
+      if (initTimeoutId) {
+        clearTimeout(initTimeoutId);
+        setInitTimeoutId(null);
+      }
     }
-  }, [cameras, errorRetryCount, hasInitialized, isRefreshing]);
+  }, [cameras, errorRetryCount, hasInitialized, isRefreshing, initTimeoutId]);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (initTimeoutId) {
+        clearTimeout(initTimeoutId);
+      }
+    };
+  }, [initTimeoutId]);
 
   // Make sure cameras are properly showing disconnected status even when detection fails
   useEffect(() => {

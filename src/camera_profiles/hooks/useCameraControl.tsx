@@ -43,18 +43,22 @@ export const useCameraControl = ({
   
   useEffect(() => {
     // Initialize camera detection only once on component mount
-    // Only if not initialized yet
+    // Only if not initialized yet, and add a timeout to prevent infinite loading
     if (!initializedRef.current) {
       initializedRef.current = true;
       refreshCameras();
+      
+      // Force exit loading state after 10 seconds if still loading
+      const timeout = setTimeout(() => {
+        if (isLoading) {
+          console.log("Forcing exit from loading state after timeout");
+          setCameras([]);
+        }
+      }, 10000);
+      
+      return () => clearTimeout(timeout);
     }
-    
-    // No auto-refresh interval to prevent flickering
-    
-    return () => {
-      // Cleanup function is empty since we no longer create an interval
-    };
-  }, [refreshCameras]);
+  }, [refreshCameras, isLoading, setCameras]);
 
   return {
     cameras,

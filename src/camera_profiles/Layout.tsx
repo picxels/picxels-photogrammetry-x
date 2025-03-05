@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useCameraDetection } from "@/camera_profiles/hooks/useCameraDetection";
@@ -12,8 +12,19 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, className }) => {
   const { isLoading } = useCameraDetection();
+  const [forceShowContent, setForceShowContent] = useState(false);
 
-  // Removed the refreshCameras call from here to prevent multiple detection attempts
+  // Force show content after 15 seconds to prevent endless loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isLoading) {
+        console.log("Forcing content display after timeout");
+        setForceShowContent(true);
+      }
+    }, 15000);
+    
+    return () => clearTimeout(timer);
+  }, [isLoading]);
 
   return (
     <div className={cn(
@@ -37,7 +48,7 @@ const Layout: React.FC<LayoutProps> = ({ children, className }) => {
         </div>
       </header>
       <main className="container py-6 px-4 md:py-8 animate-fade-in">
-        {isLoading ? (
+        {isLoading && !forceShowContent ? (
           <LoadingSpinner message="Initializing cameras..." />
         ) : (
           children
