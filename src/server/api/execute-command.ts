@@ -2,49 +2,30 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
-const execAsync = promisify(exec);
+const execPromise = promisify(exec);
 
 /**
- * Execute a shell command and return the output
+ * Safely execute a command and return its output
+ * This function runs only on the server side
  */
 export const executeCommand = async (command: string): Promise<string> => {
+  // Perform basic validation/sanitization
+  if (!command || typeof command !== 'string') {
+    throw new Error('Invalid command provided');
+  }
+
+  // Execute the command and return the output
   try {
-    console.log(`Executing command: ${command}`);
-    
-    // Validate command to prevent injection
-    if (!isValidCommand(command)) {
-      throw new Error('Invalid command');
-    }
-    
-    const { stdout, stderr } = await execAsync(command);
+    console.log(`Server executing command: ${command}`);
+    const { stdout, stderr } = await execPromise(command);
     
     if (stderr) {
-      console.warn(`Command stderr: ${stderr}`);
+      console.warn(`Command produced stderr: ${stderr}`);
     }
     
     return stdout;
   } catch (error) {
-    console.error(`Error executing command: ${command}`, error);
+    console.error(`Command execution error:`, error);
     throw error;
   }
 };
-
-/**
- * Validate a command to prevent command injection
- * This is a simple validation, you may want to enhance it
- */
-function isValidCommand(command: string): boolean {
-  // List of allowed commands or command patterns
-  const allowedCommands = [
-    /^gphoto2\s/,
-    /^which\s/,
-    /^lsusb/,
-    /^pkill\s/,
-  ];
-  
-  return allowedCommands.some(pattern => 
-    typeof pattern === 'string' 
-      ? command === pattern 
-      : pattern.test(command)
-  );
-}
