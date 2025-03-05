@@ -23,13 +23,13 @@ export const executeCommand = async (req: Request, res: Response) => {
     const result = await execPromise(`python3 ${pythonScript} "${command.replace(/"/g, '\\"')}"`);
     
     console.log('Command execution successful:', result);
-    return res.json({ 
+    res.json({ 
       output: result.stdout,
       success: true 
     });
   } catch (error) {
     console.error('Command execution failed:', error);
-    return res.status(500).json({ 
+    res.status(500).json({ 
       error: error.message,
       success: false
     });

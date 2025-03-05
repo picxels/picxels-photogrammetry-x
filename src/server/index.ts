@@ -16,8 +16,8 @@ app.get('/api/health', (req, res) => {
 });
 
 // Command execution endpoint - Fix the route handler registration
-app.post('/api/execute-command', (req, res) => {
-  return executeCommand(req, res);
+app.post('/api/execute-command', async (req, res) => {
+  await executeCommand(req, res);
 });
 
 // Start the server
