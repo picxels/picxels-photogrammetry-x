@@ -60,7 +60,14 @@ const AppWithHealthCheck = () => {
     
     try {
       // Make simulation mode available globally
-      window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {};
+      window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {
+        enableVerboseLogging: true,
+        logNetworkRequests: true,
+        simulateCameraConnection: true,
+        simulateMotorConnection: true,
+        forceUseLocalSamples: false,
+        forceJetsonPlatformDetection: false
+      };
       window.DEBUG_SETTINGS.simulateCameraConnection = true;
     } catch (err) {
       console.error('Could not set simulation settings:', err);
@@ -89,6 +96,17 @@ const AppWithHealthCheck = () => {
 
 // Make DEBUG_SETTINGS available on window for the health check
 try {
+  // Create a default DEBUG_SETTINGS object with required properties
+  window.DEBUG_SETTINGS = {
+    enableVerboseLogging: false,
+    logNetworkRequests: false,
+    simulateCameraConnection: false,
+    simulateMotorConnection: false,
+    forceUseLocalSamples: false,
+    forceJetsonPlatformDetection: false
+  };
+  
+  // Then try to load config values from jetson.config
   import('@/config/jetson.config').then(config => {
     window.DEBUG_SETTINGS = config.DEBUG_SETTINGS;
   });

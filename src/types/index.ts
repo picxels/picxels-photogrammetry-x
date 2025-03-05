@@ -76,7 +76,7 @@ export interface CameraDevice {
   type: string;
   port?: string;  // Added port property to store the USB port information
   connected: boolean;
-  status: "idle" | "capturing" | "error";
+  status: "idle" | "capturing" | "error" | "ready";
 }
 
 export interface MotorPosition {
