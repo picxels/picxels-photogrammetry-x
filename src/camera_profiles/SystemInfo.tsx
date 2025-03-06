@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -37,7 +38,7 @@ const SystemInfo = () => {
           
           // Disk usage
           const diskCommand = "df -h / | awk 'NR==2 {print $5}'";
-          const diskUsage = await executeCommand(diskUsage);
+          const diskUsage = await executeCommand(diskCommand);
           
           // GPU usage
           const gpuCommand = "nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits | awk '{print $1\"%\"}'";
