@@ -1,9 +1,8 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Cpu, Memory, HardDrive, Thermometer, BatteryFull, Activity } from "lucide-react";
+import { Cpu, HardDrive, Thermometer, BatteryFull, Activity, MemoryStick } from "lucide-react";
 import AISystemStatus from "@/components/AISystemStatus";
 import { executeCommand } from "@/utils/commandUtils";
 import { isJetsonPlatform } from "@/utils/platformUtils";
@@ -38,7 +37,7 @@ const SystemInfo = () => {
           
           // Disk usage
           const diskCommand = "df -h / | awk 'NR==2 {print $5}'";
-          const diskUsage = await executeCommand(diskCommand);
+          const diskUsage = await executeCommand(diskUsage);
           
           // GPU usage
           const gpuCommand = "nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits | awk '{print $1\"%\"}'";
@@ -132,7 +131,7 @@ const SystemInfo = () => {
             <div>
               <div className="flex justify-between mb-1">
                 <div className="flex items-center text-sm">
-                  <Memory className="mr-2 h-4 w-4 text-primary-foreground/70" />
+                  <MemoryStick className="mr-2 h-4 w-4 text-primary-foreground/70" />
                   Memory
                 </div>
                 <Badge variant="outline" className="h-5">

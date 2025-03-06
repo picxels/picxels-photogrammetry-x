@@ -62,6 +62,7 @@ export interface CapturedImage {
   hasMask?: boolean;
   hasColorProfile?: boolean;
   colorProfileType?: string;
+  maskedPath?: string;  // Add this property to fix the type error
 }
 
 export interface CameraProfile {
