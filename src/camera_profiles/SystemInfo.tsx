@@ -1,96 +1,203 @@
 
-import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { detectTensorRTVersion, detectCUDAVersion, KNOWN_DEPENDENCY_ISSUES, checkPythonDependencies } from "@/utils/jetsonAI";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Check, Info } from "lucide-react";
+import { Cpu, Memory, HardDrive, Thermometer, BatteryFull, Activity } from "lucide-react";
+import AISystemStatus from "@/components/AISystemStatus";
+import { executeCommand } from "@/utils/commandUtils";
+import { isJetsonPlatform } from "@/utils/platformUtils";
 
-export function SystemInfo() {
-  const [tensorRTVersion, setTensorRTVersion] = useState<string>("detecting...");
-  const [cudaVersion, setCudaVersion] = useState<string>("detecting...");
-  const [dependencyIssues, setDependencyIssues] = useState<string[]>([]);
+const SystemInfo = () => {
+  const [systemMetrics, setSystemMetrics] = useState({
+    cpuUsage: "0%",
+    cpuTemp: "0°C",
+    memoryUsage: "0 / 0GB",
+    diskUsage: "0%",
+    batteryLevel: "N/A",
+    uptime: "0h 0m",
+    gpuUsage: "0%"
+  });
   
   useEffect(() => {
-    const detectVersions = async () => {
+    const fetchSystemInfo = async () => {
       try {
-        const trtVersion = await detectTensorRTVersion();
-        const cudaVer = await detectCUDAVersion();
-        
-        setTensorRTVersion(trtVersion);
-        setCudaVersion(cudaVer);
-        
-        // Check for Python dependency issues
-        const { issues } = await checkPythonDependencies();
-        setDependencyIssues(issues);
+        // On a real Jetson device, we would fetch actual metrics
+        if (isJetsonPlatform()) {
+          // CPU usage
+          const cpuCommand = "top -bn1 | grep 'Cpu(s)' | sed 's/.*, *\\([0-9.]*\\)%* id.*/\\1/' | awk '{print 100 - $1\"%\"}'";
+          const cpuUsage = await executeCommand(cpuCommand);
+          
+          // CPU temperature
+          const tempCommand = "cat /sys/class/thermal/thermal_zone0/temp | awk '{printf \"%.1f°C\", $1/1000}'";
+          const cpuTemp = await executeCommand(tempCommand);
+          
+          // Memory usage
+          const memCommand = "free -h | grep 'Mem:' | awk '{print $3 \" / \" $2}'";
+          const memoryUsage = await executeCommand(memCommand);
+          
+          // Disk usage
+          const diskCommand = "df -h / | awk 'NR==2 {print $5}'";
+          const diskUsage = await executeCommand(diskCommand);
+          
+          // GPU usage
+          const gpuCommand = "nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits | awk '{print $1\"%\"}'";
+          const gpuUsage = await executeCommand(gpuCommand);
+          
+          // System uptime
+          const uptimeCommand = "uptime -p | sed 's/up //'";
+          const uptime = await executeCommand(uptimeCommand);
+          
+          setSystemMetrics({
+            cpuUsage: cpuUsage.trim(),
+            cpuTemp: cpuTemp.trim(),
+            memoryUsage: memoryUsage.trim(),
+            diskUsage: diskUsage.trim(),
+            batteryLevel: "N/A", // Jetson doesn't typically have a battery
+            uptime: uptime.trim(),
+            gpuUsage: gpuUsage.trim()
+          });
+        } else {
+          // Simulate metrics for non-Jetson platforms
+          setSystemMetrics({
+            cpuUsage: Math.floor(Math.random() * 60) + 10 + "%",
+            cpuTemp: (Math.random() * 20 + 40).toFixed(1) + "°C",
+            memoryUsage: Math.floor(Math.random() * 4 + 2) + " / 8GB",
+            diskUsage: Math.floor(Math.random() * 30 + 40) + "%",
+            batteryLevel: Math.floor(Math.random() * 30 + 70) + "%",
+            uptime: Math.floor(Math.random() * 12) + "h " + Math.floor(Math.random() * 60) + "m",
+            gpuUsage: Math.floor(Math.random() * 50) + "%"
+          });
+        }
       } catch (error) {
-        console.error("Error detecting system versions:", error);
+        console.error("Error fetching system info:", error);
       }
     };
     
-    detectVersions();
+    // Fetch initially
+    fetchSystemInfo();
+    
+    // Update every 5 seconds
+    const intervalId = setInterval(fetchSystemInfo, 5000);
+    
+    return () => clearInterval(intervalId);
   }, []);
-
+  
   return (
-    <Card className="shadow-md h-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold">System Information</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-2">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">TensorRT:</span>
-            <Badge 
-              variant={tensorRTVersion !== "unknown" ? "default" : "destructive"}
-              className="ml-2"
-            >
-              {tensorRTVersion}
-            </Badge>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center">
+            <Activity className="mr-2 h-4 w-4 text-primary" />
+            System Resources
+          </CardTitle>
+          <CardDescription>
+            Jetson Orin Nano hardware metrics
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between mb-1">
+                <div className="flex items-center text-sm">
+                  <Cpu className="mr-2 h-4 w-4 text-primary-foreground/70" />
+                  CPU Usage
+                </div>
+                <Badge variant="outline" className="h-5">
+                  {systemMetrics.cpuUsage}
+                </Badge>
+              </div>
+              <div className="w-full bg-primary/20 rounded-full h-2">
+                <div 
+                  className="bg-primary h-2 rounded-full" 
+                  style={{ width: systemMetrics.cpuUsage }}
+                ></div>
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex justify-between mb-1">
+                <div className="flex items-center text-sm">
+                  <Thermometer className="mr-2 h-4 w-4 text-primary-foreground/70" />
+                  CPU Temperature
+                </div>
+                <Badge variant="outline" className="h-5">
+                  {systemMetrics.cpuTemp}
+                </Badge>
+              </div>
+            </div>
+            
+            <Separator className="my-2" />
+            
+            <div>
+              <div className="flex justify-between mb-1">
+                <div className="flex items-center text-sm">
+                  <Memory className="mr-2 h-4 w-4 text-primary-foreground/70" />
+                  Memory
+                </div>
+                <Badge variant="outline" className="h-5">
+                  {systemMetrics.memoryUsage}
+                </Badge>
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex justify-between mb-1">
+                <div className="flex items-center text-sm">
+                  <HardDrive className="mr-2 h-4 w-4 text-primary-foreground/70" />
+                  Disk
+                </div>
+                <Badge variant="outline" className="h-5">
+                  {systemMetrics.diskUsage}
+                </Badge>
+              </div>
+            </div>
+            
+            {isJetsonPlatform() && (
+              <div>
+                <div className="flex justify-between mb-1">
+                  <div className="flex items-center text-sm">
+                    <svg className="mr-2 h-4 w-4 text-primary-foreground/70" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    GPU Usage
+                  </div>
+                  <Badge variant="outline" className="h-5">
+                    {systemMetrics.gpuUsage}
+                  </Badge>
+                </div>
+                <div className="w-full bg-primary/20 rounded-full h-2">
+                  <div 
+                    className="bg-primary h-2 rounded-full" 
+                    style={{ width: systemMetrics.gpuUsage }}
+                  ></div>
+                </div>
+              </div>
+            )}
+            
+            <Separator className="my-2" />
+            
+            <div className="flex justify-between text-sm">
+              <div className="flex items-center">
+                <BatteryFull className="mr-2 h-4 w-4 text-primary-foreground/70" />
+                Power
+              </div>
+              <span>{systemMetrics.batteryLevel}</span>
+            </div>
+            
+            <div className="flex justify-between text-sm">
+              <span>Uptime</span>
+              <span>{systemMetrics.uptime}</span>
+            </div>
           </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">CUDA:</span>
-            <Badge 
-              variant={cudaVersion !== "unknown" ? "default" : "destructive"}
-              className="ml-2"
-            >
-              {cudaVersion}
-            </Badge>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Hardware:</span>
-            <Badge 
-              variant="default"
-              className="ml-2"
-            >
-              Jetson Orin Nano
-            </Badge>
-          </div>
-          
-          {dependencyIssues.length > 0 && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Python Dependency Issues</AlertTitle>
-              <AlertDescription>
-                <p className="text-xs mb-1">Fix numpy version conflicts with:</p>
-                <code className="text-xs bg-slate-900 p-1 rounded">pip install numpy==1.23.5</code>
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          {KNOWN_DEPENDENCY_ISSUES.some(issue => issue.package === "nvcc") && (
-            <Alert variant="destructive" className="mt-2">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>CUDA Compiler Missing</AlertTitle>
-              <AlertDescription>
-                <p className="text-xs mb-1">Install CUDA compiler with:</p>
-                <code className="text-xs bg-slate-900 p-1 rounded">sudo apt-get install cuda-toolkit-12-6</code>
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      
+      <AISystemStatus className="h-full" />
+    </div>
   );
-}
+};
+
+export default SystemInfo;

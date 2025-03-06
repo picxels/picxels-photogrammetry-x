@@ -2,6 +2,12 @@
 import { CapturedImage } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { isJetsonPlatform } from "./platformUtils";
+import { AI_FEATURES } from "@/config/jetsonAI.config";
+import { 
+  generateMaskWithEfficientViT, 
+  applyMask, 
+  isEfficientViTAvailable 
+} from "@/services/efficientViTService";
 
 /**
  * Checks if an image is sharp enough based on its sharpness score
@@ -14,14 +20,40 @@ export const checkImageSharpness = (image: CapturedImage): boolean => {
 
 /**
  * Generates a background mask for an image
- * In a real implementation, this would use a segmentation model
+ * Uses EfficientViT on Jetson platform if available
  */
 export const generateImageMask = async (image: CapturedImage): Promise<CapturedImage> => {
   console.log(`Generating background mask for image: ${image.id}`);
   
+  // Check if we should use EfficientViT for enhanced segmentation
+  if (isJetsonPlatform() && AI_FEATURES.enhancedSegmentation) {
+    try {
+      // Check if EfficientViT is available
+      const efficientViTAvailable = await isEfficientViTAvailable();
+      
+      if (efficientViTAvailable) {
+        console.log("Using EfficientViT for enhanced segmentation");
+        
+        // Generate mask using EfficientViT
+        const segmentationResult = await generateMaskWithEfficientViT(image);
+        
+        if (segmentationResult.success) {
+          // Apply the mask to the image
+          return await applyMask(image, segmentationResult.maskPath);
+        } else {
+          console.log("EfficientViT segmentation failed, falling back to standard method");
+        }
+      } else {
+        console.log("EfficientViT not available, falling back to standard segmentation");
+      }
+    } catch (error) {
+      console.error("Error with EfficientViT segmentation, falling back:", error);
+    }
+  }
+  
+  // Fallback to original mask generation method
   try {
-    // For Jetson platform, we'd use the TensorRT model
-    // For now, simulate mask generation with a delay
+    // Simulate mask generation with a delay
     const delay = isJetsonPlatform() ? 2000 : 1500; // Longer delay on Jetson to simulate heavier processing
     await new Promise((resolve) => setTimeout(resolve, delay));
     

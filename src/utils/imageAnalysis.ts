@@ -2,6 +2,9 @@
 import { AnalysisResult, CapturedImage } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { analyzeSubjectWithLLM, initializeAIModels } from "./jetsonAI";
+import { isJetsonPlatform } from "./platformUtils";
+import { AI_FEATURES } from "@/config/jetsonAI.config";
+import { analyzeImageWithNanoVLM, isNanoVLMAvailable } from "@/services/nanoVLMService";
 
 // Initialize models on module load
 let modelsInitialized = false;
@@ -18,12 +21,29 @@ export const analyzeImageSubject = async (
 ): Promise<AnalysisResult> => {
   console.log(`Analyzing image: ${image.path}`);
   
+  // Check if we should use Nano-VLM for enhanced analysis
+  if (isJetsonPlatform() && AI_FEATURES.smartSubjectAnalysis) {
+    try {
+      // Check if Nano-VLM is available
+      const nanoVLMAvailable = await isNanoVLMAvailable();
+      
+      if (nanoVLMAvailable) {
+        console.log("Using Nano-VLM for enhanced subject analysis");
+        return await analyzeImageWithNanoVLM(image);
+      } else {
+        console.log("Nano-VLM not available, falling back to standard analysis");
+      }
+    } catch (error) {
+      console.error("Error with Nano-VLM analysis, falling back:", error);
+    }
+  }
+  
+  // Fallback to original analysis method
   // Ensure AI models are initialized
   await ensureModelsInitialized();
   
   try {
-    // In production, this would use the local LLM model via analyzeSubjectWithLLM
-    // For now, we'll use a simulated response
+    // Use the local LLM model via analyzeSubjectWithLLM
     const analysis = await analyzeSubjectWithLLM(image.path);
     
     // Convert to AnalysisResult format
