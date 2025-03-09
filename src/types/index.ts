@@ -19,7 +19,7 @@ export interface Pass {
   images: string[]; // Array of SessionImage IDs
   dateCreated: number;
   dateModified: number;
-  completed?: boolean; // Added this field
+  completed?: boolean;
   timestamp?: number; // Adding timestamp for compatibility
   imageQuality?: number; // Adding imageQuality field
 }
@@ -37,13 +37,13 @@ export interface Workflow {
   stages: WorkflowStage[];
   createdAt: number;
   updatedAt: number;
-  workflow_name?: string; // Adding for compatibility with workflow.ts
+  workflow_name: string; // Changed to required for compatibility with workflow.ts
 }
 
 export interface WorkflowStage {
   id: string;
   name: string;
-  commands: string[];
+  commands: RCCommand[]; // Changed from string[] to RCCommand[]
 }
 
 export interface WorkflowFile {
@@ -99,13 +99,13 @@ export interface Session {
   imageQuality?: number;
   previewImage?: string;
   processedModels?: ProcessedModel[];
-  status?: SessionStatus; // Added status field
-  updatedAt?: Date; // Added updatedAt field
-  createdAt?: Date; // Added createdAt field
-  description?: string; // Added description field
-  tags?: string[]; // Added tags field
-  processed?: boolean; // Added processed field
-  processingDate?: number; // Added processingDate field
+  status?: SessionStatus;
+  updatedAt?: number; // Changed from Date to number
+  createdAt?: number; // Changed from Date to number
+  description?: string;
+  tags?: string[];
+  processed?: boolean;
+  processingDate?: number;
 }
 
 export interface ProcessedModel {
@@ -127,7 +127,7 @@ export enum SessionStatus {
   IN_PROGRESS = "in_progress",
   COMPLETED = "completed",
   PROCESSING = "processing",
-  PROCESSED = "processed" // Added for compatibility
+  PROCESSED = "processed"
 }
 
 export interface CameraDevice {
@@ -143,17 +143,18 @@ export interface CapturedImage {
   id: string;
   camera: string;
   previewUrl: string;
-  filePath: string; // Changed from path to filePath
+  filePath: string;
   timestamp: number;
   angle?: number;
   sharpness?: number;
   hasMask?: boolean;
   path?: string; // Added for backward compatibility
-  hasColorProfile?: boolean; // Added for compatibility
-  colorProfileType?: string; // Added for compatibility
-  maskedPath?: string; // Added for compatibility
-  sessionId?: string; // Added for compatibility
-  tiffPath?: string; // Added for compatibility
+  hasColorProfile?: boolean;
+  colorProfileType?: string;
+  maskedPath?: string;
+  sessionId?: string;
+  tiffPath?: string;
+  originalPath?: string; // Added for compatibility
 }
 
 export interface ImageData {
@@ -163,6 +164,9 @@ export interface ImageData {
   angle: number;
   timestamp: Date;
   hasMask?: boolean;
+  filename?: string; // Added for compatibility
+  filePath?: string; // Added for compatibility
+  dateCaptured?: number; // Added for compatibility
 }
 
 export interface MotorPosition {
@@ -177,7 +181,8 @@ export interface MotorSettings {
   maxSpeed?: number;
   acceleration?: number;
   connected?: boolean;
-  stepSize?: number; // Added for compatibility
+  stepSize?: number;
+  scanSteps?: number; // Added for compatibility
 }
 
 export interface AnalysisResult {
@@ -185,7 +190,8 @@ export interface AnalysisResult {
   description: string;
   tags: string[];
   confidence: number;
-  subject?: string; // Added for compatibility with existing code
+  subject?: string; // For compatibility
+  metadata?: Record<string, any>; // Added for compatibility
 }
 
 export interface RCCommand {
@@ -200,8 +206,7 @@ export interface ExportSettings {
   includeTextures: boolean;
   textureSize?: number;
   outputPath: string;
-  // Additional properties for compatibility
-  exportPng?: boolean;
+  exportPng?: boolean; // Added for compatibility
   exportTiff?: boolean;
   exportMasks?: boolean;
   sendToRealityCapture?: boolean;
@@ -210,5 +215,6 @@ export interface ExportSettings {
 export interface SessionDatabase {
   sessions: Session[];
   lastOpened: string | null;
-  lastUpdated?: Date; // Added for compatibility
+  lastUpdated?: number; // Changed from Date to number
+  version?: string; // Added for compatibility
 }
