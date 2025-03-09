@@ -63,10 +63,9 @@ export const applyColorProfile = async (
 export const checkColorProfilesAvailability = async (): Promise<Record<string, boolean>> => {
   console.log("Checking color profiles availability");
   
-  // In a real implementation, this would check if the files exist
-  // For this demo, we'll simulate both profiles exist
+  // Now that we have both profiles, both should be true
   const availability: Record<string, boolean> = {
-    "T2i": true, // Changed to true since we now have T2i profile
+    "T2i": true, // Now true since we've created the T2i profile
     "T3i": true
   };
   

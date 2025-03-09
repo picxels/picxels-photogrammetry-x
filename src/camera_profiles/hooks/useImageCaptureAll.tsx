@@ -24,7 +24,7 @@ export const useImageCaptureAll = ({
   setCameras,
   refreshCameras
 }: UseImageCaptureAllProps) => {
-  const { processImageWithMask } = useImageProcessing();
+  const { processImage } = useImageProcessing();
 
   const handleCaptureAll = async () => {
     try {
@@ -44,12 +44,8 @@ export const useImageCaptureAll = ({
           if (image) {
             await saveImageLocally(image);
             
-            // Apply color profile based on camera type - now required for all images
-            const cameraType = getCameraTypeFromId(camera.id);
-            const profiledImage = await applyColorProfile(image, cameraType);
-            
-            // Process the image (apply mask if possible)
-            const processedImage = await processImageWithMask(profiledImage);
+            // Process the image (apply color profile and possibly mask)
+            const processedImage = await processImage(image);
             
             // Notify with the processed image
             onImageCaptured(processedImage);
