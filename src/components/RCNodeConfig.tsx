@@ -36,13 +36,11 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
   const [simulationMode, setSimulationMode] = useState(false);
 
   useEffect(() => {
-    // Check if the API is reachable
     const checkApiAvailability = async () => {
       try {
         const response = await fetch('/api/health', { method: 'HEAD' });
         const apiAvailable = response.ok;
         
-        // Only enable simulation if API is not available
         const shouldSimulate = !apiAvailable;
         setSimulationMode(shouldSimulate);
         
@@ -67,7 +65,6 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
     };
     
     testInitialConnection();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const addLogEntry = (message: string) => {
@@ -104,7 +101,6 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
       addLogEntry(`Server reachability (SIMULATED): YES`);
       return true;
     } else {
-      // Perform an actual check
       try {
         addLogEntry(`Checking if server is reachable: ${config.nodeUrl}`);
         const result = await testServerReachable(config.nodeUrl);
@@ -130,7 +126,6 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
       await checkServerReachable();
       
       if (simulationMode) {
-        // Simulate test in simulation mode
         await new Promise(resolve => setTimeout(resolve, 800));
         const mockResult = {
           success: true,
@@ -149,7 +144,6 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
           onConnectionStatusChange(true);
         }
       } else {
-        // Perform real test
         const advancedTest = await testRCNodeConnectionAdvanced(config);
         
         addLogEntry(`Advanced test result: ${advancedTest.success ? 'SUCCESS' : 'FAILED'}`);
@@ -181,7 +175,6 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
     setConnectionError(null);
     
     if (simulationMode) {
-      // Simulate connection test
       await new Promise(resolve => setTimeout(resolve, 800));
       
       addLogEntry(`Testing connection to ${config.nodeUrl} (SIMULATION)`);
@@ -194,7 +187,6 @@ const RCNodeConfigComponent: React.FC<RCNodeConfigProps> = ({
       
       addLogEntry(`Connection test SIMULATED - pretending connection is successful`);
     } else {
-      // Attempt real connection
       addLogEntry(`Testing connection to ${config.nodeUrl}`);
       
       try {
