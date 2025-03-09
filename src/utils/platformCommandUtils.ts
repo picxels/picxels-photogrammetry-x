@@ -2,7 +2,7 @@
 import { isJetsonPlatform, isDevelopmentMode, shouldUseSimulationMode } from "./platformUtils";
 import { DEBUG_SETTINGS } from "@/config/jetson.config";
 import { toast } from "@/components/ui/use-toast";
-import { getFallbackCommandResponse } from "./ai/fallbackUtils";
+import { getFallbackCommandResponse } from "./ai/aiUtils";
 
 /**
  * Execute a shell command on the Jetson platform

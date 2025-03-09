@@ -4,7 +4,7 @@ import { CameraDevice, CapturedImage, Session } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { captureImage } from "@/utils/cameraUtils";
 import { saveImageLocally } from "@/utils/fileSystem";
-import { applyColorProfile, getCameraTypeFromId } from "@/utils/colorProfileUtils";
+import { processImage } from "@/utils/imageProcessingUtils";
 
 interface UseImageCaptureSingleProps {
   currentSession: Session;
@@ -39,21 +39,20 @@ export const useImageCaptureSingle = ({
         // Save the image locally
         await saveImageLocally(image);
         
-        // Apply color profile based on camera type - this is now required for all images
-        const cameraType = getCameraTypeFromId(camera.id);
-        const profiledImage = await applyColorProfile(image, cameraType);
+        // Process the image (apply color profile)
+        const processedImage = await processImage(image);
         
         // Update camera status back to idle
         setCameras(prev => prev.map(c => 
           c.id === camera.id ? { ...c, status: "idle" } : c
         ));
         
-        // Notify parent component with the profiled image
-        onImageCaptured(profiledImage);
+        // Notify parent component with the processed image
+        onImageCaptured(processedImage);
         
         toast({
           title: "Image Captured",
-          description: `${camera.name} captured an image successfully with ${cameraType} color profile applied.`
+          description: `${camera.name} captured an image successfully.`
         });
       } else {
         // If image is null, there was a problem

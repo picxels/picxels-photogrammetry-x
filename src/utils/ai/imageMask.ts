@@ -1,11 +1,6 @@
 
 import { toast } from "@/components/ui/use-toast";
-import { AIModels } from "./modelInitialization";
-import { initializeAIModels } from "./modelInitialization";
-import { shouldUseFallbackData, notifyFallbackMode } from "./fallbackUtils";
-
-// Global variable to hold loaded models reference
-let loadedModels: AIModels | null = null;
+import { shouldUseFallbackData, notifyFallbackMode, ensureModelsLoaded } from "./aiUtils";
 
 // Function to generate image mask using segmentation model
 export const generateImageMask = async (
@@ -30,15 +25,13 @@ export const generateImageMask = async (
   
   // Real implementation for Jetson platform
   // Ensure mask model is loaded
-  if (!loadedModels || !loadedModels.mask.loaded) {
-    console.warn("Mask model not loaded, initializing now");
-    loadedModels = await initializeAIModels();
+  try {
+    const loadedModels = await ensureModelsLoaded();
+    
     if (!loadedModels.mask.loaded) {
       throw new Error("Failed to load segmentation model");
     }
-  }
-  
-  try {
+    
     // Simulate processing delay
     await new Promise((resolve) => setTimeout(resolve, 800));
     

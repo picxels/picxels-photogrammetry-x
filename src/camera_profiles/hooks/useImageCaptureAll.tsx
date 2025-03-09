@@ -4,8 +4,7 @@ import { CameraDevice, CapturedImage, Session } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { captureImage } from "@/utils/cameraUtils";
 import { saveImageLocally } from "@/utils/fileSystem";
-import { applyColorProfile, getCameraTypeFromId } from "@/utils/colorProfileUtils";
-import { useImageProcessing } from "./useImageProcessing";
+import { processImage } from "@/utils/imageProcessingUtils";
 
 interface UseImageCaptureAllProps {
   currentSession: Session;
@@ -24,8 +23,6 @@ export const useImageCaptureAll = ({
   setCameras,
   refreshCameras
 }: UseImageCaptureAllProps) => {
-  const { processImage } = useImageProcessing();
-
   const handleCaptureAll = async () => {
     try {
       // Update all camera statuses to capturing
@@ -70,7 +67,7 @@ export const useImageCaptureAll = ({
       
       toast({
         title: "Capture Complete",
-        description: `Images captured from all ${connectedCameras.length} connected cameras with color profiles applied.`
+        description: `Images captured from all ${connectedCameras.length} connected cameras.`
       });
     } catch (error) {
       console.error("Capture all failed:", error);

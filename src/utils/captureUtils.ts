@@ -2,7 +2,6 @@
 import { toast } from "@/components/ui/use-toast";
 import { CapturedImage } from "@/types";
 import { executeCommand } from "./commandUtils";
-import { applyColorProfile, getCameraTypeFromId } from "./colorProfileUtils";
 import { cameraCaptureService } from "@/services/cameraCaptureService";
 
 /**
@@ -73,15 +72,8 @@ export const captureImage = async (
         sharpness
       };
       
-      // Get camera type for color profile application
-      const cameraTypeForProfile = getCameraTypeFromId(cameraId);
-      console.log(`Applying ${cameraTypeForProfile} color profile to image ${image.id}`);
-      
-      // Apply the appropriate color profile - this is now a mandatory step
-      const profiledImage = await applyColorProfile(image, cameraTypeForProfile);
-      
-      console.log("Image captured and color profile applied:", profiledImage);
-      return profiledImage;
+      console.log("Image captured successfully:", image.id);
+      return image;
     } catch (error) {
       console.error("Error during capture:", error);
       throw error;
@@ -97,5 +89,8 @@ export const captureImage = async (
   }
 };
 
-// Re-export functions from imageQualityUtils
-export { checkImageSharpness, generateImageMask } from "./imageQualityUtils";
+// Re-export image quality functions from imageProcessingUtils
+export { 
+  checkImageSharpness, 
+  generateImageMask 
+} from "./imageProcessingUtils";

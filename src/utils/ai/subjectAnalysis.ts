@@ -1,11 +1,11 @@
 
 import { toast } from "@/components/ui/use-toast";
-import { AIModels } from "./modelInitialization";
-import { initializeAIModels } from "./modelInitialization";
-import { shouldUseFallbackData, getRandomInt, notifyFallbackMode } from "./fallbackUtils";
-
-// Global variable to hold loaded models reference
-let loadedModels: AIModels | null = null;
+import { 
+  shouldUseFallbackData, 
+  getRandomInt, 
+  notifyFallbackMode,
+  ensureModelsLoaded 
+} from "./aiUtils";
 
 // Sample fallback subjects for development mode
 const FALLBACK_SUBJECTS = [
@@ -66,16 +66,14 @@ export const analyzeSubjectWithLLM = async (
   }
   
   // Real implementation for Jetson platform
-  // Ensure LLM model is loaded
-  if (!loadedModels || !loadedModels.llm.loaded) {
-    console.warn("LLM model not loaded, initializing now");
-    loadedModels = await initializeAIModels();
+  try {
+    // Ensure LLM model is loaded
+    const loadedModels = await ensureModelsLoaded();
+    
     if (!loadedModels.llm.loaded) {
       throw new Error("Failed to load LLM model");
     }
-  }
-  
-  try {
+    
     // Simulate processing delay
     await new Promise((resolve) => setTimeout(resolve, 1200));
     

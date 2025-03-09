@@ -1,11 +1,10 @@
 
 import { toast } from "@/components/ui/use-toast";
-import { AIModels } from "./modelInitialization";
-import { initializeAIModels } from "./modelInitialization";
-import { shouldUseFallbackData, getRandomNumber, notifyFallbackMode } from "./fallbackUtils";
-
-// Global variable to hold loaded models reference
-let loadedModels: AIModels | null = null;
+import { 
+  shouldUseFallbackData, 
+  getRandomNumber, 
+  ensureModelsLoaded 
+} from "./aiUtils";
 
 // Function to check image sharpness using loaded model
 export const checkImageSharpness = async (
@@ -34,16 +33,14 @@ export const checkImageSharpness = async (
   }
   
   // Real implementation for Jetson platform
-  // Ensure sharpness model is loaded
-  if (!loadedModels || !loadedModels.sharpness.loaded) {
-    console.warn("Sharpness model not loaded, initializing now");
-    loadedModels = await initializeAIModels();
+  try {
+    // Ensure models are loaded
+    const loadedModels = await ensureModelsLoaded();
+    
     if (!loadedModels.sharpness.loaded) {
       throw new Error("Failed to load sharpness detection model");
     }
-  }
-  
-  try {
+    
     // Simulate processing delay
     await new Promise((resolve) => setTimeout(resolve, 500));
     

@@ -36,10 +36,16 @@ export { detectCameras } from './cameraDiscoveryUtils';
 
 // Re-export from captureUtils
 export {
-  captureImage,
-  checkImageSharpness,
-  generateImageMask
+  captureImage
 } from './captureUtils';
+
+// Re-export from imageProcessingUtils
+export {
+  checkImageSharpness,
+  generateImageMask,
+  processImage,
+  ensureColorProfile
+} from './imageProcessingUtils';
 
 // Re-export from sessionUtils
 export {

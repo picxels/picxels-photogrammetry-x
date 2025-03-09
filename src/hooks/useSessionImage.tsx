@@ -1,7 +1,6 @@
 
-import { Session, CapturedImage, ImageData } from "@/types";
-import { generateImageMask } from "@/utils/imageQualityUtils";
-import { applyColorProfile, getCameraTypeFromId } from "@/utils/colorProfileUtils";
+import { Session, CapturedImage } from "@/types";
+import { processImage } from "@/utils/imageProcessingUtils";
 import { toast } from "@/components/ui/use-toast";
 import { getSessionById } from "@/services/sessionDatabaseService";
 import { renameSession } from "@/utils/sessionUtils";
@@ -14,32 +13,8 @@ export const useSessionImage = (
     setProcessingImages((prev) => [...prev, image.id]);
       
     try {
-      // First apply color profile based on camera type
-      const cameraType = getCameraTypeFromId(image.camera);
-      let processedImage = image;
-      
-      if (!image.hasColorProfile) {
-        processedImage = await applyColorProfile(image, cameraType);
-        console.log(`Color profile applied for image: ${image.id}, camera type: ${cameraType}`);
-      }
-      
-      // Then generate mask if the image is sharp enough and doesn't have a mask yet
-      if (!processedImage.hasMask && processedImage.sharpness && processedImage.sharpness >= 80) {
-        try {
-          const maskedImage = await generateImageMask(processedImage);
-          
-          if (maskedImage.hasMask) {
-            processedImage = maskedImage;
-          }
-        } catch (maskError) {
-          console.error("Error generating mask:", maskError);
-          toast({
-            title: "Mask Generation Failed",
-            description: "Failed to generate background mask.",
-            variant: "destructive"
-          });
-        }
-      }
+      // Process the image (apply color profile and possibly mask)
+      const processedImage = await processImage(image);
       
       // Only update if we actually modified the image
       if (processedImage !== image) {
