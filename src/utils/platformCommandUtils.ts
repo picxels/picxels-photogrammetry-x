@@ -1,5 +1,5 @@
 
-import { isJetsonPlatform, isDevelopmentMode } from "./platformUtils";
+import { isJetsonPlatform, isDevelopmentMode, shouldUseSimulationMode } from "./platformUtils";
 import { DEBUG_SETTINGS } from "@/config/jetson.config";
 import { toast } from "@/components/ui/use-toast";
 import { getFallbackCommandResponse } from "./ai/fallbackUtils";
@@ -15,24 +15,12 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
     isJetson: isJetsonPlatform(),
     isDev: isDevelopmentMode(),
     command: command,
-    usingSimulation: false
+    usingSimulation: shouldUseSimulationMode()
   };
   console.log("Command execution debug info:", debugInfo);
   
-  // Use simulation mode if:
-  // 1. DEBUG_SETTINGS.simulateCameraConnection is true
-  // 2. DEBUG_SETTINGS.apiServerError is true
-  // 3. bypassApiCheck is set to 'true' in localStorage
-  // 4. Any of window.DEBUG_SETTINGS related flags are set
-  const bypassApiCheck = localStorage.getItem('bypassApiCheck') === 'true';
-  const useSimulation = 
-    DEBUG_SETTINGS.simulateCameraConnection || 
-    DEBUG_SETTINGS.apiServerError || 
-    bypassApiCheck ||
-    (typeof window !== 'undefined' && window.DEBUG_SETTINGS?.apiServerError) ||
-    (typeof window !== 'undefined' && window.DEBUG_SETTINGS?.simulateCameraConnection);
-  
-  if (useSimulation) {
+  // Centralized check for simulation mode
+  if (shouldUseSimulationMode()) {
     console.log("Using simulation mode for command execution");
     return getFallbackCommandResponse(command);
   }
@@ -56,7 +44,7 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
   } catch (error) {
     console.error("Error executing command via API:", error);
     
-    // Always enable simulation mode when API errors occur
+    // Ensure we activate simulation mode when API errors occur
     console.warn("Falling back to simulation for command:", command);
     
     toast({
@@ -65,9 +53,9 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
       variant: "destructive"
     });
     
-    // Mark API as having an error for future commands
+    // Update global simulation flags
     if (typeof window !== 'undefined') {
-      // Initialize DEBUG_SETTINGS if it doesn't exist
+      // Initialize DEBUG_SETTINGS with default values if it doesn't exist
       window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {
         enableVerboseLogging: true,
         logNetworkRequests: true,
@@ -78,7 +66,7 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
         forceJetsonPlatformDetection: false
       };
       
-      // Then set the required properties
+      // Ensure simulation flags are set
       window.DEBUG_SETTINGS.apiServerError = true;
       window.DEBUG_SETTINGS.simulateCameraConnection = true;
       window.DEBUG_SETTINGS.simulateMotorConnection = true;
