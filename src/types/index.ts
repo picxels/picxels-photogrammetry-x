@@ -1,3 +1,4 @@
+
 export interface SessionImage {
   id: string;
   filename: string;
@@ -10,6 +11,7 @@ export interface SessionImage {
   maskPath?: string;
   analyzed?: boolean;
   qualityScore?: number;
+  hasMask?: boolean; // Adding hasMask property
 }
 
 export interface Pass {
@@ -157,6 +159,8 @@ export interface CapturedImage {
   originalPath?: string;
   jpegPath?: string; // Adding missing property for efficientViTService
   maskPath?: string;  // Adding maskPath property
+  croppedWidth?: number; // Adding croppedWidth property
+  croppedHeight?: number; // Adding croppedHeight property
 }
 
 export interface ImageData {

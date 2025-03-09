@@ -58,17 +58,23 @@ export const addImageToPass = async (
   const passes = session.passes.map(pass => {
     if (pass.id === passId) {
       // Ensure we're working with string IDs
-      const imageIds = [...pass.images, image.id];
-      const currentImages = pass.images.map(imgId => {
-        return typeof imgId === 'string' ? imgId : imgId.id;
-      });
-      const allImages = [...currentImages, image.id];
+      const currentImages = Array.isArray(pass.images) ? pass.images : [];
+      const imageIds = [...currentImages, image.id];
       
-      const totalSharpness = session.images
-        .filter(img => allImages.includes(img.id))
-        .reduce((sum, img) => sum + (img.qualityScore || 0), 0);
+      // Calculate image quality (sharpness) for the pass
+      let totalSharpness = 0;
+      let imageCount = 0;
       
-      const averageSharpness = allImages.length > 0 ? Math.round(totalSharpness / allImages.length) : 0;
+      // Loop through imageIds and find corresponding images
+      for (const imgId of imageIds) {
+        const sessionImg = session.images.find(si => si.id === imgId);
+        if (sessionImg && typeof sessionImg.qualityScore === 'number') {
+          totalSharpness += sessionImg.qualityScore;
+          imageCount++;
+        }
+      }
+      
+      const averageSharpness = imageCount > 0 ? Math.round(totalSharpness / imageCount) : 0;
       
       return {
         ...pass,
@@ -87,7 +93,8 @@ export const addImageToPass = async (
     camera: image.camera,
     angle: image.angle?.toString() || "0",
     dateCaptured: image.timestamp,
-    qualityScore: image.sharpness
+    qualityScore: image.sharpness,
+    hasMask: image.hasMask
   };
   
   const allImages = [...session.images, newImageData];

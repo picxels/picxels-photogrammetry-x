@@ -4,7 +4,9 @@ import {
   Workflow, 
   WorkflowFile, 
   WorkflowProgress,
-  RCNodeConfig
+  RCNodeConfig,
+  WorkflowStage,
+  RCCommand
 } from '@/types';
 import { 
   scanWorkflowDirectory, 
@@ -73,18 +75,31 @@ export function useWorkflow({ rcNodeConfig, directoryPath = './workflows' }: Use
         throw new Error(`Workflow with ID ${workflowId} not found`);
       }
 
-      const workflow = await loadWorkflowFile(workflowFile.path);
-      if (workflow) {
+      const loadedWorkflow = await loadWorkflowFile(workflowFile.path);
+      if (loadedWorkflow) {
         // Ensure the workflow has all required properties before setting state
+        // We need to transform the workflow from workflow.ts type to index.ts type
+        const transformedStages: WorkflowStage[] = loadedWorkflow.stages.map(stage => ({
+          id: uuidv4(), // Generate ID for each stage
+          name: stage.name,
+          commands: stage.commands.map(cmd => ({
+            command: cmd.command,
+            params: cmd.params,
+            description: cmd.description
+          })),
+          description: stage.description
+        }));
+
         const completeWorkflow: Workflow = {
-          id: workflow.id || uuidv4(),
-          name: workflow.name || workflowFile.name,
-          description: workflow.description || '',
-          stages: workflow.stages || [],
-          createdAt: workflow.createdAt || Date.now(),
-          updatedAt: workflow.updatedAt || Date.now(),
-          workflow_name: workflow.workflow_name || workflow.name || workflowFile.name
+          id: loadedWorkflow.workflow_name ? uuidv4() : uuidv4(),
+          name: loadedWorkflow.workflow_name || workflowFile.name,
+          description: loadedWorkflow.metadata?.description || '',
+          stages: transformedStages,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          workflow_name: loadedWorkflow.workflow_name || workflowFile.name
         };
+        
         setSelectedWorkflow(completeWorkflow);
       }
     } catch (error) {

@@ -287,7 +287,8 @@ export const processImageForPhotogrammetry = async (
       tiffPath: croppedTiffPath,
       originalPath: image.path,
       jpegPath: jpegPath,
-      maskedPath: maskPath, // Change to maskedPath instead of maskPath
+      maskPath: maskPath,  // Use maskPath which is now defined in CapturedImage
+      maskedPath: hasMask ? `${outputDir}/masked/${image.id}_masked.jpg` : undefined,
       hasMask: hasMask,
       croppedWidth: finalSize,
       croppedHeight: finalSize
@@ -302,3 +303,4 @@ export const processImageForPhotogrammetry = async (
     return image;
   }
 };
+

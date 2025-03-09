@@ -177,30 +177,63 @@ export const uploadSessionImagesToRCNode = async (
       
       // For each image in the pass
       for (let imageIndex = 0; imageIndex < pass.images.length; imageIndex++) {
-        const image = pass.images[imageIndex];
+        const imageIdOrObj = pass.images[imageIndex];
+        
+        // Find the actual image object from session.images
+        const imageId = typeof imageIdOrObj === 'string' ? imageIdOrObj : imageIdOrObj.id;
+        const image = session.images.find(img => img.id === imageId);
+        
+        if (!image) {
+          console.warn(`Image with ID ${imageId} not found in session`);
+          continue;
+        }
         
         // Generate filenames following RC conventions
         console.log(`Processing image: ${image.id} from pass ${passIndex + 1}`);
         
         // Upload main image
-        const mainFilename = generateRCFilename(image, pass, passIndex, imageIndex, 'geometry');
+        const mainFilename = generateRCFilename(
+          {id: image.id, camera: image.camera, angle: parseFloat(image.angle)} as CapturedImage, 
+          pass, 
+          passIndex, 
+          imageIndex, 
+          'geometry'
+        );
         console.log(`Would upload main image to ${baseImagePath}/${mainFilename}`);
         
         // If exporting PNGs for geometry
         if (settings.exportPng) {
-          const geometryFilename = generateRCFilename(image, pass, passIndex, imageIndex, 'geometry');
+          const geometryFilename = generateRCFilename(
+            {id: image.id, camera: image.camera, angle: parseFloat(image.angle)} as CapturedImage, 
+            pass, 
+            passIndex, 
+            imageIndex, 
+            'geometry'
+          );
           console.log(`Would upload PNG version to ${baseImagePath}/.geometry/${geometryFilename}`);
         }
         
         // If exporting TIFFs for texturing
         if (settings.exportTiff) {
-          const textureFilename = generateRCFilename(image, pass, passIndex, imageIndex, 'texture');
+          const textureFilename = generateRCFilename(
+            {id: image.id, camera: image.camera, angle: parseFloat(image.angle)} as CapturedImage, 
+            pass, 
+            passIndex, 
+            imageIndex, 
+            'texture'
+          );
           console.log(`Would upload TIFF version to ${baseImagePath}/.texture.TextureLayer/${textureFilename}`);
         }
         
         // If exporting masks
         if (settings.exportMasks && image.hasMask) {
-          const maskFilename = generateRCFilename(image, pass, passIndex, imageIndex, 'mask');
+          const maskFilename = generateRCFilename(
+            {id: image.id, camera: image.camera, angle: parseFloat(image.angle)} as CapturedImage, 
+            pass, 
+            passIndex, 
+            imageIndex, 
+            'mask'
+          );
           console.log(`Would upload mask to ${baseImagePath}/.mask/${maskFilename}`);
         }
         
