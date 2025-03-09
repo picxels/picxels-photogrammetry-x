@@ -1,7 +1,8 @@
 
-import { Session, RCNodeConfig, Workflow } from '@/types';
+import { Session, RCNodeConfig, Workflow, WorkflowStage } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 import { executeCommand } from '@/utils/commandUtils';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Send a command to the RC Node
@@ -52,6 +53,7 @@ export const getWorkflowTemplateFromSession = (
     workflow_name: session.name || 'Default Workflow',
     stages: [
       {
+        id: uuidv4(),
         name: 'Alignment',
         commands: [
           {
@@ -61,6 +63,7 @@ export const getWorkflowTemplateFromSession = (
         ]
       },
       {
+        id: uuidv4(),
         name: 'Calculate Model',
         commands: [
           {
@@ -70,6 +73,7 @@ export const getWorkflowTemplateFromSession = (
         ]
       },
       {
+        id: uuidv4(),
         name: 'Texture',
         commands: [
           {
@@ -79,6 +83,7 @@ export const getWorkflowTemplateFromSession = (
         ]
       },
       {
+        id: uuidv4(),
         name: 'Export',
         commands: [
           {

@@ -1,4 +1,3 @@
-
 import { 
   Session, 
   CapturedImage, 
@@ -32,7 +31,8 @@ const sessionImageToCapturedImage = (image: SessionImage): CapturedImage => {
     hasColorProfile: image.hasColorProfile,
     maskPath: image.maskPath,
     path: image.filePath,
-    sharpness: image.sharpness
+    sharpness: image.sharpness,
+    croppedWidth: undefined
   };
 };
 
@@ -56,7 +56,7 @@ export const prepareImagesForRealityCapture = async (session: Session): Promise<
         // Check if the image is a string (ID) or an object
         const imageId = typeof image === 'string' ? image : image.id;
         const imageObj = typeof image === 'string' 
-          ? session.images.find(img => typeof img !== 'string' && img.id === image) as SessionImage | undefined
+          ? session.images.find(img => typeof img !== 'string' && img.id === imageId) as SessionImage | undefined
           : image as SessionImage;
           
         if (!imageObj || !imageObj.filePath) {
@@ -301,27 +301,28 @@ export const uploadSessionImagesToRCNode = async (
         
         // Find the actual image object from session.images
         const imageId = typeof imageIdOrObj === 'string' ? imageIdOrObj : imageIdOrObj.id;
-        const imageObj = session.images.find(img => {
-          if (typeof img === 'string') return img === imageId;
-          return img.id === imageId;
-        });
         
-        if (!imageObj) {
+        // Handle the case when imageIdOrObj is a string (just an ID reference)
+        // We need to find the corresponding image object from session.images
+        let actualImage: SessionImage | undefined;
+        
+        if (typeof imageIdOrObj === 'string') {
+          actualImage = session.images.find(img => {
+            if (typeof img === 'string') return img === imageIdOrObj;
+            return img.id === imageIdOrObj;
+          }) as SessionImage | undefined;
+        } else {
+          // imageIdOrObj is already a SessionImage
+          actualImage = imageIdOrObj as SessionImage;
+        }
+        
+        if (!actualImage) {
           console.warn(`Image with ID ${imageId} not found in session`);
           continue;
         }
         
-        // Convert image object to the format expected by generateRCFilename
-        const capturedImage: CapturedImage = typeof imageObj === 'string' 
-          ? { 
-              id: imageObj, 
-              camera: "unknown",
-              previewUrl: "",
-              filePath: "",
-              timestamp: Date.now(),
-              angle: 0
-            }
-          : sessionImageToCapturedImage(imageObj);
+        // Convert to CapturedImage for further processing
+        const capturedImage = sessionImageToCapturedImage(actualImage);
         
         // Generate filenames following RC conventions
         console.log(`Processing image: ${capturedImage.id} from pass ${passIndex + 1}`);
@@ -530,12 +531,25 @@ export const processSessionForRealityCapture = async (
       
       // Process all images in this pass
       for (const imageIdOrObj of pass.images) {
-        // Handle both string IDs and CapturedImage objects
-        const imageId = typeof imageIdOrObj === 'string' ? imageIdOrObj : imageIdOrObj.id;
+        // Handle both string IDs and SessionImage objects
+        let imageId: string;
+        let imageObj: SessionImage | undefined;
         
-        // Find the actual image object from session.images
-        const imageObj = session.images.find(img => img.id === imageId);
-        if (!imageObj) continue;
+        if (typeof imageIdOrObj === 'string') {
+          imageId = imageIdOrObj;
+          imageObj = session.images.find(img => {
+            if (typeof img === 'string') return img === imageIdOrObj;
+            return img.id === imageIdOrObj;
+          }) as SessionImage | undefined;
+        } else {
+          imageId = imageIdOrObj.id;
+          imageObj = imageIdOrObj;
+        }
+        
+        if (!imageObj) {
+          console.warn(`Image with ID ${imageId} not found in session`);
+          continue;
+        }
         
         // Now we have the full image object, process it
         if (exportSettings.exportPng) {
