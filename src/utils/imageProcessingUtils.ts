@@ -1,4 +1,3 @@
-
 import { CapturedImage } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { isJetsonPlatform } from "./platformUtils";
@@ -8,7 +7,7 @@ import {
   generateMaskWithEfficientViT, 
   applyMask, 
   isEfficientViTAvailable 
-} from "@/services/efficientViTService";
+} from "@/services/efficientViT";
 import { 
   shouldUseFallbackData, 
   notifyFallbackMode 

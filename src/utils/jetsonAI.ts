@@ -33,3 +33,12 @@ export {
   shouldUseFallbackData,
   notifyFallbackMode
 } from './ai/fallbackUtils';
+
+// Export from efficientViT service
+export {
+  isEfficientViTAvailable,
+  installEfficientViT,
+  generateMaskWithEfficientViT,
+  applyMask,
+  processImageForPhotogrammetry
+} from '@/services/efficientViT';
