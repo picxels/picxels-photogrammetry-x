@@ -3,7 +3,6 @@ import React from "react";
 import CameraControl from "@/camera_profiles/CameraControl";
 import MotorControl from "@/camera_profiles/MotorControl";
 import ImagePreview from "@/camera_profiles/ImagePreview";
-import RCNodeConfig from "@/components/RCNodeConfig";
 import FileManager from "@/camera_profiles/FileManager";
 import SubjectAnalysis from "@/camera_profiles/SubjectAnalysis";
 import PassControls from "@/components/PassControls";
@@ -83,8 +82,6 @@ const CaptureTab: React.FC<CaptureTabProps> = ({
       </div>
       
       <div className="space-y-6">
-        <RCNodeConfig onConnectionStatusChange={onRCNodeConnectionChange} />
-        
         <FileManager 
           session={session}
           onSessionNameChange={onSessionNameChange}
