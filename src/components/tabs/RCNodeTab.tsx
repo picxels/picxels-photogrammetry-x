@@ -64,7 +64,7 @@ const RCNodeTab: React.FC<RCNodeTabProps> = ({
               
               {rcNodeConfig.isConnected && (
                 <div className="pt-4 border-t">
-                  <Alert variant="success" className="bg-green-500/10 text-green-700 border-green-300 dark:text-green-400">
+                  <Alert variant="default" className="bg-green-500/10 text-green-700 border-green-300 dark:text-green-400">
                     <Activity className="h-4 w-4" />
                     <AlertTitle>Connected to RC Node</AlertTitle>
                     <AlertDescription>
