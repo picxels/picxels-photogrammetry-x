@@ -1,12 +1,15 @@
+
 import { toast } from "@/components/ui/use-toast";
 import { MODEL_PATHS, SYSTEM_REQUIREMENTS, PERFORMANCE_SETTINGS } from "@/config/jetson.config";
+import { OLLAMA_CONFIG } from "@/config/jetsonAI.config";
+import { isOllamaAvailable, getAvailableModels, pullModelIfNeeded } from "@/services/ollamaService";
 
 // Interfaces for model configurations
 export interface ModelConfig {
   path: string;
   optimized: boolean;
   loaded: boolean;
-  type: 'onnx' | 'tensorrt';
+  type: 'onnx' | 'tensorrt' | 'ollama';
 }
 
 export interface AIModels {
@@ -33,7 +36,7 @@ export const KNOWN_DEPENDENCY_ISSUES = [
 let loadedModels: AIModels = {
   sharpness: { path: '', optimized: false, loaded: false, type: 'tensorrt' },
   mask: { path: '', optimized: false, loaded: false, type: 'tensorrt' },
-  llm: { path: '', optimized: false, loaded: false, type: 'tensorrt' }
+  llm: { path: '', optimized: false, loaded: false, type: 'ollama' }
 };
 
 // Function to detect TensorRT version
@@ -82,6 +85,43 @@ export const checkPythonDependencies = async (): Promise<{hasIssues: boolean, is
       hasIssues: false,
       issues: []
     };
+  }
+};
+
+// Function to check for Ollama and required models
+export const checkOllamaModels = async (): Promise<{ available: boolean, models: string[] }> => {
+  try {
+    // Check if Ollama service is available
+    const ollamaServiceAvailable = await isOllamaAvailable();
+    
+    if (!ollamaServiceAvailable) {
+      console.warn("Ollama service not available");
+      return { available: false, models: [] };
+    }
+    
+    // Get list of available models
+    const allModels = await getAvailableModels();
+    const availableModels = allModels.map(model => model.name);
+    
+    // Check for required models
+    const requiredModels = [
+      OLLAMA_CONFIG.defaultModels.text,
+      OLLAMA_CONFIG.defaultModels.vision,
+      OLLAMA_CONFIG.defaultModels.small
+    ];
+    
+    // Filter to only available required models
+    const foundModels = requiredModels.filter(model => 
+      availableModels.some(available => available === model)
+    );
+    
+    return {
+      available: ollamaServiceAvailable,
+      models: foundModels
+    };
+  } catch (error) {
+    console.error("Error checking Ollama models:", error);
+    return { available: false, models: [] };
   }
 };
 
@@ -138,16 +178,44 @@ export const initializeAIModels = async (): Promise<AIModels> => {
   }
   
   try {
-    // In production, this would:
-    // 1. Check file paths from config
-    // 2. Load models into memory
-    // 3. Initialize CUDA context
-    
     // Check if model files exist
     const modelPathsExist = await checkModelFilesExist();
     
     if (!modelPathsExist) {
-      throw new Error("Required model files not found. Please check installation.");
+      console.warn("Required model files not found.");
+      toast({
+        title: "Model Files Missing",
+        description: "Some model files were not found. Functionality may be limited.",
+        variant: "destructive"
+      });
+    }
+    
+    // Check Ollama availability and models
+    const ollamaStatus = await checkOllamaModels();
+    
+    if (!ollamaStatus.available) {
+      console.warn("Ollama service is not available");
+      toast({
+        title: "Ollama Not Available",
+        description: "Ollama service is not running. LLM features will be unavailable.",
+        variant: "destructive"
+      });
+    } else {
+      console.log("Ollama service is available");
+      console.log("Available models:", ollamaStatus.models.join(", "));
+      
+      // Check if required models are available, try to pull if not
+      const requiredModels = [
+        OLLAMA_CONFIG.defaultModels.text,
+        OLLAMA_CONFIG.defaultModels.small
+      ];
+      
+      for (const model of requiredModels) {
+        if (!ollamaStatus.models.includes(model)) {
+          console.log(`Model ${model} not found, attempting to pull...`);
+          await pullModelIfNeeded(model);
+        }
+      }
     }
     
     // Enable max performance mode if configured
@@ -156,7 +224,7 @@ export const initializeAIModels = async (): Promise<AIModels> => {
     }
     
     // Simulate initialization delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
     
     // Update model states with paths from config
     loadedModels = {
@@ -173,17 +241,17 @@ export const initializeAIModels = async (): Promise<AIModels> => {
         type: 'tensorrt' 
       },
       llm: { 
-        path: MODEL_PATHS.llm.tensorrt, 
+        path: ollamaStatus.available ? OLLAMA_CONFIG.defaultModels.text : '', 
         optimized: true, 
-        loaded: true, 
-        type: 'tensorrt' 
+        loaded: ollamaStatus.available, 
+        type: 'ollama' 
       }
     };
     
     console.log("AI models loaded successfully");
     toast({
       title: "AI Models Loaded",
-      description: `TensorRT ${tensorRTVersion} with CUDA ${cudaVersion} initialized successfully.`
+      description: `Models initialized with TensorRT ${tensorRTVersion} and Ollama ${ollamaStatus.available ? 'available' : 'unavailable'}.`
     });
     
     return loadedModels;
@@ -199,7 +267,7 @@ export const initializeAIModels = async (): Promise<AIModels> => {
     return {
       sharpness: { path: '', optimized: false, loaded: false, type: 'onnx' },
       mask: { path: '', optimized: false, loaded: false, type: 'onnx' },
-      llm: { path: '', optimized: false, loaded: false, type: 'onnx' }
+      llm: { path: '', optimized: false, loaded: false, type: 'ollama' }
     };
   }
 };
@@ -225,7 +293,7 @@ export const enableJetsonMaxPerformance = async (): Promise<void> => {
     console.log("Enabling Jetson maximum performance mode");
     
     // Simulate enabling performance mode
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 300));
     
     console.log("Jetson performance mode enabled");
   } catch (error) {
@@ -249,46 +317,12 @@ export const compareVersions = (v1: string, v2: string): number => {
   return 0;
 };
 
-// Function to load a specific model
-const loadModel = async (modelConfig: ModelConfig): Promise<ModelConfig> => {
-  try {
-    // Simulate model loading delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    
-    // Update model state to loaded
-    return { ...modelConfig, loaded: true };
-  } catch (error) {
-    console.error(`Error loading model at ${modelConfig.path}:`, error);
-    return { ...modelConfig, loaded: false };
-  }
-};
-
-// Function to initialize a specific model
-const initializeModel = async (modelPath: string, type: 'onnx' | 'tensorrt'): Promise<ModelConfig> => {
-  const modelConfig: ModelConfig = {
-    path: modelPath,
-    optimized: type === 'tensorrt',
-    loaded: false,
-    type
-  };
-  
-  return await loadModel(modelConfig);
-};
-
-// Function to initialize all models
-export const initializeAllModels = async (): Promise<AIModels> => {
-  const sharpnessModel = await initializeModel(MODEL_PATHS.sharpness.tensorrt, 'tensorrt');
-  const maskModel = await initializeModel(MODEL_PATHS.mask.tensorrt, 'tensorrt');
-  const llmModel = await initializeModel(MODEL_PATHS.llm.tensorrt, 'tensorrt');
-  
-  return {
-    sharpness: sharpnessModel,
-    mask: maskModel,
-    llm: llmModel
-  };
-};
-
 // Function to check if models are loaded
 export const areModelsLoaded = (): boolean => {
-  return loadedModels.sharpness.loaded && loadedModels.mask.loaded && loadedModels.llm.loaded;
+  return loadedModels.sharpness.loaded && loadedModels.mask.loaded;
+};
+
+// Function to check if Ollama LLM is available
+export const isLLMAvailable = (): boolean => {
+  return loadedModels.llm.loaded && loadedModels.llm.type === 'ollama';
 };

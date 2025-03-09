@@ -38,10 +38,9 @@ Picxels Photogrammetry X is a comprehensive photogrammetry platform built for re
    - Responsive design for various screen sizes
 
 2. **AI Processing Pipeline**
-   - TensorRT-optimized models for:
-     - Image sharpness detection
-     - Subject segmentation/masking
-     - Subject identification
+   - TensorRT-optimized models for image sharpness detection and segmentation
+   - Ollama for LLM-powered subject analysis
+   - Integrated local AI capabilities with CUDA acceleration
 
 3. **Camera Control System**
    - libgphoto2 integration
@@ -84,36 +83,34 @@ The system uses the `gphoto2` library to interface with Canon DSLR cameras, prov
 
 ### 2. AI Processing System
 
-The system uses three primary AI models, optimized with TensorRT for the Jetson platform:
+The system uses two primary AI systems:
 
-#### A. Sharpness Detection Model
-- **Model**: FocusNet (ONNX/TensorRT)
-- **Purpose**: Analyzes image focus quality and sharpness
-- **Implementation**: Automatically triggers recapture if sharpness below threshold
-- **Location**: `/home/jetson/models/sharpness/focus_net.trt`
+#### A. TensorRT Models for Image Analysis
+- **Sharpness Detection**: FocusNet model for analyzing image focus quality
+- **Subject Segmentation**: MobileSAM for generating background masks
 
-#### B. Subject Segmentation Model
-- **Model**: MobileSAM (ONNX/TensorRT)
-- **Purpose**: Generates background masks for subject isolation
-- **Implementation**: Creates binary masks for clean subject extraction
-- **Location**: `/home/jetson/models/masks/mobile_sam.trt`
+#### B. Ollama LLMs for Advanced Analysis
+- **Subject Identification**: Llama-3 for identifying captured objects 
+- **Metadata Generation**: Phi-3 mini for lightweight processing
+- **Visual Analysis**: Llava for vision-based object analysis
 
-#### C. Subject Identification Model
-- **Model**: Phi-2 LLM (ONNX/TensorRT)
-- **Purpose**: Identifies captured object and generates descriptive tags
-- **Implementation**: Analyzes images to determine subject matter
-- **Location**: `/home/jetson/models/llm/phi2.trt`
+**Ollama Integration**:
+- Uses locally hosted Ollama service on the Jetson
+- Communicates via HTTP API at localhost:11434
+- Leverages CUDA acceleration for optimal performance
+- Dynamically selects models based on task requirements
 
 **AI Processing Pipeline**:
 1. Images are captured from cameras
 2. Sharpness detection model evaluates focus quality
 3. If sharpness is insufficient, camera refocuses and recaptures
 4. Subject segmentation model creates background masks
-5. Subject identification model analyzes content
+5. Ollama LLM analyzes content and generates metadata
 6. Results are used to organize and describe the session
 
 **Implementation**:
 - `src/utils/jetsonAI.ts`: Core AI model management and inference
+- `src/services/ollamaService.ts`: Interface with Ollama API
 - `src/utils/imageAnalysis.ts`: Higher-level analysis functions
 
 ### 3. Motor Control System
@@ -183,7 +180,24 @@ The system organizes captured images into sessions:
 
 ### Jetson Orin Nano Setup
 
-#### 1. Camera Control Setup
+#### 1. Ollama Installation
+```bash
+# Install Ollama with one-line installer
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Verify Ollama installation
+ollama --version
+
+# Pull required models
+ollama pull llama3.2:8b
+ollama pull phi3:mini
+ollama pull llava:latest
+
+# Test models
+echo "Hello, how are you?" | ollama run llama3.2:8b
+```
+
+#### 2. Camera Control Setup
 ```bash
 # Install gphoto2
 sudo apt install -y gphoto2 libgphoto2-dev
@@ -198,20 +212,10 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 
-#### 2. AI Model Setup
+#### 3. TensorRT Model Setup
 ```bash
-# Check TensorRT installation
-dpkg -l | grep -i tensorrt
-
-# Check CUDA Toolkit installation  
-dpkg -l | grep cuda-toolkit
-
-# Install required Python packages for AI
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nv-tensorrt-cu126
-pip3 install onnx onnxruntime-gpu scikit-image transformers opencv-python-headless
-
 # Create models directory
-mkdir -p ~/models/{sharpness,masks,llm}
+mkdir -p ~/models/{sharpness,masks}
 
 # Download sharpness detection model
 curl -L https://github.com/PINTO0309/PINTO_model_zoo/raw/main/356_FocusNet/model/FocusNet_480x384_float32.onnx -o ~/models/sharpness/focus_net.onnx
@@ -219,18 +223,12 @@ curl -L https://github.com/PINTO0309/PINTO_model_zoo/raw/main/356_FocusNet/model
 # Download segmentation model for masks
 curl -L https://github.com/PINTO0309/PINTO_model_zoo/raw/main/115_MobileSAM/model/mobile_sam_predictor_quantized.onnx -o ~/models/masks/mobile_sam.onnx
 
-# Download LLM for subject identification (Phi-2 optimized for Jetson)
-git clone https://github.com/microsoft/Phi-2.git
-cd Phi-2
-python3 convert_to_onnx.py --output-path ~/models/llm/phi2.onnx
-
 # Convert ONNX models to TensorRT for faster inference
 /usr/bin/trtexec --onnx=~/models/sharpness/focus_net.onnx --saveEngine=~/models/sharpness/focus_net.trt
 /usr/bin/trtexec --onnx=~/models/masks/mobile_sam.onnx --saveEngine=~/models/masks/mobile_sam.trt
-/usr/bin/trtexec --onnx=~/models/llm/phi2.onnx --saveEngine=~/models/llm/phi2.trt
 ```
 
-#### 3. Motor Control Setup
+#### 4. Motor Control Setup
 ```bash
 # Install libraries for GPIO and motor control
 pip3 install Jetson.GPIO Adafruit-Blinka adafruit-circuitpython-motorkit
@@ -298,7 +296,7 @@ AUTH_TOKEN = "E38BBD4E-69DE-4BCA-ADCB-98B8614CD6A7"  # Replace with your Auth To
 4. **Processing**
    - System applies color profiles to images
    - AI generates background masks
-   - Subject analysis identifies the captured object
+   - Ollama analyzes the captured object
    - Session is named based on AI analysis
 
 5. **Export**
@@ -313,43 +311,45 @@ AUTH_TOKEN = "E38BBD4E-69DE-4BCA-ADCB-98B8614CD6A7"  # Replace with your Auth To
 
 ## Technical Implementation Details
 
-### AI Model Initialization
+### Ollama LLM Integration
 
-The AI subsystem follows this initialization process:
+The system uses Ollama for LLM capabilities with the following implementation:
 
 ```javascript
-// Initialization sequence
-export const initializeAIModels = async (): Promise<AIModels> => {
-  console.log("Initializing AI models for Jetson Orin Nano");
-  
-  // Check TensorRT and CUDA versions
-  const tensorRTVersion = await detectTensorRTVersion();
-  const cudaVersion = await detectCUDAVersion();
-  
-  console.log(`Detected TensorRT version: ${tensorRTVersion}`);
-  console.log(`Detected CUDA version: ${cudaVersion}`);
-  
-  // Check Python dependencies
-  const dependencyCheck = await checkPythonDependencies();
-  
-  // Load models optimized for TensorRT
+// Ollama API service
+export const analyzeImage = async (
+  base64Image: string,
+  prompt: string,
+  model: string
+): Promise<string> => {
   try {
-    // In production, this would load the actual models
-    loadedModels = {
-      sharpness: { 
-        path: DEFAULT_MODEL_PATHS.sharpness.tensorrt, 
-        optimized: true, 
-        loaded: true, 
-        type: 'tensorrt' 
-      },
-      mask: { ... },
-      llm: { ... }
+    const generateRequest = {
+      model,
+      prompt,
+      images: [base64Image],
+      options: {
+        temperature: 0.3,
+        num_predict: OLLAMA_CONFIG.maxTokens
+      }
     };
     
-    return loadedModels;
+    const response = await fetch(`${OLLAMA_CONFIG.apiUrl}/api/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(generateRequest)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Ollama image analysis failed: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data.response;
   } catch (error) {
-    // Handle errors and fall back if needed
-    ...
+    console.error("Error analyzing image with Ollama:", error);
+    throw error;
   }
 };
 ```
@@ -432,52 +432,20 @@ export const performFullScan = async (
 };
 ```
 
-### RC Node Communication
-
-The system communicates with the Reality Capture Node using:
-
-```javascript
-// RC Node command execution
-export const sendRCNodeCommand = async (
-  config: RCNodeConfig,
-  commandName: string,
-  params: Record<string, string> = {}
-): Promise<any> => {
-  try {
-    // Construct query parameters
-    const queryParams = new URLSearchParams();
-    queryParams.append('name', commandName);
-    
-    // Add additional parameters
-    Object.entries(params).forEach(([key, value], index) => {
-      queryParams.append(`param${index + 1}`, value);
-    });
-    
-    const url = `${config.nodeUrl}/project/command?${queryParams.toString()}`;
-    
-    // Execute the command via HTTP request
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${config.authToken}`
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Command failed with status: ${response.status}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    // Handle command errors
-    ...
-  }
-};
-```
-
 ## Troubleshooting
 
 ### Common Issues and Solutions
+
+#### Ollama Issues
+
+**Issue**: Ollama service not responding or model errors
+**Solution**:
+1. Check if Ollama service is running: `systemctl status ollama`
+2. Restart the service: `sudo systemctl restart ollama`
+3. Check logs: `journalctl -u ollama`
+4. Verify models are installed: `ollama list`
+5. Try pulling models manually: `ollama pull llama3.2:8b`
+6. Test API directly: `curl http://localhost:11434/api/tags`
 
 #### Camera Connection Problems
 
@@ -493,23 +461,6 @@ export const sendRCNodeCommand = async (
    ```
 4. Verify user is in the plugdev group: `sudo usermod -a -G plugdev $USER`
 5. Restart the camera and/or system
-
-#### AI Model Initialization Failures
-
-**Issue**: AI models fail to load or initialize
-**Solution**:
-1. Check TensorRT and CUDA installation status:
-   ```
-   dpkg -l | grep -i tensorrt
-   dpkg -l | grep cuda-toolkit
-   ```
-2. Verify model files exist in the correct locations
-3. Resolve Python dependency conflicts:
-   ```
-   pip install numpy==1.23.5
-   ```
-4. Check model paths in jetsonAI.ts match your system configuration
-5. Ensure adequate GPU memory is available
 
 #### Motor Control Issues
 
@@ -543,15 +494,14 @@ To add support for a new camera model:
 3. Add the new profile to `colorProfileUtils.ts`
 4. Update the udev rules if necessary for the new camera's vendor ID
 
-### Adding New AI Models
+### Adding New AI Models to Ollama
 
-To integrate a new AI model:
+To add new LLM models to Ollama:
 
-1. Convert the model to ONNX format
-2. Optimize with TensorRT for Jetson
-3. Update the model paths in `jetsonAI.ts`
-4. Implement the necessary preprocessing and inference functions
-5. Integrate the model into the existing AI pipeline
+1. Pull the new model: `ollama pull <model-name>`
+2. Update the model configuration in `jetsonAI.config.ts`
+3. Test the model: `ollama run <model-name>`
+4. Implement any necessary specialized processing in `ollamaService.ts`
 
 ### Custom Turntable Hardware
 
@@ -564,6 +514,6 @@ To support different motorized turntables:
 
 ## Conclusion
 
-The Picxels Photogrammetry X system provides a comprehensive, integrated solution for photogrammetry capturing using the Jetson Orin Nano platform. By combining camera control, motorized positioning, AI-enhanced processing, and integration with Reality Capture software, it offers an end-to-end solution for creating high-quality 3D models from physical objects.
+The Picxels Photogrammetry X system provides a comprehensive, integrated solution for photogrammetry capturing using the Jetson Orin Nano platform. By combining camera control, motorized positioning, AI-enhanced processing with Ollama, and integration with Reality Capture software, it offers an end-to-end solution for creating high-quality 3D models from physical objects.
 
 The modular architecture allows for extensibility and customization, while the optimized AI processing pipeline ensures efficient, high-quality results even on the resource-constrained Jetson platform.

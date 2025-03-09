@@ -4,7 +4,7 @@
  * 
  * This file contains configurations for integrating with Jetson AI Lab projects:
  * - EfficientViT for image segmentation
- * - Nano-VLM for visual language processing
+ * - Ollama LLMs for visual language processing
  * - NanoDB for optimized local storage
  */
 
@@ -21,16 +21,26 @@ export const JETSON_AI_MODELS = {
     useMetadataCache: true
   },
   
-  // Nano-VLM model paths and configurations - updated for VILA1.5-8B
-  nanoVLM: {
+  // Ollama LLM configurations - updated for Llama-3 and Phi-3
+  ollama: {
     enabled: true,
-    modelPath: "/opt/picxels/models/nanovlm/vila_llama3_8b.engine",
-    modelType: "tensorrt",
-    maxTokenLength: 2048,
-    temperature: 0.7,
-    useQuantization: true,
+    apiUrl: "http://localhost:11434/api",
+    defaultModel: "llama3.2:8b",
+    models: {
+      llama3: {
+        name: "llama3.2:8b",
+        contextLength: 8192,
+        temperature: 0.7,
+        maxOutputTokens: 1024
+      },
+      phi3: {
+        name: "phi3:mini",
+        contextLength: 4096,
+        temperature: 0.7,
+        maxOutputTokens: 1024
+      }
+    },
     maxImageSize: 1024, // Resize image to this size for inference
-    model: "Efficient-Large-Model/Llama-3-VILA1.5-8B" // Model identifier
   },
   
   // NanoDB configuration for optimized local data storage
@@ -60,7 +70,7 @@ export const AI_HARDWARE_CONFIG = {
 // Feature flags for controlling which AI capabilities are enabled
 export const AI_FEATURES = {
   enhancedSegmentation: true, // Use EfficientViT for segmentation
-  smartSubjectAnalysis: true, // Use Nano-VLM for subject analysis
+  smartSubjectAnalysis: true, // Use Ollama LLMs for subject analysis
   backgroundRemoval: true, // Improved background removal using EfficientViT
   objectQualityAssessment: true, // Quality assessment of the subject
   realTimeFeedback: true, // Provide AI feedback during capture
@@ -114,4 +124,21 @@ export const AI_DEBUG_OPTIONS = {
   profiling: false,
   mockAIResponses: false, // Set to true for testing without actual AI
   mockResponseDelay: 1500, // Simulated processing time in ms
+};
+
+// Ollama service configuration
+export const OLLAMA_CONFIG = {
+  enabled: true,
+  apiUrl: "http://localhost:11434",
+  defaultTimeout: 30000, // 30 seconds
+  retries: 2,
+  useGPU: true,
+  logRequests: true,
+  maxTokens: 1024,
+  defaultModels: {
+    text: "llama3.2:8b",
+    vision: "llava:latest",
+    embedding: "llama3:8b",
+    small: "phi3:mini"
+  }
 };

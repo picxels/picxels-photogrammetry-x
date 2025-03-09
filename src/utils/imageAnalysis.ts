@@ -1,10 +1,10 @@
 
-import { AnalysisResult, CapturedImage, Session, SessionStatus } from "@/types";
+import { AnalysisResult, CapturedImage, Session } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { analyzeSubjectWithLLM, initializeAIModels } from "./jetsonAI";
 import { isJetsonPlatform } from "./platformUtils";
 import { AI_FEATURES } from "@/config/jetsonAI.config";
-import { analyzeImageWithNanoVLM, isNanoVLMAvailable } from "@/services/nanoVLMService";
+import { isOllamaAvailable } from "@/services/ollamaService";
 import { updateSessionMetadata } from "@/services/sessionDatabaseService";
 
 // Initialize models on module load
@@ -22,24 +22,37 @@ export const analyzeImageSubject = async (
 ): Promise<AnalysisResult> => {
   console.log(`Analyzing image: ${image.filePath || image.path}`);
   
-  // Check if we should use Nano-VLM for enhanced analysis
+  // Check if we should use Ollama for enhanced analysis
   if (isJetsonPlatform() && AI_FEATURES.smartSubjectAnalysis) {
     try {
-      // Check if Nano-VLM is available
-      const nanoVLMAvailable = await isNanoVLMAvailable();
+      // Check if Ollama is available
+      const ollamaAvailable = await isOllamaAvailable();
       
-      if (nanoVLMAvailable) {
-        console.log("Using Nano-VLM for enhanced subject analysis");
-        return await analyzeImageWithNanoVLM(image);
+      if (ollamaAvailable) {
+        console.log("Using Ollama for enhanced subject analysis");
+        // Use the analyzeSubjectWithLLM function which now uses Ollama
+        const analysis = await analyzeSubjectWithLLM(image.filePath || image.path || '');
+        
+        // Convert to AnalysisResult format
+        const result: AnalysisResult = {
+          subjectMatter: analysis.subject,
+          subject: analysis.subject,
+          description: analysis.description,
+          confidence: 0.92, // Estimated confidence score
+          tags: analysis.tags
+        };
+        
+        console.log("Analysis result:", result);
+        return result;
       } else {
-        console.log("Nano-VLM not available, falling back to standard analysis");
+        console.log("Ollama not available, falling back to standard analysis");
       }
     } catch (error) {
-      console.error("Error with Nano-VLM analysis, falling back:", error);
+      console.error("Error with Ollama analysis, falling back:", error);
     }
   }
   
-  // Fallback to original analysis method
+  // Fallback to original analysis method or mock results
   // Ensure AI models are initialized
   await ensureModelsInitialized();
   

@@ -55,9 +55,46 @@ dpkg -l | grep tensorrt
 If not installed, follow the NVIDIA documentation to install the 
 appropriate versions for your Jetson system.
 
-## 3. Set Up Python Environment
+## 3. Install Ollama
 
-### 3.1 Install Python dependencies
+Ollama provides an easy way to run LLMs locally on the Jetson platform with CUDA acceleration:
+
+```bash
+# Install Ollama (one-line installer)
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Verify Ollama is installed and running
+ollama --version
+
+# The Ollama API should now be available at localhost:11434
+```
+
+### 3.1 Pull required models
+
+```bash
+# Pull Llama 3.2 8B model (for text analysis)
+ollama pull llama3.2:8b
+
+# Pull Phi-3 Mini model (for lightweight processing)
+ollama pull phi3:mini
+
+# Pull Llava (for vision capabilities)
+ollama pull llava:latest
+```
+
+### 3.2 Test that models work correctly
+
+```bash
+# Test text generation
+echo "Write a haiku about a camera" | ollama run llama3.2:8b
+
+# Test smaller Phi-3 model
+echo "What is photogrammetry?" | ollama run phi3:mini
+```
+
+## 4. Set Up Python Environment
+
+### 4.1 Install Python dependencies
 
 ```bash
 # Core dependencies
@@ -73,16 +110,16 @@ pip3 install onnxruntime-gpu==1.15.1 torch==2.0.1 torchvision==0.15.2 --index-ur
 pip3 install Jetson.GPIO==2.1.4 Adafruit-Blinka==8.20.1 adafruit-circuitpython-motorkit==1.6.8
 ```
 
-## 4. Install SQLite for Account Storage
+## 5. Install SQLite for Account Storage
 
 ```bash
 # SQLite is used for storing social media account credentials
 sudo apt install -y sqlite3 libsqlite3-dev
 ```
 
-## 5. Set Up Camera Access
+## 6. Set Up Camera Access
 
-### 5.1 Configure USB permissions
+### 6.1 Configure USB permissions
 
 ```bash
 sudo usermod -a -G plugdev $USER
@@ -91,15 +128,15 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 
-### 5.2 Test camera detection
+### 6.2 Test camera detection
 
 ```bash
 gphoto2 --auto-detect
 ```
 
-## 6. Set Up Motor Control
+## 7. Set Up Motor Control
 
-### 6.1 Configure GPIO permissions
+### 7.1 Configure GPIO permissions
 
 ```bash
 sudo groupadd -f -r gpio
@@ -109,16 +146,16 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 
-## 7. Download and Prepare AI Models
+## 8. Download and Prepare AI Models
 
-### 7.1 Create directory structure
+### 8.1 Create directory structure
 
 ```bash
-sudo mkdir -p /opt/picxels/models/{sharpness,masks,llm}
+sudo mkdir -p /opt/picxels/models/{sharpness,masks}
 sudo chown -R $USER:$USER /opt/picxels
 ```
 
-### 7.2 Download pre-trained models
+### 8.2 Download pre-trained models
 
 ```bash
 # Download sharpness detection model
@@ -128,63 +165,30 @@ curl -L https://github.com/PINTO0309/PINTO_model_zoo/raw/main/356_FocusNet/model
 curl -L https://github.com/PINTO0309/PINTO_model_zoo/raw/main/115_MobileSAM/model/mobile_sam_predictor_quantized.onnx -o /opt/picxels/models/masks/mobile_sam.onnx
 ```
 
-For the LLM model (Phi-2), we need to clone the repository and convert it:
-
-```bash
-# Clone the Phi-2 repository
-git clone https://github.com/microsoft/Phi-2.git
-cd Phi-2
-
-# Install required dependencies for conversion
-pip3 install -r requirements.txt
-
-# Convert model to ONNX format
-# Note: This may require significant memory, so ensure your Jetson has adequate swap
-python3 -c "
-import torch
-from transformers import AutoModelForCausalLM
-
-print('Loading Phi-2 model...')
-model = AutoModelForCausalLM.from_pretrained('microsoft/phi-2', torch_dtype=torch.float16)
-
-print('Converting to ONNX format...')
-torch.onnx.export(
-    model,
-    (torch.zeros(1, 512, dtype=torch.long),),
-    '/opt/picxels/models/llm/phi2.onnx',
-    input_names=['input_ids'],
-    output_names=['logits'],
-    dynamic_axes={'input_ids': {0: 'batch_size', 1: 'sequence_length'}}
-)
-print('Conversion complete!')
-"
-```
-
-### 7.3 Optimize models with TensorRT
+### 8.3 Optimize models with TensorRT
 
 ```bash
 # Convert ONNX models to TensorRT for faster inference
 /usr/bin/trtexec --onnx=/opt/picxels/models/sharpness/focus_net.onnx --saveEngine=/opt/picxels/models/sharpness/focus_net.trt --fp16
 /usr/bin/trtexec --onnx=/opt/picxels/models/masks/mobile_sam.onnx --saveEngine=/opt/picxels/models/masks/mobile_sam.trt --fp16
-/usr/bin/trtexec --onnx=/opt/picxels/models/llm/phi2.onnx --saveEngine=/opt/picxels/models/llm/phi2.trt --fp16
 ```
 
-## 8. Clone and Configure the Application
+## 9. Clone and Configure the Application
 
-### 8.1 Clone the repository
+### 9.1 Clone the repository
 
 ```bash
 git clone https://github.com/picxels/picxels-photogrammetry-x.git
 cd picxels-photogrammetry-x
 ```
 
-### 8.2 Install dependencies
+### 9.2 Install dependencies
 
 ```bash
 npm install
 ```
 
-### 8.3 Initialize the SQLite database for social media accounts
+### 9.3 Initialize the SQLite database for social media accounts
 
 ```bash
 # Create database directory
@@ -207,7 +211,7 @@ CREATE TABLE accounts (
 EOF
 ```
 
-### 8.4 Add script to package.json
+### 9.4 Add script to package.json
 
 Before building the application, we need to add a start script to the package.json file:
 
@@ -218,7 +222,7 @@ npm pkg set scripts.dev="vite --host --port 8080"
 npm pkg set scripts.build="vite build"
 ```
 
-### 8.5 Create sample images directory
+### 9.5 Create sample images directory
 
 For demonstration purposes when no real cameras are connected:
 
@@ -233,13 +237,13 @@ curl -L "https://unsplash.com/photos/random?topics=product,object&orientation=la
 curl -L "https://unsplash.com/photos/random?topics=product,object&orientation=landscape" -o public/sample_images/sample4.jpg
 ```
 
-### 8.6 Build the application
+### 9.6 Build the application
 
 ```bash
 npm run build
 ```
 
-## 9. Create systemd service for auto-start (optional)
+## 10. Create systemd service for auto-start (optional)
 
 ```bash
 sudo bash -c 'cat > /etc/systemd/system/picxels.service << EOF
@@ -267,15 +271,15 @@ sudo systemctl enable picxels
 sudo systemctl start picxels
 ```
 
-## 10. Start the Application
+## 11. Start the Application
 
-### 10.1 For development
+### 11.1 For development
 
 ```bash
 npm run dev
 ```
 
-### 10.2 For production
+### 11.2 For production
 
 ```bash
 # First build the application
@@ -287,38 +291,24 @@ npm run start
 
 The application will be available at http://localhost:8080 by default.
 
-## 11. Configure Social Media Accounts
+## 12. Configure Social Media Accounts
 
 1. Navigate to the Social Media tab in the application
 2. Click "Connect" on each platform you want to use
 3. Follow the OAuth authentication process
 4. Your accounts will be securely stored in the local SQLite database
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
-### Node.js Compatibility Issues
+### Ollama Issues
 
-If you encounter issues with Node.js:
-- For ESM related errors, check the "type" field in package.json
-- If you experience memory issues during builds: `export NODE_OPTIONS=--max-old-space-size=8192`
-- For package compatibility issues, check the error logs and update to compatible versions
-
-### Script Not Found Errors
-
-If you encounter "missing script" errors like "npm error Missing script: start":
-- Make sure you've added the required scripts to package.json using the commands in section 8.4
-- You can manually edit package.json to add:
-  ```json
-  "scripts": {
-    "dev": "vite --host --port 8080",
-    "build": "vite build",
-    "start": "vite preview --host --port 8080"
-  }
-  ```
-
-### Model Path Issues
-
-If you encounter issues with model loading, verify the paths in `src/config/jetson.config.ts` match your actual model locations.
+If you encounter issues with Ollama:
+- Verify Ollama is running with `systemctl status ollama`
+- Restart the service with `sudo systemctl restart ollama`
+- Check logs with `journalctl -u ollama`
+- Test Ollama directly with `ollama run llama3.2:8b`
+- Ensure models are properly pulled with `ollama list`
+- Check API availability with `curl http://localhost:11434/api/tags`
 
 ### Camera Connection Problems
 
@@ -349,7 +339,7 @@ If you experience slow processing:
 - Run `sudo jetson_clocks` to maximize all clock speeds
 - Reduce the batch size or resolution in the configuration if necessary
 
-## 13. Updating
+## 14. Updating
 
 To update the application:
 
