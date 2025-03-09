@@ -35,10 +35,11 @@ const SubjectAnalysis: React.FC<SubjectAnalysisProps> = ({
       // If the session was updated with a subject, set the result
       if (updatedSession.subjectMatter) {
         setResult({
-          subject: updatedSession.subjectMatter,
-          confidence: 0.95,
+          subjectMatter: updatedSession.subjectMatter,
           description: updatedSession.description || "",
-          tags: updatedSession.tags || []
+          tags: updatedSession.tags || [],
+          confidence: 0.95,
+          subject: updatedSession.subjectMatter // Add subject for compatibility
         });
       }
       
@@ -77,7 +78,7 @@ const SubjectAnalysis: React.FC<SubjectAnalysisProps> = ({
                   {Math.round((result?.confidence || 0.9) * 100)}% confidence
                 </Badge>
               </div>
-              <p className="text-lg font-semibold mt-1">{result?.subject || session.subjectMatter}</p>
+              <p className="text-lg font-semibold mt-1">{result?.subjectMatter || session.subjectMatter}</p>
             </div>
             
             {(result?.description || session.description) && (

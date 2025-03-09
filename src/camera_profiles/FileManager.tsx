@@ -1,3 +1,4 @@
+
 import React from "react";
 import { FolderOpen, Save, FileText, RefreshCw, Settings2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -7,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { RCNodeConfig, Session } from "@/types";
+import { RCNodeConfig, Session, ExportSettings } from "@/types";
 import { exportSession, saveSession } from "@/utils/fileSystem";
 import { loadRCNodeConfig } from "@/utils/rcNodeService";
 
@@ -30,7 +31,11 @@ const FileManager: React.FC<FileManagerProps> = ({
   rcNodeConnected = false,
   rcNodeConfig
 }) => {
-  const [exportSettings, setExportSettings] = React.useState({
+  const [exportSettings, setExportSettings] = React.useState<ExportSettings>({
+    format: "OBJ",
+    quality: 80,
+    includeTextures: true,
+    outputPath: "./exports",
     exportPng: true,
     exportTiff: true,
     exportMasks: true,

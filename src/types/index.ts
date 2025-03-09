@@ -20,6 +20,8 @@ export interface Pass {
   dateCreated: number;
   dateModified: number;
   completed?: boolean; // Added this field
+  timestamp?: number; // Adding timestamp for compatibility
+  imageQuality?: number; // Adding imageQuality field
 }
 
 export interface RCNodeConfig {
@@ -35,6 +37,7 @@ export interface Workflow {
   stages: WorkflowStage[];
   createdAt: number;
   updatedAt: number;
+  workflow_name?: string; // Adding for compatibility with workflow.ts
 }
 
 export interface WorkflowStage {
@@ -117,13 +120,14 @@ export interface ProcessedModel {
   metadata?: Record<string, any>;
 }
 
-// Adding missing types
+// Adding explicit enum for SessionStatus
 export enum SessionStatus {
   INITIALIZING = "initializing",
   INITIALIZED = "initialized",
   IN_PROGRESS = "in_progress",
   COMPLETED = "completed",
-  PROCESSING = "processing"
+  PROCESSING = "processing",
+  PROCESSED = "processed" // Added for compatibility
 }
 
 export interface CameraDevice {
@@ -139,11 +143,17 @@ export interface CapturedImage {
   id: string;
   camera: string;
   previewUrl: string;
-  filePath: string;
+  filePath: string; // Changed from path to filePath
   timestamp: number;
   angle?: number;
   sharpness?: number;
   hasMask?: boolean;
+  path?: string; // Added for backward compatibility
+  hasColorProfile?: boolean; // Added for compatibility
+  colorProfileType?: string; // Added for compatibility
+  maskedPath?: string; // Added for compatibility
+  sessionId?: string; // Added for compatibility
+  tiffPath?: string; // Added for compatibility
 }
 
 export interface ImageData {
@@ -167,6 +177,7 @@ export interface MotorSettings {
   maxSpeed?: number;
   acceleration?: number;
   connected?: boolean;
+  stepSize?: number; // Added for compatibility
 }
 
 export interface AnalysisResult {
@@ -174,6 +185,7 @@ export interface AnalysisResult {
   description: string;
   tags: string[];
   confidence: number;
+  subject?: string; // Added for compatibility with existing code
 }
 
 export interface RCCommand {
@@ -188,9 +200,15 @@ export interface ExportSettings {
   includeTextures: boolean;
   textureSize?: number;
   outputPath: string;
+  // Additional properties for compatibility
+  exportPng?: boolean;
+  exportTiff?: boolean;
+  exportMasks?: boolean;
+  sendToRealityCapture?: boolean;
 }
 
 export interface SessionDatabase {
   sessions: Session[];
   lastOpened: string | null;
+  lastUpdated?: Date; // Added for compatibility
 }

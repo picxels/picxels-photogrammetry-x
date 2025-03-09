@@ -44,46 +44,35 @@ export const saveImageLocally = async (imageData: any): Promise<void> => {
 // Export session data and images
 export const exportSession = async (
   session: Session,
-  settings?: ExportSettings,
+  settings: ExportSettings,
   rcNodeConfig?: RCNodeConfig
 ): Promise<void> => {
   try {
     console.log("Exporting session with settings:", settings);
-    const { exportPng, exportTiff, exportMasks, sendToRealityCapture } = settings || {
-      exportPng: true,
-      exportTiff: false,
-      exportMasks: false,
-      sendToRealityCapture: false
-    };
-    
-    // Simulate export delay
-    await new Promise((resolve) => setTimeout(resolve, 1200));
     
     // Log what's being exported
-    if (exportPng) {
+    if (settings.exportPng) {
       console.log("Exporting 8-bit PNGs for construction");
     }
     
-    if (exportTiff) {
+    if (settings.exportTiff) {
       console.log("Exporting 16-bit TIFFs for texturing");
     }
     
-    if (exportMasks) {
+    if (settings.exportMasks) {
       console.log("Exporting B&W masks for background removal");
     }
     
     // If sending to Reality Capture and RC Node config is provided
-    if (sendToRealityCapture && rcNodeConfig && rcNodeConfig.isConnected) {
+    if (settings.sendToRealityCapture && rcNodeConfig && rcNodeConfig.isConnected) {
       console.log("Sending data to Reality Capture Node");
-      await exportSessionToRealityCapture(session, rcNodeConfig, settings || {
-        exportPng: true,
-        exportTiff: false,
-        exportMasks: false,
-        sendToRealityCapture: true
-      });
-    } else if (sendToRealityCapture) {
+      await exportSessionToRealityCapture(session, rcNodeConfig, settings);
+    } else if (settings.sendToRealityCapture) {
       console.log("Cannot send to Reality Capture Node: not connected or no config provided");
     }
+    
+    // Simulate export delay
+    await new Promise((resolve) => setTimeout(resolve, 1200));
     
     toast({
       title: "Export Complete",

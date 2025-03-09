@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Image as ImageIcon, Eye, Download, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,9 +25,25 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ session, onDeleteImage, pro
   };
 
   const getGroupedImages = () => {
-    // Convert session.images (ImageData[]) to CapturedImage[] for display
-    // In a real app, we'd want to restructure this to directly use passes instead
-    const allImages: CapturedImage[] = session.passes.flatMap(pass => pass.images);
+    // Convert session images to CapturedImage format for display
+    const allImages: CapturedImage[] = session.passes.flatMap(pass => {
+      // Convert string IDs to actual image objects
+      return pass.images.map(imgId => {
+        const sessionImage = session.images.find(img => img.id === imgId);
+        if (!sessionImage) return null;
+        
+        // Convert SessionImage to CapturedImage format
+        return {
+          id: sessionImage.id,
+          camera: sessionImage.camera,
+          previewUrl: sessionImage.filePath, // Use filePath as previewUrl
+          filePath: sessionImage.filePath,
+          timestamp: sessionImage.dateCaptured,
+          angle: parseFloat(sessionImage.angle),
+          hasMask: !!sessionImage.maskPath
+        };
+      }).filter(Boolean) as CapturedImage[];
+    });
     
     // Group by camera type
     const grouped = allImages.reduce<Record<string, CapturedImage[]>>((acc, image) => {
@@ -179,7 +196,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ session, onDeleteImage, pro
                   <div>
                     <p className="font-medium">File:</p>
                     <p className="text-muted-foreground truncate">
-                      {selectedImage.path.split('/').pop()}
+                      {selectedImage.filePath.split('/').pop()}
                     </p>
                   </div>
                 </div>
