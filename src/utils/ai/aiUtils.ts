@@ -2,7 +2,8 @@
 import { toast } from "@/components/ui/use-toast";
 import { AIModels, initializeAIModels } from "./modelInitialization";
 import { isJetsonPlatform, shouldUseSimulationMode } from "../platformUtils";
-import { DEBUG_SETTINGS } from "@/config/jetsonAI.config";
+import { AI_DEBUG_OPTIONS } from "@/config/jetsonAI.config";
+import { DEBUG_SETTINGS } from "@/config/jetson.config";
 
 // Global variable to hold loaded models reference
 let loadedModels: AIModels | null = null;
