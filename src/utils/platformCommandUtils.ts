@@ -21,9 +21,11 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
   
   // Handle simulation mode or bypassed API
   const bypassApiCheck = localStorage.getItem('bypassApiCheck') === 'true';
-  if (window.DEBUG_SETTINGS?.simulateCameraConnection || 
-      window.DEBUG_SETTINGS?.apiServerError || 
-      bypassApiCheck) {
+  if (
+    (window.DEBUG_SETTINGS && window.DEBUG_SETTINGS.simulateCameraConnection) || 
+    (window.DEBUG_SETTINGS && window.DEBUG_SETTINGS.apiServerError) || 
+    bypassApiCheck
+  ) {
     console.log("Using simulation mode for command execution");
     return getFallbackCommandResponse(command);
   }
@@ -58,7 +60,18 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
     
     // Mark API as having an error for future commands
     if (typeof window !== 'undefined') {
-      window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {};
+      // Initialize with default values if window.DEBUG_SETTINGS is undefined
+      window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {
+        enableVerboseLogging: true,
+        logNetworkRequests: true,
+        simulateCameraConnection: true,
+        simulateMotorConnection: true,
+        apiServerError: true,
+        forceUseLocalSamples: false,
+        forceJetsonPlatformDetection: false
+      };
+      
+      // Then set the required properties
       window.DEBUG_SETTINGS.apiServerError = true;
       window.DEBUG_SETTINGS.simulateCameraConnection = true;
       window.DEBUG_SETTINGS.simulateMotorConnection = true;

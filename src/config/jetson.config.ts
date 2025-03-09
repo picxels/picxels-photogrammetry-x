@@ -1,4 +1,3 @@
-
 /**
  * Jetson Orin Nano Configuration
  * 
@@ -44,7 +43,6 @@ export const CAMERA_DEVICE_PATHS = {
     "Canon EOS Digital Rebel T2i",
     "Canon EOS Digital Rebel T3i"
   ],
-  // Camera detection settings
   detection: {
     checkIntervalMs: 5000,           // How often to check for camera connection changes
     requiredResponseTimeoutMs: 5000, // Timeout for camera response
@@ -52,14 +50,12 @@ export const CAMERA_DEVICE_PATHS = {
     maxRetryAttempts: 3,             // Maximum number of retry attempts for commands
     retryDelayMs: 1000,              // Delay between retry attempts in milliseconds
     
-    // Commands for camera detection and interaction
     usbBusCheckCommand: "lsusb",     // Command to check USB bus
     gphoto2ListCommand: "gphoto2 --auto-detect", // Command to list detected cameras
     gphoto2SummaryCommand: "gphoto2 --port={port} --summary", // Command to check camera responsiveness
     gphoto2CaptureCommand: "gphoto2 --port={port} --capture-image-and-download --filename={filename}", // Command for capture
     temporaryImageStorage: "/tmp/picxels/captures", // Directory to temporarily store captured images
     
-    // Allowed gphoto2 camera commands for security
     allowedCommands: [
       "gphoto2 --auto-detect",
       "gphoto2 --abilities",
@@ -71,7 +67,6 @@ export const CAMERA_DEVICE_PATHS = {
       "convert {image} {output}"
     ],
     
-    // Command parameter templates that can be substituted
     commandTemplates: {
       port: "usb:\\d+,\\d+", // Regex pattern for allowable port values
       storage: "/tmp/picxels/captures(/[\\w\\-\\.]+)*", // Regex for allowable storage paths
@@ -109,7 +104,8 @@ export const DEBUG_SETTINGS = {
   forceUseLocalSamples: false,
   forceJetsonPlatformDetection: true, // Force detection as Jetson platform on the actual Jetson
   
-  // RC Node connection debug settings
+  apiServerError: false,  // Flag to indicate API server is not responding
+  
   disableCors: true,         // If true, attempts to disable CORS for RC Node requests
   rcNodeDebugMode: true,     // Enables more detailed RC Node error logging
   forceUseXhr: false,        // Use XMLHttpRequest instead of fetch for RC Node
@@ -119,16 +115,13 @@ export const DEBUG_SETTINGS = {
   useRelaxedAuthFlow: true,  // Try with and without auth token for connections
   useQueryAuthInstead: true, // Use query parameter auth instead of header
   
-  // Extra connection fallbacks
   tryDifferentMethods: true, // Try different connection methods automatically
   openBrowserTest: false,    // Open browser window for manual testing
   
-  // Network settings
   bypassNetworkIsolation: true, // Allow connections that might normally be restricted
   probeAllPorts: false,         // Test multiple ports on the target server
   logAllHeaders: true,          // Log all request/response headers
   
-  // Camera debug options
   cameraDebugMode: true,        // Enable camera debug messages
   simulateBadConnection: false, // Simulate intermittent camera connections
   forceDisableAllCameras: false // Force all cameras to appear disconnected
@@ -144,7 +137,6 @@ export const NETWORK_SETTINGS = {
   allowLocalNetworkOnly: false,      // Restrict connections to local network
   enableIpv6: false,                 // Enable IPv6 connections
   
-  // Additional network settings for troubleshooting
   alternativePorts: [8001, 8443, 443], // Alternative ports to try if default fails
   tryHttpAndHttps: true,                // Try both HTTP and HTTPS
   useCustomDns: false                   // Use custom DNS resolution
@@ -152,30 +144,23 @@ export const NETWORK_SETTINGS = {
 
 // Script configurations
 export const SCRIPT_CONFIGS = {
-  // Required npm scripts that should be added to package.json
-  // Note: These must be added manually since we can't modify package.json directly
   requiredScripts: {
     start: "vite preview --host --port 8080",
     dev: "vite --host --port 8080",
     build: "vite build"
   },
   
-  // Instructions for adding missing scripts
   setupInstructions: [
     "npm pkg set scripts.start=\"vite preview --host --port 8080\"",
     "npm pkg set scripts.dev=\"vite --host --port 8080\"",
     "npm pkg set scripts.build=\"vite build\""
   ],
   
-  // Alternative start command if npm scripts aren't available
   alternativeStartCommand: "npx vite preview --host --port 8080",
   
-  // Systemd service configuration
   systemdServiceName: "picxels",
   systemdServicePath: "/etc/systemd/system/picxels.service",
   
-  // Extra paths for troubleshooting
   logPath: "/var/log/picxels",
   tempPath: "/tmp/picxels"
 };
-

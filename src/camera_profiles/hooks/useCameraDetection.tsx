@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { CameraDevice } from "@/types";
 import { toast } from "@/components/ui/use-toast";
@@ -27,7 +28,18 @@ export const useCameraDetection = () => {
           console.warn('API health check failed, falling back to simulation mode');
           
           if (typeof window !== 'undefined') {
-            window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {};
+            // Initialize with default values if window.DEBUG_SETTINGS is undefined
+            window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {
+              enableVerboseLogging: true,
+              logNetworkRequests: true,
+              simulateCameraConnection: true,
+              simulateMotorConnection: true,
+              apiServerError: true,
+              forceUseLocalSamples: false,
+              forceJetsonPlatformDetection: false
+            };
+            
+            // Then ensure the required properties are set
             window.DEBUG_SETTINGS.apiServerError = true;
             window.DEBUG_SETTINGS.simulateCameraConnection = true;
             window.DEBUG_SETTINGS.simulateMotorConnection = true;
@@ -38,7 +50,18 @@ export const useCameraDetection = () => {
         setApiAvailable(false);
         
         if (typeof window !== 'undefined') {
-          window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {};
+          // Initialize with default values if window.DEBUG_SETTINGS is undefined
+          window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {
+            enableVerboseLogging: true,
+            logNetworkRequests: true,
+            simulateCameraConnection: true,
+            simulateMotorConnection: true,
+            apiServerError: true,
+            forceUseLocalSamples: false,
+            forceJetsonPlatformDetection: false
+          };
+          
+          // Then ensure the required properties are set
           window.DEBUG_SETTINGS.apiServerError = true;
           window.DEBUG_SETTINGS.simulateCameraConnection = true;
           window.DEBUG_SETTINGS.simulateMotorConnection = true;
@@ -68,7 +91,10 @@ export const useCameraDetection = () => {
       console.log("Refreshing camera status...");
       
       const bypassApiCheck = localStorage.getItem('bypassApiCheck') === 'true';
-      const simulationMode = DEBUG_SETTINGS?.simulateCameraConnection || apiAvailable === false || bypassApiCheck || DEBUG_SETTINGS?.apiServerError;
+      const simulationMode = DEBUG_SETTINGS?.simulateCameraConnection || 
+                             apiAvailable === false || 
+                             bypassApiCheck || 
+                             (window.DEBUG_SETTINGS && window.DEBUG_SETTINGS.apiServerError);
       
       let detectedCameras: CameraDevice[] = [];
       try {
@@ -129,7 +155,18 @@ export const useCameraDetection = () => {
         
         if (error.message && error.message.includes("API returned status")) {
           if (typeof window !== 'undefined') {
-            window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {};
+            // Initialize with default values if window.DEBUG_SETTINGS is undefined
+            window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {
+              enableVerboseLogging: true,
+              logNetworkRequests: true,
+              simulateCameraConnection: true,
+              simulateMotorConnection: true,
+              apiServerError: true,
+              forceUseLocalSamples: false,
+              forceJetsonPlatformDetection: false
+            };
+            
+            // Then ensure the required properties are set
             window.DEBUG_SETTINGS.apiServerError = true;
             window.DEBUG_SETTINGS.simulateCameraConnection = true;
           }
@@ -244,7 +281,7 @@ export const useCameraDetection = () => {
   }, [initTimeoutId]);
 
   useEffect(() => {
-    if (DEBUG_SETTINGS?.forceDisableAllCameras && cameras.length > 0) {
+    if (window.DEBUG_SETTINGS?.forceDisableAllCameras && cameras.length > 0) {
       setCameras(cameras.map(camera => ({
         ...camera,
         connected: false,

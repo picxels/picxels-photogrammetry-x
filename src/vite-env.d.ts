@@ -9,6 +9,7 @@ interface Window {
     simulateMotorConnection: boolean;
     forceUseLocalSamples: boolean;
     forceJetsonPlatformDetection: boolean;
+    apiServerError?: boolean;
     [key: string]: any;
   };
 }
