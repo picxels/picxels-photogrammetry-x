@@ -62,13 +62,14 @@ export const uploadSessionImagesToRCNode = async (
           const foundImage = session.images.find(img => {
             if (typeof img === 'string') {
               return img === imageIdOrObj;
-            } else {
+            } else if (img && typeof img === 'object' && 'id' in img) {
               return img.id === imageIdOrObj;
             }
+            return false;
           });
           
-          if (foundImage && typeof foundImage !== 'string') {
-            actualImage = foundImage;
+          if (foundImage && typeof foundImage !== 'string' && 'id' in foundImage) {
+            actualImage = foundImage as SessionImage;
           }
         } else if (imageIdOrObj && typeof imageIdOrObj === 'object' && 'id' in imageIdOrObj) {
           // imageIdOrObj is already a SessionImage

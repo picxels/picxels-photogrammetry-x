@@ -2,7 +2,8 @@
 import { 
   Session, 
   RCNodeConfig, 
-  ExportSettings
+  ExportSettings,
+  SessionImage
 } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 import { sendRCNodeCommand, getWorkflowTemplateFromSession, formatRCCommand } from '@/utils/rcNodeCommands';
@@ -91,8 +92,8 @@ export const processSessionForRealityCapture = async (
       // Process all images in this pass
       for (const imageIdOrObj of pass.images) {
         // Handle both string IDs and SessionImage objects
-        let imageId: string;
-        let imageObj = undefined;
+        let imageId = '';
+        let imageObj: SessionImage | undefined = undefined;
         
         if (typeof imageIdOrObj === 'string') {
           imageId = imageIdOrObj;
@@ -100,17 +101,18 @@ export const processSessionForRealityCapture = async (
           const foundImage = session.images.find(img => {
             if (typeof img === 'string') {
               return img === imageIdOrObj;
-            } else {
+            } else if (img && typeof img === 'object' && 'id' in img) {
               return img.id === imageIdOrObj;
             }
+            return false;
           });
           
-          if (foundImage && typeof foundImage !== 'string') {
-            imageObj = foundImage;
+          if (foundImage && typeof foundImage !== 'string' && 'id' in foundImage) {
+            imageObj = foundImage as SessionImage;
           }
         } else if (imageIdOrObj && typeof imageIdOrObj === 'object' && 'id' in imageIdOrObj) {
           imageId = imageIdOrObj.id;
-          imageObj = imageIdOrObj;
+          imageObj = imageIdOrObj as SessionImage;
         } else {
           console.warn(`Invalid image reference in pass ${pass.id}`);
           continue;
@@ -159,7 +161,6 @@ export const processSessionForRealityCapture = async (
 };
 
 // Import the SessionImage type from the types module
-import { SessionImage } from '@/types';
 
 // Helper functions to export images
 const exportImageAsPng = async (image: SessionImage): Promise<void> => {
