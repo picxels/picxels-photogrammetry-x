@@ -11,21 +11,27 @@ import { DEBUG_SETTINGS } from "@/config/jetson.config";
  * 3. API is unavailable or returns errors and we're in simulation mode
  */
 export const shouldUseFallbackData = (): boolean => {
-  // If we're forcing Jetson platform detection, don't use fallbacks
-  if (DEBUG_SETTINGS?.forceJetsonPlatformDetection) {
+  // Check localStorage directly for bypassApiCheck flag
+  const bypassApiCheck = typeof window !== 'undefined' && localStorage.getItem('bypassApiCheck') === 'true';
+  
+  // If we're forcing Jetson platform detection and not bypassing API, don't use fallbacks
+  if (DEBUG_SETTINGS?.forceJetsonPlatformDetection && !bypassApiCheck) {
     console.log("Fallback check: Not using fallbacks (Jetson detection forced)");
     return false;
   }
   
   // If we're simulating camera connection, we're likely not on Jetson
-  if (DEBUG_SETTINGS?.simulateCameraConnection) {
+  if (DEBUG_SETTINGS?.simulateCameraConnection || bypassApiCheck) {
     console.log("Fallback check: Using fallbacks (Camera simulation enabled)");
     return true;
   }
   
-  // Check if there's a global API error flag set by main.tsx
-  if (typeof window !== 'undefined' && window.DEBUG_SETTINGS?.apiServerError) {
-    console.log("Fallback check: Using fallbacks (API server error detected)");
+  // Check if there's a global API error flag set
+  if (typeof window !== 'undefined' && (
+    window.DEBUG_SETTINGS?.apiServerError || 
+    window.DEBUG_SETTINGS?.simulateCameraConnection)
+  ) {
+    console.log("Fallback check: Using fallbacks (API server error or simulation detected)");
     return true;
   }
   
@@ -61,10 +67,10 @@ export const getRandomInt = (min: number, max: number): number => {
  * Shows a toast notification about using fallback data
  */
 export const notifyFallbackMode = (reason?: string) => {
-  const description = reason || "Jetson platform not detected. Using sample data for development.";
+  const description = reason || "API server is unavailable. Using simulation mode for development.";
   
   toast({
-    title: "Using Development Fallbacks",
+    title: "Using Simulation Mode",
     description,
     variant: "default"
   });
@@ -98,5 +104,5 @@ export const getFallbackCommandResponse = (command: string): string => {
   }
   
   // Default response for unmatched commands
-  return '';
+  return 'Command executed successfully (simulation mode)';
 };

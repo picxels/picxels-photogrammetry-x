@@ -13,18 +13,25 @@ export const isJetsonPlatform = () => {
     return true;
   }
   
-  // We'll consider we're on Jetson if the API is available
+  // We'll consider we're not on Jetson if any of these conditions are true:
+  // - API is unavailable (window.DEBUG_SETTINGS.apiServerError is true)
+  // - Simulation mode is enabled (window.DEBUG_SETTINGS.simulateCameraConnection is true)
+  // - localStorage has bypassApiCheck set to 'true'
   try {
-    // In the browser, if API is known to be unavailable, we're not on Jetson
-    if (typeof window !== 'undefined' && window.DEBUG_SETTINGS?.simulateCameraConnection) {
-      console.log("Platform detection: Not on Jetson platform (API unavailable)");
+    const bypassApiCheck = typeof window !== 'undefined' && localStorage.getItem('bypassApiCheck') === 'true';
+    if (
+      (typeof window !== 'undefined' && window.DEBUG_SETTINGS?.apiServerError) ||
+      (typeof window !== 'undefined' && window.DEBUG_SETTINGS?.simulateCameraConnection) ||
+      bypassApiCheck
+    ) {
+      console.log("Platform detection: Not on Jetson platform (simulation mode active)");
       return false;
     }
   } catch (e) {
     console.error("Error in platform detection:", e);
   }
   
-  // Default to true for compatibility with existing code
+  // Default to true for compatibility with existing code if no simulation indicators are found
   console.log("Platform detection: Assuming Jetson platform");
   return true;
 };

@@ -19,13 +19,20 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
   };
   console.log("Command execution debug info:", debugInfo);
   
-  // Handle simulation mode or bypassed API
+  // Use simulation mode if:
+  // 1. DEBUG_SETTINGS.simulateCameraConnection is true
+  // 2. DEBUG_SETTINGS.apiServerError is true
+  // 3. bypassApiCheck is set to 'true' in localStorage
+  // 4. Any of window.DEBUG_SETTINGS related flags are set
   const bypassApiCheck = localStorage.getItem('bypassApiCheck') === 'true';
-  if (
-    (window.DEBUG_SETTINGS && window.DEBUG_SETTINGS.simulateCameraConnection) || 
-    (window.DEBUG_SETTINGS && window.DEBUG_SETTINGS.apiServerError) || 
-    bypassApiCheck
-  ) {
+  const useSimulation = 
+    DEBUG_SETTINGS.simulateCameraConnection || 
+    DEBUG_SETTINGS.apiServerError || 
+    bypassApiCheck ||
+    (typeof window !== 'undefined' && window.DEBUG_SETTINGS?.apiServerError) ||
+    (typeof window !== 'undefined' && window.DEBUG_SETTINGS?.simulateCameraConnection);
+  
+  if (useSimulation) {
     console.log("Using simulation mode for command execution");
     return getFallbackCommandResponse(command);
   }
@@ -49,18 +56,18 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
   } catch (error) {
     console.error("Error executing command via API:", error);
     
-    // If we're in a development environment, use mock data
+    // Always enable simulation mode when API errors occur
     console.warn("Falling back to simulation for command:", command);
     
     toast({
       title: "API Connection Error",
-      description: "Using simulation mode as fallback. API server on port 3001 is not responding.",
+      description: "Using simulation mode as fallback. API server is not responding.",
       variant: "destructive"
     });
     
     // Mark API as having an error for future commands
     if (typeof window !== 'undefined') {
-      // Initialize with default values if window.DEBUG_SETTINGS is undefined
+      // Initialize DEBUG_SETTINGS if it doesn't exist
       window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {
         enableVerboseLogging: true,
         logNetworkRequests: true,
