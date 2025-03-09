@@ -246,12 +246,13 @@ export const processImageForPhotogrammetry = async (
       `convert "${image.path}" -depth 16 "${tiffPath}"`
     );
     
-    // Step 2: Crop to square (3456x3456)
+    // Step 2: Crop to square (only adjust width, maintain height)
     const croppedTiffPath = `${outputDir}/tiff/${image.id}_cropped.tiff`;
     const finalSize = IMAGE_PROCESSING.finalImageSize;
     
+    // Use -gravity center to center the crop and only modify width, not height
     await executeCommand(
-      `convert "${tiffPath}" -gravity center -crop ${finalSize}x${finalSize}+0+0 +repage "${croppedTiffPath}"`
+      `convert "${tiffPath}" -gravity center -crop ${finalSize}x+0+0 +repage "${croppedTiffPath}"`
     );
     
     // Step 3: Create 8-bit JPEG version
@@ -287,11 +288,10 @@ export const processImageForPhotogrammetry = async (
       tiffPath: croppedTiffPath,
       originalPath: image.path,
       jpegPath: jpegPath,
-      maskPath: maskPath,  // Use maskPath which is now defined in CapturedImage
+      maskPath: maskPath,
       maskedPath: hasMask ? `${outputDir}/masked/${image.id}_masked.jpg` : undefined,
       hasMask: hasMask,
-      croppedWidth: finalSize,
-      croppedHeight: finalSize
+      croppedWidth: finalSize
     };
   } catch (error) {
     console.error("Error processing image for photogrammetry:", error);
@@ -303,4 +303,3 @@ export const processImageForPhotogrammetry = async (
     return image;
   }
 };
-
