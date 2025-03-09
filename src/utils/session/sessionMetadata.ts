@@ -1,5 +1,5 @@
 
-import { Session } from "@/types";
+import { Session, SessionStatus } from "@/types";
 import { updateSession } from "@/services/database";
 
 /**
