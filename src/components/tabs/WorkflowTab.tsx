@@ -4,8 +4,7 @@ import WorkflowManager from "@/components/workflow/WorkflowManager";
 import RCNodeConfig from "@/components/RCNodeConfig";
 import FileManager from "@/camera_profiles/FileManager";
 import { Session, RCNodeConfig as RCNodeConfigType } from "@/types";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Server } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Activity } from "lucide-react";
 
@@ -41,16 +40,7 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({
       
       <div className="space-y-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Server className="h-5 w-5 text-primary" />
-              <span>RC Node Connection</span>
-            </CardTitle>
-            <CardDescription>
-              Configure your Reality Capture Node connection
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <RCNodeConfig onConnectionStatusChange={onRCNodeConnectionChange} />
             
             {rcNodeConnected && (
