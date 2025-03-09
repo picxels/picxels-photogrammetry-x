@@ -1,5 +1,5 @@
 
-import { Session, CapturedImage } from "@/types";
+import { Session, CapturedImage, ImageData } from "@/types";
 import { generateImageMask } from "@/utils/imageQualityUtils";
 import { applyColorProfile, getCameraTypeFromId } from "@/utils/colorProfileUtils";
 import { toast } from "@/components/ui/use-toast";
@@ -47,7 +47,7 @@ export const useSessionImage = (
         const refreshedSession = getSessionById(session.id);
         
         if (refreshedSession) {
-          // Update the image in the session
+          // Update the image in the session's passes
           const updatedPasses = refreshedSession.passes.map(pass => {
             if (pass.id === passId) {
               return {
@@ -60,14 +60,24 @@ export const useSessionImage = (
             return pass;
           });
           
+          // Convert CapturedImage to ImageData for the session.images array
           const updatedImages = refreshedSession.images.map((img) => {
             if (img.id === processedImage.id) {
-              return processedImage;
+              // Create a new ImageData from the processed CapturedImage
+              return {
+                id: processedImage.id,
+                url: processedImage.previewUrl,
+                camera: processedImage.camera,
+                angle: processedImage.angle || 0,
+                timestamp: new Date(processedImage.timestamp),
+                hasMask: processedImage.hasMask
+              };
             }
             return img;
           });
           
-          const updatedSession = {
+          // Create the updated session with the correct types
+          const updatedSession: Session = {
             ...refreshedSession,
             images: updatedImages,
             passes: updatedPasses
