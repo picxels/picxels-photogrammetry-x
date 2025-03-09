@@ -1,5 +1,5 @@
 
-import { Camera } from "lucide-react";
+import { Camera, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CapturedImage, Session } from "@/types";
@@ -18,6 +18,7 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
     cameras,
     isLoading,
     isCapturing,
+    isRefreshing,
     lastUpdateTime,
     refreshCameras,
     handleCapture,
@@ -35,13 +36,29 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
           <Camera className="h-5 w-5 text-primary" />
           <span>Camera Control</span>
         </CardTitle>
-        <CardDescription>
-          Manage and trigger connected cameras
-          {lastUpdateTime && (
-            <div className="text-xs text-muted-foreground mt-1">
-              Last updated: {lastUpdateTime.toLocaleTimeString()}
-            </div>
-          )}
+        <CardDescription className="flex flex-col gap-1">
+          <span>Manage and trigger connected cameras</span>
+          <div className="flex items-center justify-between">
+            {lastUpdateTime && (
+              <div className="text-xs text-muted-foreground">
+                Last updated: {lastUpdateTime.toLocaleTimeString()}
+              </div>
+            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={refreshCameras} 
+              disabled={isLoading || isRefreshing}
+              className="text-xs flex items-center gap-1"
+            >
+              {isRefreshing ? (
+                <RefreshCw className="h-3 w-3 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3 w-3" />
+              )}
+              Refresh
+            </Button>
+          </div>
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -53,13 +70,13 @@ const CameraControl = ({ currentSession, onImageCaptured, currentAngle }: Camera
             isCapturing={isCapturing}
             onCapture={handleCapture}
             onRefresh={refreshCameras}
-            isLoading={isLoading}
+            isLoading={isLoading || isRefreshing}
           />
         )}
       </CardContent>
       <CardFooter className="flex justify-end">
         <Button 
-          disabled={isLoading || isCapturing || cameras.filter(c => c.connected).length === 0}
+          disabled={isLoading || isCapturing || isRefreshing || cameras.filter(c => c.connected).length === 0}
           onClick={handleCaptureAll}
           className="hover-scale"
         >

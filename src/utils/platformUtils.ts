@@ -57,12 +57,18 @@ export const isDevelopmentMode = () => {
  * This is a convenient helper that centralizes the logic
  */
 export const shouldUseSimulationMode = () => {
+  // If we're on a Jetson platform, we should not use simulation mode 
+  // unless explicitly forced via debug settings
+  if (isJetsonPlatform() && !DEBUG_SETTINGS.forceSimulationOnJetson) {
+    return false;
+  }
+  
   // Return true ONLY if we're explicitly in simulation mode or API is unavailable
   const bypassApiCheck = typeof window !== 'undefined' && localStorage.getItem('bypassApiCheck') === 'true';
   const apiAvailable = typeof window !== 'undefined' && localStorage.getItem('apiAvailable') === 'true';
   
   // If API is available and we're not forcing simulation, don't use simulation
-  if (apiAvailable && !bypassApiCheck) {
+  if (apiAvailable && !bypassApiCheck && !DEBUG_SETTINGS.forceSimulationOnJetson) {
     return false;
   }
   

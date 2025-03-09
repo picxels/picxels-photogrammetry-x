@@ -17,53 +17,35 @@ export const useCameraControl = ({
 }: UseCameraControlProps) => {
   const {
     cameras,
-    setCameras,
     isLoading,
-    isRefreshing,
-    setIsRefreshing,
-    lastUpdateTime,
-    refreshCameras
-  } = useCameraDetection();
-
-  const {
     isCapturing,
+    isRefreshing,
+    lastUpdateTime,
+    refreshCameras,
     handleCapture,
     handleCaptureAll
   } = useCameraCapture({
     currentSession,
     onImageCaptured,
     currentAngle,
-    cameras,
-    setCameras,
-    refreshCameras
   });
 
   // Use a ref to track if we've initialized
   const initializedRef = useRef(false);
   
+  // Run camera detection once on component mount
   useEffect(() => {
-    // Initialize camera detection only once on component mount
-    // Only if not initialized yet, and add a timeout to prevent infinite loading
     if (!initializedRef.current) {
       initializedRef.current = true;
       refreshCameras();
-      
-      // Force exit loading state after 10 seconds if still loading
-      const timeout = setTimeout(() => {
-        if (isLoading) {
-          console.log("Forcing exit from loading state after timeout");
-          setCameras([]);
-        }
-      }, 10000);
-      
-      return () => clearTimeout(timeout);
     }
-  }, [refreshCameras, isLoading, setCameras]);
+  }, [refreshCameras]);
 
   return {
     cameras,
     isLoading,
     isCapturing,
+    isRefreshing,
     lastUpdateTime,
     refreshCameras,
     handleCapture,

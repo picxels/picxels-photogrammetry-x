@@ -2,6 +2,7 @@
 import { CameraDevice } from "@/types";
 import { DEBUG_SETTINGS } from "@/config/jetson.config";
 import { toast } from "@/components/ui/use-toast";
+import { shouldUseSimulationMode as platformShouldUseSimulationMode } from "@/utils/platformUtils";
 
 /**
  * Helper to get simulated cameras for development
@@ -52,26 +53,10 @@ export const getSimulatedCameras = (): CameraDevice[] => {
 
 /**
  * Determines if simulation mode should be used based on various conditions
+ * Delegates to the central platform utility
  */
 export const shouldUseSimulationMode = (apiAvailable?: boolean | null): boolean => {
-  // Check localStorage for API availability
-  const storedApiAvailable = typeof window !== 'undefined' && 
-    window.localStorage.getItem('apiAvailable') === 'true';
-  
-  // Use stored value if current value is null or undefined
-  const isApiAvailable = apiAvailable !== null && apiAvailable !== undefined ? 
-    apiAvailable : storedApiAvailable;
-  
-  const bypassApiCheck = typeof window !== 'undefined' && 
-    localStorage.getItem('bypassApiCheck') === 'true';
-  
-  return (
-    bypassApiCheck ||
-    isApiAvailable === false ||
-    DEBUG_SETTINGS?.simulateCameraConnection ||
-    (typeof window !== 'undefined' && window.DEBUG_SETTINGS?.apiServerError) ||
-    (typeof window !== 'undefined' && window.DEBUG_SETTINGS?.simulateCameraConnection)
-  );
+  return platformShouldUseSimulationMode();
 };
 
 /**
@@ -82,7 +67,7 @@ export const showCameraStatusToasts = (
   apiAvailable: boolean | null, 
   detectedCameras: CameraDevice[]
 ) => {
-  if (hasInitialized && apiAvailable !== false) {
+  if (hasInitialized) {
     if (detectedCameras.length === 0) {
       toast({
         title: "No Cameras Detected",
@@ -105,7 +90,7 @@ export const showCameraStatusToasts = (
     }
   }
   
-  if (apiAvailable === false) {
+  if (apiAvailable === false && shouldUseSimulationMode()) {
     toast({
       title: "API Unavailable",
       description: "Camera control API is unavailable. Running in simulation mode.",
@@ -118,7 +103,7 @@ export const showCameraStatusToasts = (
  * Shows troubleshooting toasts for camera detection errors
  */
 export const showTroubleshootingToasts = (hasInitialized: boolean, apiAvailable: boolean | null) => {
-  if (hasInitialized && apiAvailable !== false) {
+  if (hasInitialized) {
     toast({
       title: "Camera Detection Failed",
       description: `Could not detect connected cameras. Please check USB connections.`,

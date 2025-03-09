@@ -19,34 +19,26 @@ export const useCameraDetection = () => {
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [errorRetryCount, setErrorRetryCount] = useState(0);
   const [hasInitialized, setHasInitialized] = useState(false);
-  const [initTimeoutId, setInitTimeoutId] = useState<NodeJS.Timeout | null>(null);
   
   // Use the API health check hook
   const { apiAvailable } = useApiHealthCheck();
 
   const refreshCameras = useCallback(async () => {
     try {
+      // Set proper loading/refreshing state
       if (!isRefreshing) {
         setIsLoading(true);
-        
-        const timeoutId = setTimeout(() => {
-          console.log("Force exiting loading state after timeout");
-          setIsLoading(false);
-          setHasInitialized(true);
-        }, 10000);
-        
-        setInitTimeoutId(timeoutId);
       } else {
         setIsRefreshing(true);
       }
       
-      console.log("Refreshing camera status...");
+      console.log("Refreshing camera status (manual refresh)...");
       console.log("API available:", apiAvailable);
       console.log("IsJetsonPlatform:", isJetsonPlatform());
       
       let detectedCameras: CameraDevice[] = [];
       
-      // Check if we should use simulation mode
+      // Check if we should use simulation mode - respects the shouldUseSimulationMode logic
       const simulationMode = shouldUseSimulationMode();
       console.log("Using simulation mode:", simulationMode);
       
@@ -58,43 +50,31 @@ export const useCameraDetection = () => {
           // Use real camera detection if we're on Jetson and API is available
           console.log("Using real camera detection");
           detectedCameras = await detectCameras();
+          
+          // Important: If no cameras were detected in real mode, return empty array
+          // Do not fall back to simulated cameras in real mode
+          console.log("Real camera detection found:", detectedCameras.length, "cameras");
         }
       } catch (error) {
         console.error("Error during camera detection:", error);
         
-        if (cameras.length > 0) {
-          // If we had cameras before but failed to detect now, mark them as disconnected
-          detectedCameras = cameras.map(camera => ({
-            ...camera,
-            connected: false,
-            status: "error"
-          }));
-        } else if (DEBUG_SETTINGS.simulateCameraConnection || apiAvailable === false) {
-          // Fallback to simulated cameras
+        if (simulationMode) {
+          // Only use simulated cameras in simulation mode
           detectedCameras = getSimulatedCameras();
-          console.log("Created mock cameras since API is unavailable or simulation is enabled");
-        }
-        
-        if (error.message && error.message.includes("API returned status")) {
-          if (typeof window !== 'undefined') {
-            // Initialize with default values if window.DEBUG_SETTINGS is undefined
-            window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {
-              enableVerboseLogging: true,
-              logNetworkRequests: true,
-              simulateCameraConnection: true,
-              simulateMotorConnection: true,
-              apiServerError: true,
-              forceUseLocalSamples: false,
-              forceJetsonPlatformDetection: false
-            };
-            
-            // Then ensure the required properties are set
-            window.DEBUG_SETTINGS.apiServerError = true;
-            window.DEBUG_SETTINGS.simulateCameraConnection = true;
+          console.log("Created mock cameras since we're in simulation mode");
+        } else {
+          // In real mode, return empty array or disconnected state
+          if (cameras.length > 0) {
+            // If we had cameras before but failed to detect now, mark them as disconnected
+            detectedCameras = cameras.map(camera => ({
+              ...camera,
+              connected: false,
+              status: "error"
+            }));
+          } else {
+            // Return empty array in real mode if detection failed
+            detectedCameras = [];
           }
-          
-          detectedCameras = getSimulatedCameras();
-          console.log("Created mock cameras due to API error");
         }
       }
       
@@ -106,11 +86,6 @@ export const useCameraDetection = () => {
       
       setErrorRetryCount(0);
       setHasInitialized(true);
-      
-      if (initTimeoutId) {
-        clearTimeout(initTimeoutId);
-        setInitTimeoutId(null);
-      }
       
       // Show appropriate toasts based on results
       showCameraStatusToasts(hasInitialized, apiAvailable, detectedCameras);
@@ -128,22 +103,10 @@ export const useCameraDetection = () => {
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
-      
-      if (initTimeoutId) {
-        clearTimeout(initTimeoutId);
-        setInitTimeoutId(null);
-      }
     }
-  }, [cameras, errorRetryCount, hasInitialized, isRefreshing, initTimeoutId, apiAvailable]);
+  }, [cameras, errorRetryCount, hasInitialized, isRefreshing, apiAvailable]);
 
-  useEffect(() => {
-    return () => {
-      if (initTimeoutId) {
-        clearTimeout(initTimeoutId);
-      }
-    };
-  }, [initTimeoutId]);
-
+  // Force disable cameras if debug setting is enabled
   useEffect(() => {
     if (window.DEBUG_SETTINGS?.forceDisableAllCameras && cameras.length > 0) {
       setCameras(cameras.map(camera => ({
@@ -154,27 +117,28 @@ export const useCameraDetection = () => {
     }
   }, [cameras]);
 
-  // Set up camera polling
+  // Initial camera detection - run only once on component mount
   useEffect(() => {
-    // Call refresh cameras on initial load
-    refreshCameras();
+    // Call refresh cameras on initial load only
+    if (!hasInitialized) {
+      refreshCameras();
+    }
     
-    // Set up a polling interval to refresh camera status
-    const intervalId = setInterval(() => {
-      if (!isLoading && !isRefreshing) {
-        refreshCameras();
-      }
-    }, 30000); // Check every 30 seconds
+    // Important: No polling interval here, only run on initial load
+    // and manual refresh button clicks
     
-    return () => clearInterval(intervalId);
-  }, [refreshCameras, isLoading, isRefreshing]);
+    // Cleanup function
+    return () => {
+      // No cleanup needed since we removed the polling
+    };
+  }, [refreshCameras, hasInitialized]);
 
   return {
     cameras,
     setCameras,
     isLoading,
     isRefreshing,
-    setIsRefreshing,
+    setIsRefreshing, 
     lastUpdateTime,
     refreshCameras,
     apiAvailable

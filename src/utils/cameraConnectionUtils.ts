@@ -79,8 +79,7 @@ export const isCameraResponding = async (cameraId: string, portInfo?: string): P
       // Use the detection service to check if camera is responding
       return await cameraDetectionService.isCameraResponding(cameraId, portInfo);
     } else {
-      // In simulation mode, add a short delay to simulate checking
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // In simulation mode, always return the expected simulation state
       return true; // Always return true in simulation mode
     }
   } catch (error) {
