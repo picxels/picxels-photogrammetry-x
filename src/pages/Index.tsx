@@ -5,7 +5,6 @@ import TabSystem from "@/components/TabSystem";
 import CaptureTab from "@/components/tabs/CaptureTab";
 import WorkflowTab from "@/components/tabs/WorkflowTab";
 import SocialTab from "@/components/tabs/SocialTab";
-import RCNodeTab from "@/components/tabs/RCNodeTab";
 import { useSession } from "@/hooks/useSession";
 import { useMotorControlState } from "@/hooks/useMotorControlState";
 import { useRCNodeConnection } from "@/hooks/useRCNodeConnection";
@@ -13,7 +12,7 @@ import { useRCNodeConnection } from "@/hooks/useRCNodeConnection";
 const Index = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'capture' | 'workflow' | 'social' | 'rcnode'>('capture');
+  const [activeTab, setActiveTab] = useState<'capture' | 'workflow' | 'social'>('capture');
   
   const {
     session,
@@ -77,12 +76,6 @@ const Index = () => {
           rcNodeConnected={rcNodeConnected}
           onSessionNameChange={handleSessionNameChange}
           onSessionRefresh={handleNewSession}
-          onRCNodeConnectionChange={handleRCNodeConnectionChange}
-        />
-      ) : activeTab === 'rcnode' ? (
-        <RCNodeTab
-          session={session}
-          rcNodeConfig={rcNodeConfig}
           onRCNodeConnectionChange={handleRCNodeConnectionChange}
         />
       ) : (

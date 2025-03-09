@@ -4,6 +4,10 @@ import WorkflowManager from "@/components/workflow/WorkflowManager";
 import RCNodeConfig from "@/components/RCNodeConfig";
 import FileManager from "@/camera_profiles/FileManager";
 import { Session, RCNodeConfig as RCNodeConfigType } from "@/types";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Server } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Activity } from "lucide-react";
 
 interface WorkflowTabProps {
   session: Session;
@@ -36,7 +40,35 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({
       </div>
       
       <div className="space-y-6">
-        <RCNodeConfig onConnectionStatusChange={onRCNodeConnectionChange} />
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="h-5 w-5 text-primary" />
+              <span>RC Node Connection</span>
+            </CardTitle>
+            <CardDescription>
+              Configure your Reality Capture Node connection
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RCNodeConfig onConnectionStatusChange={onRCNodeConnectionChange} />
+            
+            {rcNodeConnected && (
+              <div className="mt-4">
+                <Alert variant="default" className="bg-green-500/10 text-green-700 border-green-300 dark:text-green-400">
+                  <Activity className="h-4 w-4" />
+                  <AlertTitle>Connected to RC Node</AlertTitle>
+                  <AlertDescription>
+                    Your RC Node connection is active and ready for photogrammetry processing.
+                    {rcNodeConfig.nodeUrl && (
+                      <span className="block mt-1 text-xs opacity-70">{rcNodeConfig.nodeUrl}</span>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
+          </CardContent>
+        </Card>
         
         <FileManager 
           session={session}
