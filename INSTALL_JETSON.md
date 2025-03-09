@@ -126,20 +126,47 @@ curl -L https://github.com/PINTO0309/PINTO_model_zoo/raw/main/356_FocusNet/model
 
 # Download segmentation model for masks
 curl -L https://github.com/PINTO0309/PINTO_model_zoo/raw/main/115_MobileSAM/model/mobile_sam_predictor_quantized.onnx -o /opt/picxels/models/masks/mobile_sam.onnx
+```
 
-# Download LLM for subject identification (Phi-2 optimized for Jetson)
+For the LLM model (Phi-2), we need to clone the repository and convert it:
+
+```bash
+# Clone the Phi-2 repository
 git clone https://github.com/microsoft/Phi-2.git
 cd Phi-2
-python3 convert_to_onnx.py --output-path /opt/picxels/models/llm/phi2.onnx
+
+# Install required dependencies for conversion
+pip3 install -r requirements.txt
+
+# Convert model to ONNX format
+# Note: This may require significant memory, so ensure your Jetson has adequate swap
+python3 -c "
+import torch
+from transformers import AutoModelForCausalLM
+
+print('Loading Phi-2 model...')
+model = AutoModelForCausalLM.from_pretrained('microsoft/phi-2', torch_dtype=torch.float16)
+
+print('Converting to ONNX format...')
+torch.onnx.export(
+    model,
+    (torch.zeros(1, 512, dtype=torch.long),),
+    '/opt/picxels/models/llm/phi2.onnx',
+    input_names=['input_ids'],
+    output_names=['logits'],
+    dynamic_axes={'input_ids': {0: 'batch_size', 1: 'sequence_length'}}
+)
+print('Conversion complete!')
+"
 ```
 
 ### 7.3 Optimize models with TensorRT
 
 ```bash
 # Convert ONNX models to TensorRT for faster inference
-/usr/bin/trtexec --onnx=/opt/picxels/models/sharpness/focus_net.onnx --saveEngine=/opt/picxels/models/sharpness/focus_net.trt
-/usr/bin/trtexec --onnx=/opt/picxels/models/masks/mobile_sam.onnx --saveEngine=/opt/picxels/models/masks/mobile_sam.trt
-/usr/bin/trtexec --onnx=/opt/picxels/models/llm/phi2.onnx --saveEngine=/opt/picxels/models/llm/phi2.trt
+/usr/bin/trtexec --onnx=/opt/picxels/models/sharpness/focus_net.onnx --saveEngine=/opt/picxels/models/sharpness/focus_net.trt --fp16
+/usr/bin/trtexec --onnx=/opt/picxels/models/masks/mobile_sam.onnx --saveEngine=/opt/picxels/models/masks/mobile_sam.trt --fp16
+/usr/bin/trtexec --onnx=/opt/picxels/models/llm/phi2.onnx --saveEngine=/opt/picxels/models/llm/phi2.trt --fp16
 ```
 
 ## 8. Clone and Configure the Application
