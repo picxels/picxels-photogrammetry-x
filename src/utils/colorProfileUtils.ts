@@ -37,6 +37,8 @@ export const applyColorProfile = async (
     // In a real-world scenario, this would use a library to actually apply the profile
     await new Promise(resolve => setTimeout(resolve, 500));
     
+    console.log(`Successfully applied ${cameraType} color profile to image ${image.id}`);
+    
     // Return the image with a flag indicating profile has been applied
     return {
       ...image,
@@ -62,9 +64,9 @@ export const checkColorProfilesAvailability = async (): Promise<Record<string, b
   console.log("Checking color profiles availability");
   
   // In a real implementation, this would check if the files exist
-  // For this demo, we'll simulate T3i profile exists and T2i doesn't
+  // For this demo, we'll simulate both profiles exist
   const availability: Record<string, boolean> = {
-    "T2i": false,
+    "T2i": true, // Changed to true since we now have T2i profile
     "T3i": true
   };
   

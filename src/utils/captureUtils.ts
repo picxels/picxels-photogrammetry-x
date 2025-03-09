@@ -75,20 +75,12 @@ export const captureImage = async (
         sharpness
       };
       
+      // Get camera type for color profile application
       const cameraTypeForProfile = getCameraTypeFromId(cameraId);
-      const profiledImage = await applyColorProfile(image, cameraTypeForProfile);
+      console.log(`Applying ${cameraTypeForProfile} color profile to image ${image.id}`);
       
-      // Apply background mask if the image is sharp enough
-      if (checkImageSharpness(profiledImage)) {
-        try {
-          const maskedImage = await generateImageMask(profiledImage);
-          if (maskedImage.hasMask) {
-            return maskedImage;
-          }
-        } catch (maskError) {
-          console.error("Error applying mask:", maskError);
-        }
-      }
+      // Apply the appropriate color profile - this is now a mandatory step
+      const profiledImage = await applyColorProfile(image, cameraTypeForProfile);
       
       console.log("Image captured and color profile applied:", profiledImage);
       return profiledImage;

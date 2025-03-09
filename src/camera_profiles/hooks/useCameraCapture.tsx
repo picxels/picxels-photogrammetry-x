@@ -3,6 +3,7 @@ import { CameraDevice, CapturedImage, Session } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { captureImage, generateImageMask } from "@/utils/cameraUtils";
 import { saveImageLocally } from "@/utils/fileSystem";
+import { applyColorProfile, getCameraTypeFromId } from "@/utils/colorProfileUtils";
 
 interface UseCameraCaptureProps {
   currentSession: Session;
@@ -43,10 +44,14 @@ export const useCameraCapture = ({
         // Save the image locally
         await saveImageLocally(image);
         
+        // Apply color profile based on camera type - this is now required for all images
+        const cameraType = getCameraTypeFromId(camera.id);
+        const profiledImage = await applyColorProfile(image, cameraType);
+        
         // Apply background mask if the image is sharp enough
-        if (image.sharpness && image.sharpness >= 80) {
+        if (profiledImage.sharpness && profiledImage.sharpness >= 80) {
           try {
-            const maskedImage = await generateImageMask(image);
+            const maskedImage = await generateImageMask(profiledImage);
             
             // If mask was successfully generated, use the masked image
             if (maskedImage.hasMask) {
@@ -58,35 +63,35 @@ export const useCameraCapture = ({
               // Notify parent component with the masked image
               onImageCaptured(maskedImage);
             } else {
-              // Use original image if mask generation failed
+              // Use profiled image if mask generation failed
               setCameras(prev => prev.map(c => 
                 c.id === camera.id ? { ...c, status: "idle" } : c
               ));
               
-              onImageCaptured(image);
+              onImageCaptured(profiledImage);
             }
           } catch (maskError) {
             console.error("Error applying mask:", maskError);
             
-            // Fallback to original image if mask application fails
+            // Fallback to profiled image if mask application fails
             setCameras(prev => prev.map(c => 
               c.id === camera.id ? { ...c, status: "idle" } : c
             ));
             
-            onImageCaptured(image);
+            onImageCaptured(profiledImage);
           }
         } else {
-          // Image not sharp enough, use as-is
+          // Image not sharp enough, use profiled image as-is
           setCameras(prev => prev.map(c => 
             c.id === camera.id ? { ...c, status: "idle" } : c
           ));
           
-          onImageCaptured(image);
+          onImageCaptured(profiledImage);
         }
         
         toast({
           title: "Image Captured",
-          description: `${camera.name} captured an image successfully.`
+          description: `${camera.name} captured an image successfully with ${cameraType} color profile applied.`
         });
       } else {
         // If image is null, there was a problem
@@ -145,21 +150,25 @@ export const useCameraCapture = ({
           if (image) {
             await saveImageLocally(image);
             
+            // Apply color profile based on camera type - now required for all images
+            const cameraType = getCameraTypeFromId(camera.id);
+            const profiledImage = await applyColorProfile(image, cameraType);
+            
             // Apply background mask if image is sharp enough
-            if (image.sharpness && image.sharpness >= 80) {
+            if (profiledImage.sharpness && profiledImage.sharpness >= 80) {
               try {
-                const maskedImage = await generateImageMask(image);
+                const maskedImage = await generateImageMask(profiledImage);
                 if (maskedImage.hasMask) {
                   onImageCaptured(maskedImage);
                 } else {
-                  onImageCaptured(image);
+                  onImageCaptured(profiledImage);
                 }
               } catch (maskError) {
                 console.error(`Error applying mask for camera ${camera.id}:`, maskError);
-                onImageCaptured(image);
+                onImageCaptured(profiledImage);
               }
             } else {
-              onImageCaptured(image);
+              onImageCaptured(profiledImage);
             }
           }
         } catch (cameraError) {
@@ -182,7 +191,7 @@ export const useCameraCapture = ({
       
       toast({
         title: "Capture Complete",
-        description: `Images captured from all ${connectedCameras.length} connected cameras.`
+        description: `Images captured from all ${connectedCameras.length} connected cameras with color profiles applied.`
       });
     } catch (error) {
       console.error("Capture all failed:", error);
