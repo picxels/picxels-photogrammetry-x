@@ -2,9 +2,9 @@
 import React, { useEffect, useState } from "react";
 import SocialMediaConnections from "@/components/social/SocialMediaConnections";
 import FileManager from "@/camera_profiles/FileManager";
-import { Session, RCNodeConfig as RCNodeConfigType } from "@/types";
+import { Session, RCNodeConfig as RCNodeConfigType, SocialMediaShare } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Workflow, WorkflowProgress } from "@/types/workflow";
+import { Workflow, WorkflowProgress } from "@/types";
 import SketchfabUploader from "@/components/workflow/SketchfabUploader";
 import { Share2, ExternalLink } from "lucide-react";
 import SocialMediaSharing from "@/components/workflow/SocialMediaShare";
@@ -32,7 +32,7 @@ const SocialTab: React.FC<SocialTabProps> = ({
 }) => {
   const [showSketchfabUploader, setShowSketchfabUploader] = useState(false);
   const [completedWorkflows, setCompletedWorkflows] = useState<Workflow[]>([]);
-  const [socialSharing, setSocialSharing] = useState([
+  const [socialSharing, setSocialSharing] = useState<SocialMediaShare[]>([
     { platform: 'instagram', enabled: false, customText: '' },
     { platform: 'twitter', enabled: false, customText: '' },
     { platform: 'facebook', enabled: false, customText: '' },
