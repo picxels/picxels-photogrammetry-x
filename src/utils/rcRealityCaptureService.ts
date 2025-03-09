@@ -1,3 +1,4 @@
+
 import { 
   Session, 
   CapturedImage, 
@@ -557,13 +558,16 @@ export const processSessionForRealityCapture = async (
         if (typeof imageIdOrObj === 'string') {
           imageId = imageIdOrObj;
           // Find the corresponding image object
-          for (const img of session.images) {
+          const foundImage = session.images.find(img => {
             if (typeof img === 'string') {
-              if (img === imageIdOrObj) continue;
-            } else if (img.id === imageIdOrObj) {
-              imageObj = img;
-              break;
+              return img === imageIdOrObj;
+            } else {
+              return img.id === imageIdOrObj;
             }
+          });
+          
+          if (foundImage && typeof foundImage !== 'string') {
+            imageObj = foundImage;
           }
         } else if (imageIdOrObj && typeof imageIdOrObj === 'object' && 'id' in imageIdOrObj) {
           imageId = imageIdOrObj.id;
@@ -627,3 +631,4 @@ const exportImageAsTiff = async (image: SessionImage): Promise<void> => {
 const exportImageMask = async (image: SessionImage): Promise<void> => {
   // Implementation
 };
+
