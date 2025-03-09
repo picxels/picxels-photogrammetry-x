@@ -1,25 +1,28 @@
 
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
 import { executeCommand } from './api/execute-command';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = 3001;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../../dist')));
 
-// API Routes
-app.post('/api/execute-command', async (req, res) => {
+// Helper function to wrap async route handlers
+const asyncHandler = (fn: Function) => (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+// Set up routes
+app.post('/api/execute-command', asyncHandler(async (req: express.Request, res: express.Response) => {
+  const command = req.body.command;
+  
+  if (!command) {
+    return res.status(400).json({ error: 'Command is required' });
+  }
+  
   try {
-    const { command } = req.body;
-    if (!command) {
-      return res.status(400).json({ error: 'Command is required' });
-    }
-    
     const result = await executeCommand(command);
     res.json({ output: result });
   } catch (error) {
@@ -29,17 +32,23 @@ app.post('/api/execute-command', async (req, res) => {
       message: error instanceof Error ? error.message : String(error) 
     });
   }
+}));
+
+// Add health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).send('OK');
 });
 
-// Serve the main app for any other routes (SPA support)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../dist/index.html'));
+// Error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({
+    error: 'Internal server error',
+    message: err.message || 'Unknown error'
+  });
 });
 
 // Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
-
-// Export the app for testing purposes
-export default app;

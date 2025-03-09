@@ -300,17 +300,36 @@ export const uploadSessionImagesToRCNode = async (
         const imageIdOrObj = pass.images[imageIndex];
         
         // Find the actual image object from session.images
-        const imageId = typeof imageIdOrObj === 'string' ? imageIdOrObj : imageIdOrObj.id;
+        let imageId = '';
+        
+        if (typeof imageIdOrObj === 'string') {
+          imageId = imageIdOrObj;
+        } else if (imageIdOrObj && typeof imageIdOrObj === 'object' && 'id' in imageIdOrObj) {
+          imageId = imageIdOrObj.id;
+        } else {
+          console.warn(`Invalid image reference at pass ${passIndex}, index ${imageIndex}`);
+          continue;
+        }
         
         // Handle the case when imageIdOrObj is a string (just an ID reference)
         // We need to find the corresponding image object from session.images
         let actualImage: SessionImage | undefined;
         
         if (typeof imageIdOrObj === 'string') {
-          actualImage = session.images.find(img => {
-            if (typeof img === 'string') return img === imageIdOrObj;
-            return img.id === imageIdOrObj;
-          }) as SessionImage | undefined;
+          // Search through session.images for a matching ID
+          for (const img of session.images) {
+            if (typeof img === 'string') {
+              if (img === imageIdOrObj) {
+                // This is just an ID reference, we need to find the actual object elsewhere
+                // but for now we can't find it, so we'll skip this image
+                console.warn(`Image with ID ${imageId} is a string reference, not an object`);
+                continue;
+              }
+            } else if (img.id === imageIdOrObj) {
+              actualImage = img;
+              break;
+            }
+          }
         } else {
           // imageIdOrObj is already a SessionImage
           actualImage = imageIdOrObj as SessionImage;
@@ -537,13 +556,21 @@ export const processSessionForRealityCapture = async (
         
         if (typeof imageIdOrObj === 'string') {
           imageId = imageIdOrObj;
-          imageObj = session.images.find(img => {
-            if (typeof img === 'string') return img === imageIdOrObj;
-            return img.id === imageIdOrObj;
-          }) as SessionImage | undefined;
-        } else {
+          // Find the corresponding image object
+          for (const img of session.images) {
+            if (typeof img === 'string') {
+              if (img === imageIdOrObj) continue;
+            } else if (img.id === imageIdOrObj) {
+              imageObj = img;
+              break;
+            }
+          }
+        } else if (imageIdOrObj && typeof imageIdOrObj === 'object' && 'id' in imageIdOrObj) {
           imageId = imageIdOrObj.id;
-          imageObj = imageIdOrObj;
+          imageObj = imageIdOrObj as SessionImage;
+        } else {
+          console.warn(`Invalid image reference in pass ${pass.id}`);
+          continue;
         }
         
         if (!imageObj) {
