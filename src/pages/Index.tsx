@@ -26,7 +26,7 @@ const Index = () => {
     handleSessionNameChange,
     handleNewSession,
     handleDeleteImage,
-    handleAnalysisComplete
+    handleSessionUpdated
   } = useSession();
   
   const {
@@ -62,7 +62,7 @@ const Index = () => {
           onSwitchPass={handleSwitchPass}
           onNewPass={handleNewPass}
           onDeleteImage={handleDeleteImage}
-          onAnalysisComplete={handleAnalysisComplete}
+          onSessionUpdated={handleSessionUpdated}
           onSessionNameChange={handleSessionNameChange}
           onSessionRefresh={handleNewSession}
           onRCNodeConnectionChange={handleRCNodeConnectionChange}
