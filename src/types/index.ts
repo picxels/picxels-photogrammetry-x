@@ -1,4 +1,3 @@
-
 export interface SessionImage {
   id: string;
   filename: string;
@@ -11,18 +10,22 @@ export interface SessionImage {
   maskPath?: string;
   analyzed?: boolean;
   qualityScore?: number;
-  hasMask?: boolean; // Adding hasMask property
+  hasMask?: boolean;
+  hasColorProfile?: boolean;
+  sharpness?: number;
+  previewUrl?: string;
+  timestamp?: number;
 }
 
 export interface Pass {
   id: string;
   name: string;
-  images: string[]; // Array of SessionImage IDs
+  images: string[];
   dateCreated: number;
   dateModified: number;
   completed?: boolean;
-  timestamp?: number; // Adding timestamp for compatibility
-  imageQuality?: number; // Adding imageQuality field
+  timestamp?: number;
+  imageQuality?: number;
 }
 
 export interface RCNodeConfig {
@@ -38,14 +41,14 @@ export interface Workflow {
   stages: WorkflowStage[];
   createdAt: number;
   updatedAt: number;
-  workflow_name: string; // Required for compatibility with workflow.ts
+  workflow_name: string;
 }
 
 export interface WorkflowStage {
   id: string;
   name: string;
-  commands: RCCommand[]; // RCCommand objects instead of strings
-  description?: string; // Adding description field for compatibility
+  commands: RCCommand[];
+  description?: string;
 }
 
 export interface WorkflowFile {
@@ -102,8 +105,8 @@ export interface Session {
   previewImage?: string;
   processedModels?: ProcessedModel[];
   status?: SessionStatus;
-  updatedAt?: number; // Using number instead of Date
-  createdAt?: number; // Using number instead of Date
+  updatedAt?: number;
+  createdAt?: number;
   description?: string;
   tags?: string[];
   processed?: boolean;
@@ -122,7 +125,6 @@ export interface ProcessedModel {
   metadata?: Record<string, any>;
 }
 
-// Adding explicit enum for SessionStatus
 export enum SessionStatus {
   INITIALIZING = "initializing",
   INITIALIZED = "initialized",
@@ -150,17 +152,16 @@ export interface CapturedImage {
   angle?: number;
   sharpness?: number;
   hasMask?: boolean;
-  path?: string; // Added for backward compatibility
+  path?: string;
   hasColorProfile?: boolean;
   colorProfileType?: string;
   maskedPath?: string;
   sessionId?: string;
   tiffPath?: string;
   originalPath?: string;
-  jpegPath?: string; // Adding missing property for efficientViTService
-  maskPath?: string;  // Adding maskPath property
-  croppedWidth?: number; // Adding croppedWidth property
-  croppedHeight?: number; // Adding croppedHeight property
+  jpegPath?: string;
+  maskPath?: string;
+  croppedWidth?: number;
 }
 
 export interface ImageData {
@@ -189,15 +190,15 @@ export interface MotorSettings {
   connected?: boolean;
   stepSize?: number;
   scanSteps?: number;
-  pauseTimeBetweenSteps?: number; // Adding missing property for motorControl.ts
+  pauseTimeBetweenSteps?: number;
 }
 
 export interface AnalysisResult {
-  subjectMatter: string; // Main property for subject
+  subjectMatter: string;
   description: string;
   tags: string[];
   confidence: number;
-  subject?: string; // For compatibility
+  subject?: string;
   metadata?: Record<string, any>;
 }
 
@@ -222,6 +223,6 @@ export interface ExportSettings {
 export interface SessionDatabase {
   sessions: Session[];
   lastOpened: string | null;
-  lastUpdated?: number; // Using number instead of Date
+  lastUpdated?: number;
   version?: string;
 }

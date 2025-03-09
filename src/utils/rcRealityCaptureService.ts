@@ -1,16 +1,40 @@
+
 import { 
   Session, 
   CapturedImage, 
   RCPreviewData, 
   ProcessedModel,
   SessionStatus,
-  SessionImage
+  SessionImage,
+  RCNodeConfig,
+  ExportSettings,
+  Pass
 } from '@/types';
 import { executeCommand } from '@/utils/commandUtils';
 import { toast } from '@/components/ui/use-toast';
 import { updateSession, updateSessionStatus } from '@/services/sessionDatabaseService';
 import { processImage } from '@/utils/imageProcessingUtils';
 import { isJetsonPlatform } from '@/utils/platformUtils';
+import { sendRCNodeCommand, getWorkflowTemplateFromSession, formatRCCommand } from '@/utils/rcNodeCommands';
+
+/**
+ * Helper function to convert SessionImage to CapturedImage for compatibility
+ */
+const sessionImageToCapturedImage = (image: SessionImage): CapturedImage => {
+  return {
+    id: image.id,
+    camera: image.camera,
+    filePath: image.filePath,
+    previewUrl: image.previewUrl || "", // Provide default value
+    timestamp: image.timestamp || image.dateCaptured,
+    angle: image.angle ? parseFloat(image.angle) : undefined,
+    hasMask: image.hasMask,
+    hasColorProfile: image.hasColorProfile,
+    maskPath: image.maskPath,
+    path: image.filePath,
+    sharpness: image.sharpness
+  };
+};
 
 /**
  * Prepare session images for RealityCapture processing
@@ -31,11 +55,11 @@ export const prepareImagesForRealityCapture = async (session: Session): Promise<
       try {
         // Check if the image is a string (ID) or an object
         const imageId = typeof image === 'string' ? image : image.id;
-        const imagePath = typeof image === 'string' 
-          ? session.images.find(img => typeof img !== 'string' && img.id === image)?.filePath 
-          : image.filePath;
-        
-        if (!imagePath) {
+        const imageObj = typeof image === 'string' 
+          ? session.images.find(img => typeof img !== 'string' && img.id === image) as SessionImage | undefined
+          : image as SessionImage;
+          
+        if (!imageObj || !imageObj.filePath) {
           console.error(`No file path found for image ${imageId}`);
           continue;
         }
@@ -43,18 +67,20 @@ export const prepareImagesForRealityCapture = async (session: Session): Promise<
         // For full images (not just IDs), check if we need to process it
         if (typeof image !== 'string') {
           // Apply color profile if needed
-          if (!image.hasColorProfile) {
-            await processImage(image);
+          if (!imageObj.hasColorProfile) {
+            // Convert to CapturedImage format for processImage
+            await processImage(sessionImageToCapturedImage(imageObj));
           }
           
           // Generate mask if needed and if image is sharp enough
-          if (!image.hasMask && image.sharpness && image.sharpness > 80) {
-            await processImage(image);
+          if (!imageObj.hasMask && imageObj.sharpness && imageObj.sharpness > 80) {
+            // Convert to CapturedImage format for processImage
+            await processImage(sessionImageToCapturedImage(imageObj));
           }
         }
         
         // Copy or link the image to the RC working directory
-        await executeCommand(`cp "${imagePath}" "${sessionDir}/images/"`);
+        await executeCommand(`cp "${imageObj.filePath}" "${sessionDir}/images/"`);
       } catch (imageError) {
         console.error(`Error processing image for RC:`, imageError);
       }
@@ -275,19 +301,34 @@ export const uploadSessionImagesToRCNode = async (
         
         // Find the actual image object from session.images
         const imageId = typeof imageIdOrObj === 'string' ? imageIdOrObj : imageIdOrObj.id;
-        const image = session.images.find(img => img.id === imageId);
+        const imageObj = session.images.find(img => {
+          if (typeof img === 'string') return img === imageId;
+          return img.id === imageId;
+        });
         
-        if (!image) {
+        if (!imageObj) {
           console.warn(`Image with ID ${imageId} not found in session`);
           continue;
         }
         
+        // Convert image object to the format expected by generateRCFilename
+        const capturedImage: CapturedImage = typeof imageObj === 'string' 
+          ? { 
+              id: imageObj, 
+              camera: "unknown",
+              previewUrl: "",
+              filePath: "",
+              timestamp: Date.now(),
+              angle: 0
+            }
+          : sessionImageToCapturedImage(imageObj);
+        
         // Generate filenames following RC conventions
-        console.log(`Processing image: ${image.id} from pass ${passIndex + 1}`);
+        console.log(`Processing image: ${capturedImage.id} from pass ${passIndex + 1}`);
         
         // Upload main image
         const mainFilename = generateRCFilename(
-          {id: image.id, camera: image.camera, angle: parseFloat(image.angle)} as CapturedImage, 
+          capturedImage,
           pass, 
           passIndex, 
           imageIndex, 
@@ -298,7 +339,7 @@ export const uploadSessionImagesToRCNode = async (
         // If exporting PNGs for geometry
         if (settings.exportPng) {
           const geometryFilename = generateRCFilename(
-            {id: image.id, camera: image.camera, angle: parseFloat(image.angle)} as CapturedImage, 
+            capturedImage, 
             pass, 
             passIndex, 
             imageIndex, 
@@ -310,7 +351,7 @@ export const uploadSessionImagesToRCNode = async (
         // If exporting TIFFs for texturing
         if (settings.exportTiff) {
           const textureFilename = generateRCFilename(
-            {id: image.id, camera: image.camera, angle: parseFloat(image.angle)} as CapturedImage, 
+            capturedImage, 
             pass, 
             passIndex, 
             imageIndex, 
@@ -320,9 +361,10 @@ export const uploadSessionImagesToRCNode = async (
         }
         
         // If exporting masks
-        if (settings.exportMasks && image.hasMask) {
+        const hasImageMask = typeof imageObj === 'string' ? false : imageObj.hasMask;
+        if (settings.exportMasks && hasImageMask) {
           const maskFilename = generateRCFilename(
-            {id: image.id, camera: image.camera, angle: parseFloat(image.angle)} as CapturedImage, 
+            capturedImage, 
             pass, 
             passIndex, 
             imageIndex, 
