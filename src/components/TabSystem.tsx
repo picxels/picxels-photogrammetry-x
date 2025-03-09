@@ -2,7 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 
-type TabType = 'capture' | 'workflow' | 'social';
+type TabType = 'capture' | 'workflow' | 'social' | 'rcnode';
 
 interface TabSystemProps {
   activeTab: TabType;
@@ -26,6 +26,13 @@ const TabSystem: React.FC<TabSystemProps> = ({ activeTab, setActiveTab }) => {
           onClick={() => setActiveTab('workflow')}
         >
           RC Workflow
+        </Button>
+        <Button
+          variant={activeTab === 'rcnode' ? 'default' : 'outline'}
+          className="rounded-l-none rounded-r-none"
+          onClick={() => setActiveTab('rcnode')}
+        >
+          RC Node
         </Button>
         <Button
           variant={activeTab === 'social' ? 'default' : 'outline'}
