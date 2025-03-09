@@ -1,4 +1,3 @@
-
 import { CapturedImage } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { JETSON_AI_MODELS, AI_HARDWARE_CONFIG, AI_DEBUG_OPTIONS, IMAGE_PROCESSING } from "@/config/jetsonAI.config";
@@ -288,7 +287,7 @@ export const processImageForPhotogrammetry = async (
       tiffPath: croppedTiffPath,
       originalPath: image.path,
       jpegPath: jpegPath,
-      maskPath: maskPath,
+      maskedPath: maskPath, // Change to maskedPath instead of maskPath
       hasMask: hasMask,
       croppedWidth: finalSize,
       croppedHeight: finalSize

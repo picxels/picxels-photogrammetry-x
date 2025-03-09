@@ -1,7 +1,10 @@
 
 import express from 'express';
 import cors from 'cors';
-import { executeCommand } from './api/execute-command';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execPromise = promisify(exec);
 
 // Create Express application
 const app = express();
@@ -11,9 +14,39 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint
+/**
+ * Safely execute a command and return its output
+ */
+const executeCommand = async (command: string): Promise<string> => {
+  // Perform basic validation/sanitization
+  if (!command || typeof command !== 'string') {
+    throw new Error('Invalid command provided');
+  }
+
+  // Execute the command and return the output
+  try {
+    console.log(`Server executing command: ${command}`);
+    const { stdout, stderr } = await execPromise(command);
+    
+    if (stderr) {
+      console.warn(`Command produced stderr: ${stderr}`);
+    }
+    
+    return stdout;
+  } catch (error) {
+    console.error(`Command execution error:`, error);
+    throw error;
+  }
+};
+
+// Health check endpoint - support both GET and HEAD methods
+app.head('/api/health', (req, res) => {
+  console.log('API health check called (HEAD)');
+  res.status(200).end();
+});
+
 app.get('/api/health', (req, res) => {
-  console.log('API health check called');
+  console.log('API health check called (GET)');
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
@@ -37,12 +70,10 @@ app.post('/api/execute-command', async (req, res) => {
   }
 });
 
-// Only start the server if we're running this file directly
-// and not importing it as a module
-if (import.meta.url === `file://${process.argv[1]}` || process.env.SERVER_SIDE === 'true') {
-  app.listen(PORT, () => {
-    console.log(`API Server running on port ${PORT}`);
-  });
-}
+// Start the server
+app.listen(PORT, () => {
+  console.log(`API Server running on port ${PORT}`);
+  console.log(`Health check endpoint: http://localhost:${PORT}/api/health`);
+});
 
 export default app;

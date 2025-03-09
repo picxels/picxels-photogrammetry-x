@@ -1,4 +1,3 @@
-
 export interface SessionImage {
   id: string;
   filename: string;
@@ -157,6 +156,7 @@ export interface CapturedImage {
   tiffPath?: string;
   originalPath?: string;
   jpegPath?: string; // Adding missing property for efficientViTService
+  maskPath?: string;  // Adding maskPath property
 }
 
 export interface ImageData {

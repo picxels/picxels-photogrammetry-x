@@ -1,5 +1,5 @@
 
-import { CapturedImage, ImageData, Pass, Session, SessionStatus } from "@/types";
+import { CapturedImage, Pass, Session, SessionImage, SessionStatus } from "@/types";
 import { addSession, updateSession, addImageToSession, updateSessionStatus } from "@/services/sessionDatabaseService";
 import { IMAGE_PROCESSING } from "@/config/jetsonAI.config";
 
@@ -29,11 +29,11 @@ export const createNewPass = (name: string = "New Pass"): Pass => {
   return {
     id: `pass-${timestamp}`,
     name,
-    timestamp,
     dateCreated: timestamp,
     dateModified: timestamp,
     images: [],
-    completed: false
+    completed: false,
+    timestamp // Adding timestamp for compatibility
   };
 };
 
@@ -57,6 +57,7 @@ export const addImageToPass = async (
   // First add the image to the pass within the session object
   const passes = session.passes.map(pass => {
     if (pass.id === passId) {
+      // Ensure we're working with string IDs
       const imageIds = [...pass.images, image.id];
       const currentImages = pass.images.map(imgId => {
         return typeof imgId === 'string' ? imgId : imgId.id;
@@ -85,7 +86,8 @@ export const addImageToPass = async (
     filePath: image.filePath || image.path || '',
     camera: image.camera,
     angle: image.angle?.toString() || "0",
-    dateCaptured: image.timestamp
+    dateCaptured: image.timestamp,
+    qualityScore: image.sharpness
   };
   
   const allImages = [...session.images, newImageData];

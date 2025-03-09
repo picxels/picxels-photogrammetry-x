@@ -13,6 +13,7 @@ import {
 } from '@/utils/workflowUtils';
 import { executeRCWorkflow } from '@/utils/rcCommandExecutor';
 import { toast } from '@/components/ui/use-toast';
+import { v4 as uuidv4 } from 'uuid';
 
 interface UseWorkflowProps {
   rcNodeConfig: RCNodeConfig;
@@ -73,7 +74,19 @@ export function useWorkflow({ rcNodeConfig, directoryPath = './workflows' }: Use
       }
 
       const workflow = await loadWorkflowFile(workflowFile.path);
-      setSelectedWorkflow(workflow);
+      if (workflow) {
+        // Ensure the workflow has all required properties before setting state
+        const completeWorkflow: Workflow = {
+          id: workflow.id || uuidv4(),
+          name: workflow.name || workflowFile.name,
+          description: workflow.description || '',
+          stages: workflow.stages || [],
+          createdAt: workflow.createdAt || Date.now(),
+          updatedAt: workflow.updatedAt || Date.now(),
+          workflow_name: workflow.workflow_name || workflow.name || workflowFile.name
+        };
+        setSelectedWorkflow(completeWorkflow);
+      }
     } catch (error) {
       console.error('Failed to select workflow:', error);
       toast({
