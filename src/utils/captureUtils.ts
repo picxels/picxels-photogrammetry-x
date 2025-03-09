@@ -3,9 +3,7 @@ import { toast } from "@/components/ui/use-toast";
 import { CapturedImage } from "@/types";
 import { executeCommand } from "./commandUtils";
 import { applyColorProfile, getCameraTypeFromId } from "./colorProfileUtils";
-import { checkImageSharpness, generateImageMask } from "./imageQualityUtils";
-import { CAMERA_DEVICE_PATHS } from "@/config/jetson.config";
-import { cameraService } from "@/services/cameraService";
+import { cameraCaptureService } from "@/services/cameraCaptureService";
 
 /**
  * Captures an image from a camera and processes it
@@ -26,7 +24,7 @@ export const captureImage = async (
       portInfo = `usb:001,${cameraDevice[1]}`;
     }
     
-    console.log(`Using cameraService to capture on port ${portInfo}`);
+    console.log(`Using cameraCaptureService to capture on port ${portInfo}`);
     
     // Create capture directory
     const captureDir = `/tmp/picxels/captures/${sessionId}`;
@@ -37,8 +35,8 @@ export const captureImage = async (
     const filePath = `${captureDir}/${filename}`;
     
     try {
-      // Use the camera service for capture
-      await cameraService.captureImage(portInfo, filePath);
+      // Use the camera capture service for image capture
+      await cameraCaptureService.captureImage(portInfo, filePath);
       
       // Verify the file exists
       const fileCheckCommand = `ls -la ${filePath}`;

@@ -1,7 +1,9 @@
+
 import { toast } from "@/components/ui/use-toast";
 import { CameraDevice } from "@/types";
 import { mapCameraModelToType } from "./cameraModelUtils";
 import { checkUSBCameraConnections, isCameraResponding } from "./cameraConnectionUtils";
+import { cameraDetectionService } from "@/services/cameraDetectionService";
 
 /**
  * The main function for detecting and initializing connected cameras
@@ -10,6 +12,7 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
   console.log("Detecting cameras...");
   
   try {
+    // Use the refactored connection utility
     const { connected: hasUSBCameras, detectedCameras } = await checkUSBCameraConnections();
     console.log("USB cameras physically connected:", hasUSBCameras);
     console.log("Detected camera models:", detectedCameras);
@@ -21,6 +24,7 @@ export const detectCameras = async (): Promise<CameraDevice[]> => {
         const cameraType = mapCameraModelToType(camera.model);
         const cameraId = cameraType.toLowerCase() + "-" + camera.port.split(',')[1];
         
+        // Use the refactored camera responding check
         const isConnected = await isCameraResponding(cameraId, camera.port);
         
         cameraDevices.push({

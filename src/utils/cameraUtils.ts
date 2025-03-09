@@ -1,7 +1,6 @@
 
 import { toast } from "@/components/ui/use-toast";
 import { CAMERA_DEVICE_PATHS } from "@/config/jetson.config";
-import { cameraService } from "@/services/cameraService";
 
 // Re-export from platformUtils
 export { isJetsonPlatform, isDevelopmentMode } from './platformUtils';
@@ -37,14 +36,10 @@ export { detectCameras } from './cameraDiscoveryUtils';
 
 // Re-export from captureUtils
 export {
-  captureImage
-} from './captureUtils';
-
-// Re-export from imageQualityUtils
-export {
+  captureImage,
   checkImageSharpness,
   generateImageMask
-} from './imageQualityUtils';
+} from './captureUtils';
 
 // Re-export from sessionUtils
 export {
