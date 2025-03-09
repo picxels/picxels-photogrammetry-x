@@ -1,6 +1,6 @@
 import { CapturedImage } from "@/types";
 import { toast } from "@/components/ui/use-toast";
-import { JETSON_AI_MODELS, AI_HARDWARE_CONFIG, AI_DEBUG_OPTIONS, IMAGE_PROCESSING } from "@/config/jetsonAI.config";
+import { JETSON_AI_MODELS, AI_HARDWARE_CONFIG, AI_DEBUG_OPTIONS, IMAGE_PROCESSING, EFFICIENTVIT_CONFIG } from "@/config/jetsonAI.config";
 import { executeCommand } from "@/utils/commandUtils";
 import { isJetsonPlatform } from "@/utils/platformUtils";
 
@@ -41,6 +41,55 @@ export const isEfficientViTAvailable = async (): Promise<boolean> => {
 };
 
 /**
+ * Install EfficientViT if not already installed
+ */
+export const installEfficientViT = async (): Promise<boolean> => {
+  try {
+    console.log("Checking for EfficientViT installation...");
+    
+    // Check if already installed
+    if (await isEfficientViTAvailable()) {
+      console.log("EfficientViT is already installed");
+      return true;
+    }
+    
+    console.log("Installing EfficientViT from MIT-HAN-LAB...");
+    
+    // Run the installation script
+    const installCommand = `bash ${EFFICIENTVIT_CONFIG.installScript}`;
+    await executeCommand(installCommand);
+    
+    // Verify installation
+    const isInstalled = await isEfficientViTAvailable();
+    
+    if (isInstalled) {
+      console.log("EfficientViT installed successfully");
+      toast({
+        title: "EfficientViT Installed",
+        description: "EfficientViT segmentation model has been installed successfully."
+      });
+      return true;
+    } else {
+      console.error("EfficientViT installation failed");
+      toast({
+        title: "Installation Failed",
+        description: "Failed to install EfficientViT. Check system logs for details.",
+        variant: "destructive"
+      });
+      return false;
+    }
+  } catch (error) {
+    console.error("Error installing EfficientViT:", error);
+    toast({
+      title: "Installation Error",
+      description: "Error installing EfficientViT: " + (error as Error).message,
+      variant: "destructive"
+    });
+    return false;
+  }
+};
+
+/**
  * Resize and prepare image for EfficientViT processing
  */
 export const prepareImageForSegmentation = async (
@@ -48,7 +97,7 @@ export const prepareImageForSegmentation = async (
 ): Promise<string> => {
   try {
     // Create a resized version of the image for segmentation
-    const outputDir = `/tmp/picxels/segmentation/resized`;
+    const outputDir = `${EFFICIENTVIT_CONFIG.tempDir}/resized`;
     const resizedFilename = `${Date.now()}_resized.jpg`;
     const resizedPath = `${outputDir}/${resizedFilename}`;
     
@@ -76,7 +125,11 @@ export const generateMaskWithEfficientViT = async (
   console.log(`Generating mask with EfficientViT for image: ${image.path}`);
   
   if (!(await isEfficientViTAvailable())) {
-    throw new Error("EfficientViT model is not available");
+    // Try to install if not available
+    const installed = await installEfficientViT();
+    if (!installed) {
+      throw new Error("EfficientViT model is not available and installation failed");
+    }
   }
   
   try {
@@ -86,7 +139,7 @@ export const generateMaskWithEfficientViT = async (
     const resizedImagePath = await prepareImageForSegmentation(image.path);
     
     // Set up paths
-    const outputDir = `/tmp/picxels/masks`;
+    const outputDir = `${EFFICIENTVIT_CONFIG.tempDir}/masks`;
     const maskFilename = `${image.id}_mask.png`;
     const maskPath = `${outputDir}/${maskFilename}`;
     
@@ -116,18 +169,17 @@ export const generateMaskWithEfficientViT = async (
       };
     }
     
-    // Build the command to run EfficientViT
-    // In production, this would use TensorRT to run the model locally
-    const command = `python3 /opt/picxels/scripts/run_efficientvit.py \
+    // Build the command to run EfficientViT using the MIT-HAN-LAB implementation
+    const command = `python3 ${EFFICIENTVIT_CONFIG.scriptPath} \
       --model ${JETSON_AI_MODELS.efficientViT.modelPath} \
+      --variant ${EFFICIENTVIT_CONFIG.modelVariant} \
       --input "${resizedImagePath}" \
       --output "${maskPath}" \
       --threshold ${JETSON_AI_MODELS.efficientViT.confidenceThreshold} \
-      --input_size ${JETSON_AI_MODELS.efficientViT.inputSize} \
-      --batch_size ${AI_HARDWARE_CONFIG.maxBatchSize} \
-      --precision ${AI_HARDWARE_CONFIG.precisionMode} \
-      ${AI_HARDWARE_CONFIG.useDLA ? '--use_dla' : ''} \
-      ${AI_DEBUG_OPTIONS.visualizeSegmentation ? '--visualize' : ''}`;
+      --size ${JETSON_AI_MODELS.efficientViT.inputSize} \
+      --mode ${EFFICIENTVIT_CONFIG.inferenceMode} \
+      ${AI_DEBUG_OPTIONS.visualizeSegmentation ? '--visualize' : ''} \
+      ${JETSON_AI_MODELS.efficientViT.useJetsonOptimization ? '--jetson_optimize' : ''}`;
     
     // Execute the command
     await executeCommand(command);
@@ -159,7 +211,7 @@ export const generateMaskWithEfficientViT = async (
       
       toast({
         title: "Enhanced Segmentation Complete",
-        description: `Background removed with EfficientViT (${processingTime.toFixed(0)}ms)`
+        description: `Background removed with MIT-HAN-LAB EfficientViT (${processingTime.toFixed(0)}ms)`
       });
       
       return {
@@ -176,7 +228,7 @@ export const generateMaskWithEfficientViT = async (
     
     toast({
       title: "Segmentation Failed",
-      description: "Could not generate mask with EfficientViT",
+      description: "Could not generate mask with EfficientViT. " + (error as Error).message,
       variant: "destructive"
     });
     
@@ -223,10 +275,6 @@ export const applyMask = async (
 
 /**
  * Process image for photogrammetry workflow
- * 1. Convert to TIFF if necessary
- * 2. Crop to square
- * 3. Generate mask
- * 4. Create JPEG version
  */
 export const processImageForPhotogrammetry = async (
   image: CapturedImage

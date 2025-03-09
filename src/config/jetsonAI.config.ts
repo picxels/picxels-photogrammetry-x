@@ -1,4 +1,3 @@
-
 /**
  * Jetson AI Labs Integration Configuration
  * 
@@ -10,15 +9,20 @@
 
 // Model paths and configurations
 export const JETSON_AI_MODELS = {
-  // EfficientViT model paths and configurations
+  // EfficientViT model paths and configurations - updated for EfficientViT from MIT-HAN-LAB
   efficientViT: {
     enabled: true,
-    modelPath: "/opt/picxels/models/efficientViT/efficientViT-L1.engine",
+    modelPath: "/opt/picxels/models/efficientViT/efficientViT-L1.engine", 
     modelType: "tensorrt",
     inputSize: 1024, // Updated input resolution to 1024x1024
     outputSize: 3456, // Output size for final masks
     confidenceThreshold: 0.75,
-    useMetadataCache: true
+    useMetadataCache: true,
+    // Added for MIT-HAN-LAB EfficientViT
+    githubRepo: "https://github.com/mit-han-lab/efficientvit",
+    modelVersion: "L1",
+    useJetsonOptimization: true,
+    quantizationMode: "INT8"  // INT8 quantization for better performance on Jetson
   },
   
   // Ollama LLM configurations - updated for Llama-3 and Phi-3
@@ -66,7 +70,7 @@ export const JETSON_AI_MODELS = {
 
 // Performance and hardware configurations for AI models
 export const AI_HARDWARE_CONFIG = {
-  maxBatchSize: 4,
+  maxBatchSize: 1, // Reduced batch size for Jetson Orin Nano 8GB
   useTensorCores: true,
   useMaxPerformance: true,
   powerMode: "MAX_P", // MAX_N, MAX_P, MAX_Q profiles
@@ -152,4 +156,32 @@ export const OLLAMA_CONFIG = {
     embedding: "llama3:8b",
     small: "phi3:mini"
   }
+};
+
+// EfficientViT specific configuration for MIT-HAN-LAB implementation
+export const EFFICIENTVIT_CONFIG = {
+  // Path to the TensorRT engine file
+  enginePath: "/opt/picxels/models/efficientViT/efficientViT-L1.engine",
+  
+  // Python script path for running EfficientViT
+  scriptPath: "/opt/picxels/scripts/run_efficientvit.py",
+  
+  // Temporary directories for processing
+  tempDir: "/tmp/picxels/efficientvit",
+  
+  // Model parameters
+  modelVariant: "L1", // L0, L1, L2, etc.
+  
+  // Inference parameters
+  inferenceMode: "tensorrt",  // tensorrt, onnx, pytorch
+  useJetsonOptimizations: true,
+  
+  // Installation
+  githubRepo: "https://github.com/mit-han-lab/efficientvit",
+  installScript: "/opt/picxels/scripts/install_efficientvit.sh",
+  
+  // Output parameters
+  saveVisualization: true,
+  outputFormat: "png",
+  alphaChannel: true
 };
