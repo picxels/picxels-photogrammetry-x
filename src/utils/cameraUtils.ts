@@ -57,5 +57,9 @@ export {
   completePass
 } from './sessionUtils';
 
-// Export camera service
+// Export camera services
 export { cameraService } from '@/services/cameraService';
+export { cameraCoreService } from '@/services/cameraCoreService';
+export { cameraDetectionService } from '@/services/cameraDetectionService';
+export { cameraConfigService } from '@/services/cameraConfigService';
+export { cameraCaptureService } from '@/services/cameraCaptureService';
