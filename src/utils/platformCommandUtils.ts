@@ -26,6 +26,16 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
   }
   
   try {
+    // Check API availability from localStorage
+    const apiAvailable = typeof window !== 'undefined' && 
+      window.localStorage.getItem('apiAvailable') === 'true';
+    
+    // If API is not available, use simulation mode
+    if (!apiAvailable) {
+      console.log("API unavailable, using simulation mode for command execution");
+      return getFallbackCommandResponse(command);
+    }
+    
     // Attempt to execute the command through the API
     const response = await fetch('/api/execute-command', {
       method: 'POST',
@@ -70,6 +80,9 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
       window.DEBUG_SETTINGS.apiServerError = true;
       window.DEBUG_SETTINGS.simulateCameraConnection = true;
       window.DEBUG_SETTINGS.simulateMotorConnection = true;
+      
+      // Update localStorage to indicate API is unavailable
+      localStorage.setItem('apiAvailable', 'false');
     }
     
     // Return mock data as fallback

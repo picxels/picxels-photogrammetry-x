@@ -15,9 +15,16 @@ export const useApiHealthCheck = () => {
         method: 'HEAD',
         headers: { 'Cache-Control': 'no-cache' }
       });
-      setApiAvailable(response.ok);
       
-      if (!response.ok) {
+      const isAvailable = response.ok;
+      setApiAvailable(isAvailable);
+      
+      // Store API availability in localStorage for other components
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('apiAvailable', isAvailable ? 'true' : 'false');
+      }
+      
+      if (!isAvailable) {
         console.warn('API health check failed, falling back to simulation mode');
         
         if (typeof window !== 'undefined') {
@@ -42,7 +49,10 @@ export const useApiHealthCheck = () => {
       console.error('API health check error:', error);
       setApiAvailable(false);
       
+      // Store API availability in localStorage
       if (typeof window !== 'undefined') {
+        localStorage.setItem('apiAvailable', 'false');
+        
         // Initialize with default values if window.DEBUG_SETTINGS is undefined
         window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {
           enableVerboseLogging: true,
@@ -64,6 +74,11 @@ export const useApiHealthCheck = () => {
   
   useEffect(() => {
     checkApiAvailability();
+    
+    // Set up regular API health checks
+    const intervalId = setInterval(checkApiAvailability, 30000); // Check every 30 seconds
+    
+    return () => clearInterval(intervalId);
   }, []);
   
   return { apiAvailable, checkApiAvailability };

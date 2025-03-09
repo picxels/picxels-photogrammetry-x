@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { CameraDevice } from "@/types";
-import { detectCameras } from "@/utils/cameraUtils";
+import { detectCameras } from "@/utils/cameraDiscoveryUtils";
 import { DEBUG_SETTINGS } from "@/config/jetson.config";
 import { useApiHealthCheck } from "./useApiHealthCheck";
 import { 
@@ -10,6 +10,7 @@ import {
   showCameraStatusToasts, 
   showTroubleshootingToasts 
 } from "./useCameraSimulation";
+import { isJetsonPlatform } from "@/utils/platformUtils";
 
 export const useCameraDetection = () => {
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
@@ -40,28 +41,36 @@ export const useCameraDetection = () => {
       }
       
       console.log("Refreshing camera status...");
-      
-      // Check if we should use simulation mode
-      const simulationMode = shouldUseSimulationMode(apiAvailable);
+      console.log("API available:", apiAvailable);
+      console.log("IsJetsonPlatform:", isJetsonPlatform());
       
       let detectedCameras: CameraDevice[] = [];
+      
+      // Check if we should use simulation mode
+      const simulationMode = shouldUseSimulationMode();
+      console.log("Using simulation mode:", simulationMode);
+      
       try {
         if (simulationMode) {
           console.log("Using simulation mode for camera detection");
           detectedCameras = getSimulatedCameras();
         } else {
+          // Use real camera detection if we're on Jetson and API is available
+          console.log("Using real camera detection");
           detectedCameras = await detectCameras();
         }
       } catch (error) {
         console.error("Error during camera detection:", error);
         
         if (cameras.length > 0) {
+          // If we had cameras before but failed to detect now, mark them as disconnected
           detectedCameras = cameras.map(camera => ({
             ...camera,
             connected: false,
             status: "error"
           }));
         } else if (DEBUG_SETTINGS.simulateCameraConnection || apiAvailable === false) {
+          // Fallback to simulated cameras
           detectedCameras = getSimulatedCameras();
           console.log("Created mock cameras since API is unavailable or simulation is enabled");
         }
@@ -88,6 +97,9 @@ export const useCameraDetection = () => {
           console.log("Created mock cameras due to API error");
         }
       }
+      
+      // Log the detected cameras
+      console.log("Final detected cameras:", detectedCameras);
       
       setCameras(detectedCameras);
       setLastUpdateTime(new Date());
@@ -141,6 +153,21 @@ export const useCameraDetection = () => {
       })));
     }
   }, [cameras]);
+
+  // Set up camera polling
+  useEffect(() => {
+    // Call refresh cameras on initial load
+    refreshCameras();
+    
+    // Set up a polling interval to refresh camera status
+    const intervalId = setInterval(() => {
+      if (!isLoading && !isRefreshing) {
+        refreshCameras();
+      }
+    }, 30000); // Check every 30 seconds
+    
+    return () => clearInterval(intervalId);
+  }, [refreshCameras, isLoading, isRefreshing]);
 
   return {
     cameras,

@@ -7,10 +7,33 @@ import { toast } from "@/components/ui/use-toast";
  * Helper to get simulated cameras for development
  */
 export const getSimulatedCameras = (): CameraDevice[] => {
+  // If simulation is forced to disable all cameras
+  if (DEBUG_SETTINGS.forceDisableAllCameras) {
+    return [
+      {
+        id: "canon-001",
+        name: "Canon EOS 550D",
+        type: "DSLR",
+        port: "usb:001,004",
+        connected: false,
+        status: "error"
+      },
+      {
+        id: "canon-002",
+        name: "Canon EOS 600D",
+        type: "DSLR",
+        port: "usb:001,005",
+        connected: false,
+        status: "error"
+      }
+    ];
+  }
+  
+  // Regular simulation mode with connected cameras
   return [
     {
       id: "canon-001",
-      name: "Canon EOS 550D",
+      name: "Canon EOS 550D (Simulated)",
       type: "DSLR",
       port: "usb:001,004",
       connected: true,
@@ -18,7 +41,7 @@ export const getSimulatedCameras = (): CameraDevice[] => {
     },
     {
       id: "canon-002",
-      name: "Canon EOS 600D",
+      name: "Canon EOS 600D (Simulated)",
       type: "DSLR",
       port: "usb:001,005",
       connected: true,
@@ -31,11 +54,19 @@ export const getSimulatedCameras = (): CameraDevice[] => {
  * Determines if simulation mode should be used based on various conditions
  */
 export const shouldUseSimulationMode = (apiAvailable: boolean | null): boolean => {
-  const bypassApiCheck = typeof window !== 'undefined' && localStorage.getItem('bypassApiCheck') === 'true';
+  // Check localStorage for API availability
+  const storedApiAvailable = typeof window !== 'undefined' && 
+    window.localStorage.getItem('apiAvailable') === 'true';
+  
+  // Use stored value if current value is null
+  const isApiAvailable = apiAvailable !== null ? apiAvailable : storedApiAvailable;
+  
+  const bypassApiCheck = typeof window !== 'undefined' && 
+    localStorage.getItem('bypassApiCheck') === 'true';
   
   return (
     bypassApiCheck ||
-    apiAvailable === false ||
+    isApiAvailable === false ||
     DEBUG_SETTINGS?.simulateCameraConnection ||
     (typeof window !== 'undefined' && window.DEBUG_SETTINGS?.apiServerError) ||
     (typeof window !== 'undefined' && window.DEBUG_SETTINGS?.simulateCameraConnection)

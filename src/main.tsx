@@ -25,6 +25,8 @@ const AppWithHealthCheck = () => {
         if (response.ok) {
           console.log('API is available!');
           setApiAvailable(true);
+          // Store in localStorage for other components
+          localStorage.setItem('apiAvailable', 'true');
           setError(null);
           setIsLoading(false);
         } else {
@@ -38,11 +40,15 @@ const AppWithHealthCheck = () => {
           if (getResponse.ok) {
             console.log('API is available (via GET)!');
             setApiAvailable(true);
+            // Store in localStorage for other components
+            localStorage.setItem('apiAvailable', 'true');
             setError(null);
             setIsLoading(false);
           } else {
             console.warn('API health check failed with status:', getResponse.status);
             setApiAvailable(false);
+            // Store in localStorage for other components
+            localStorage.setItem('apiAvailable', 'false');
             setError(`API server returned status ${getResponse.status}`);
             setIsLoading(false);
           }
@@ -50,6 +56,8 @@ const AppWithHealthCheck = () => {
       } catch (err) {
         console.error('API health check error:', err);
         setApiAvailable(false);
+        // Store in localStorage for other components
+        localStorage.setItem('apiAvailable', 'false');
         setError("Cannot connect to API server on port 3001. Is it running?");
         setIsLoading(false);
       }
@@ -155,9 +163,6 @@ const AppWithHealthCheck = () => {
       </div>
     );
   }
-  
-  // Check if user wants to bypass API check
-  const bypassApiCheck = localStorage.getItem('bypassApiCheck') === 'true';
   
   // If API is available or user chose to bypass, render the app
   return <App />;
