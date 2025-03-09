@@ -362,7 +362,7 @@ export const uploadSessionImagesToRCNode = async (
         }
         
         // If exporting masks
-        const hasImageMask = typeof imageObj === 'string' ? false : imageObj.hasMask;
+        const hasImageMask = actualImage.hasMask;
         if (settings.exportMasks && hasImageMask) {
           const maskFilename = generateRCFilename(
             capturedImage, 

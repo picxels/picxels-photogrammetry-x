@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Session } from '@/types';
-import { getWorkflowTemplateFromSession } from '@/utils/workflowTemplates';
+import { getWorkflowTemplateFromSession } from '@/utils/rcNodeCommands';
 import { FilePlus } from 'lucide-react';
 
 interface WorkflowCreatorProps {
@@ -31,7 +31,7 @@ const WorkflowCreator: React.FC<WorkflowCreatorProps> = ({
     // and then refresh the workflow list
     
     // Mock implementation: add the workflow to the list
-    const mockWorkflowId = `session-${Date.now()}`;
+    const mockWorkflowId = sessionWorkflow.id;
     
     // This is a mock - in a real implementation, you'd save the file and refresh
     onCreateWorkflow(mockWorkflowId);

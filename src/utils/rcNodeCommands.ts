@@ -48,9 +48,16 @@ export const getWorkflowTemplateFromSession = (
   session: Session,
   tags: string[] = []
 ): Workflow => {
+  const workflowId = uuidv4();
+  const now = Date.now();
+  
   // Default workflow with basic stages
   const defaultWorkflow: Workflow = {
+    id: workflowId,
+    name: session.name || 'Default Workflow',
     workflow_name: session.name || 'Default Workflow',
+    createdAt: now,
+    updatedAt: now,
     stages: [
       {
         id: uuidv4(),

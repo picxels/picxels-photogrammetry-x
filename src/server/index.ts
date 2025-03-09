@@ -21,10 +21,10 @@ app.post('/api/execute-command', async (req, res) => {
     }
     
     const result = await executeCommand(command);
-    return res.json({ output: result });
+    res.json({ output: result });
   } catch (error) {
     console.error('Error in execute-command endpoint:', error);
-    return res.status(500).json({ 
+    res.status(500).json({ 
       error: 'Internal server error', 
       message: error instanceof Error ? error.message : String(error) 
     });
