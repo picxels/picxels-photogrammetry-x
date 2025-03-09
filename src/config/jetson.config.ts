@@ -1,3 +1,4 @@
+
 export const CAMERA_DEVICE_PATHS = [
   "/dev/video0",
   "/dev/video1",
@@ -35,7 +36,36 @@ export const DEBUG_SETTINGS = {
   
   // RC Node settings
   rcNodeDebugMode: false,
+  useRelaxedAuthFlow: false,
   
   // Motor settings
   simulateMotorConnection: false,
+};
+
+// Add missing configurations needed by modelInitialization.ts
+export const MODEL_PATHS = {
+  sharpness: {
+    onnx: "/models/sharpness/model.onnx",
+    tensorrt: "/models/sharpness/model_optimized.engine"
+  },
+  mask: {
+    onnx: "/models/mask/model.onnx",
+    tensorrt: "/models/mask/model_optimized.engine"
+  },
+  llm: {
+    onnx: "/models/llm/model.onnx",
+    tensorrt: "/models/llm/model_optimized.engine"
+  }
+};
+
+export const SYSTEM_REQUIREMENTS = {
+  minTensorRTVersion: "10.0.0",
+  minCudaVersion: "12.0",
+  recommendedMemory: 8 // in GB
+};
+
+export const PERFORMANCE_SETTINGS = {
+  useMaxPerformanceMode: true,
+  enablePowerSaving: false,
+  useLowPrecision: true
 };
