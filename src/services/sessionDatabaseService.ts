@@ -1,4 +1,3 @@
-
 import { Session, SessionStatus, CapturedImage, SessionDatabase } from "@/types";
 import { JETSON_AI_MODELS } from "@/config/jetsonAI.config";
 import { executeCommand } from "@/utils/commandUtils";
@@ -54,6 +53,21 @@ export const initSessionDatabase = async (): Promise<void> => {
       description: "Could not initialize session database. Using in-memory fallback.",
       variant: "destructive"
     });
+    
+    // Create a fresh database in case of initialization error
+    sessionDatabase = {
+      sessions: [],
+      lastOpened: null,
+      lastUpdated: Date.now(),
+      version: "1.0.0"
+    };
+    
+    // Try to save the fresh database
+    try {
+      await saveSessionDatabase();
+    } catch (saveError) {
+      console.error("Error saving fresh database:", saveError);
+    }
   }
 };
 
@@ -104,8 +118,19 @@ export const loadSessionDatabase = async (): Promise<void> => {
     // Read database file
     const jsonData = await executeCommand(`cat ${dbPath}`);
     
+    // Check if the data looks like valid JSON (starts with {)
+    if (!jsonData.trim().startsWith('{')) {
+      console.error("Database file does not contain valid JSON:", jsonData.substring(0, 50) + "...");
+      throw new Error("Invalid JSON data in database file");
+    }
+    
     try {
       const parsedData = JSON.parse(jsonData);
+      
+      // Validate the parsed data has expected structure
+      if (!parsedData || typeof parsedData !== 'object' || !Array.isArray(parsedData.sessions)) {
+        throw new Error("Invalid database structure");
+      }
       
       // Convert date strings back to numbers if they were stored as ISO strings
       parsedData.lastUpdated = typeof parsedData.lastUpdated === 'string' 
@@ -152,6 +177,16 @@ export const loadSessionDatabase = async (): Promise<void> => {
       description: "Could not load session database.",
       variant: "destructive"
     });
+    
+    // Ensure we have a valid database object even on error
+    if (!sessionDatabase || !Array.isArray(sessionDatabase.sessions)) {
+      sessionDatabase = {
+        sessions: [],
+        lastOpened: null,
+        lastUpdated: Date.now(),
+        version: "1.0.0"
+      };
+    }
   }
 };
 

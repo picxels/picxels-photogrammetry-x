@@ -51,6 +51,18 @@ const CaptureTab: React.FC<CaptureTabProps> = ({
   onSessionRefresh,
   onRCNodeConnectionChange
 }) => {
+  // Early return with loading state if session isn't loaded yet
+  if (!session || !session.passes) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg">Loading session data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div className="space-y-6 md:col-span-2">

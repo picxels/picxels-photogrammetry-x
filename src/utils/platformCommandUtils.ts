@@ -43,14 +43,21 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ command }),
+      // Add a timeout to prevent hanging requests
+      signal: AbortSignal.timeout(10000)
     });
     
     if (!response.ok) {
       throw new Error(`API returned status: ${response.status}`);
     }
     
-    const data = await response.json();
-    return data.output || '';
+    try {
+      const data = await response.json();
+      return data.output || '';
+    } catch (jsonError) {
+      console.error("Error parsing API response:", jsonError);
+      throw new Error("Invalid API response format");
+    }
   } catch (error) {
     console.error("Error executing command via API:", error);
     

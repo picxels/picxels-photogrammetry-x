@@ -13,6 +13,7 @@ export const useSessionCore = () => {
   const [analyzedImage, setAnalyzedImage] = useState<CapturedImage | null>(null);
   const [processingImages, setProcessingImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<Error | null>(null);
   
   const { handleImageProcessing } = useSessionImage(setProcessingImages);
 
@@ -21,30 +22,52 @@ export const useSessionCore = () => {
     const loadSessions = async () => {
       try {
         setIsLoading(true);
+        setLoadError(null);
         const sessions = getAllSessions();
-        setAllSessions(sessions);
         
-        // If no session exists, create one
-        if (sessions.length === 0) {
+        // Set sessions even if empty
+        setAllSessions(sessions || []);
+        
+        // If no session exists or sessions array is invalid, create one
+        if (!sessions || sessions.length === 0) {
+          console.log("No sessions found, creating a new session");
           const newSession = await createSession();
           setSession(newSession);
           setCurrentPassId(newSession.passes[0].id);
+          
+          // Add the new session to allSessions
+          setAllSessions([newSession]);
         } else {
           // Use the most recent session
+          console.log(`Found ${sessions.length} sessions, using most recent`);
           setSession(sessions[0]);
           
           // Set current pass to the first incomplete pass or the last pass
           const currentSession = sessions[0];
-          const incompletePass = currentSession.passes.find(p => !p.completed);
           
-          if (incompletePass) {
-            setCurrentPassId(incompletePass.id);
-          } else if (currentSession.passes.length > 0) {
-            setCurrentPassId(currentSession.passes[currentSession.passes.length - 1].id);
+          if (currentSession && currentSession.passes && currentSession.passes.length > 0) {
+            const incompletePass = currentSession.passes.find(p => !p.completed);
+            
+            if (incompletePass) {
+              setCurrentPassId(incompletePass.id);
+            } else {
+              setCurrentPassId(currentSession.passes[currentSession.passes.length - 1].id);
+            }
+          } else {
+            // Handle case where session might exist but has no passes
+            console.warn("Session exists but has no passes, creating a new session");
+            const newSession = await createSession();
+            setSession(newSession);
+            setCurrentPassId(newSession.passes[0].id);
+            
+            // Update allSessions
+            setAllSessions([newSession]);
           }
         }
       } catch (error) {
         console.error("Error loading sessions:", error);
+        setLoadError(error instanceof Error ? error : new Error("Unknown error loading sessions"));
+        
         toast({
           title: "Error Loading Sessions",
           description: "Failed to load existing sessions. Creating a new session.",
@@ -52,9 +75,19 @@ export const useSessionCore = () => {
         });
         
         // Create new session as fallback
-        const newSession = await createSession();
-        setSession(newSession);
-        setCurrentPassId(newSession.passes[0].id);
+        try {
+          const newSession = await createSession();
+          setSession(newSession);
+          setCurrentPassId(newSession.passes[0].id);
+          setAllSessions([newSession]);
+        } catch (createError) {
+          console.error("Error creating fallback session:", createError);
+          toast({
+            title: "Critical Error",
+            description: "Could not create a new session. Please refresh the page.",
+            variant: "destructive"
+          });
+        }
       } finally {
         setIsLoading(false);
       }
@@ -127,6 +160,7 @@ export const useSessionCore = () => {
     analyzedImage,
     processingImages,
     isLoading,
+    loadError,
     setSession,
     setCurrentPassId,
     setAnalyzedImage,

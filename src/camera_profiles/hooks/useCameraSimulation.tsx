@@ -53,13 +53,14 @@ export const getSimulatedCameras = (): CameraDevice[] => {
 /**
  * Determines if simulation mode should be used based on various conditions
  */
-export const shouldUseSimulationMode = (apiAvailable: boolean | null): boolean => {
+export const shouldUseSimulationMode = (apiAvailable?: boolean | null): boolean => {
   // Check localStorage for API availability
   const storedApiAvailable = typeof window !== 'undefined' && 
     window.localStorage.getItem('apiAvailable') === 'true';
   
-  // Use stored value if current value is null
-  const isApiAvailable = apiAvailable !== null ? apiAvailable : storedApiAvailable;
+  // Use stored value if current value is null or undefined
+  const isApiAvailable = apiAvailable !== null && apiAvailable !== undefined ? 
+    apiAvailable : storedApiAvailable;
   
   const bypassApiCheck = typeof window !== 'undefined' && 
     localStorage.getItem('bypassApiCheck') === 'true';
