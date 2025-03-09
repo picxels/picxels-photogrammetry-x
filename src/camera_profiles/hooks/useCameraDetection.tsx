@@ -1,9 +1,15 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { CameraDevice } from "@/types";
-import { toast } from "@/components/ui/use-toast";
 import { detectCameras } from "@/utils/cameraUtils";
 import { DEBUG_SETTINGS } from "@/config/jetson.config";
+import { useApiHealthCheck } from "./useApiHealthCheck";
+import { 
+  getSimulatedCameras, 
+  shouldUseSimulationMode, 
+  showCameraStatusToasts, 
+  showTroubleshootingToasts 
+} from "./useCameraSimulation";
 
 export const useCameraDetection = () => {
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
@@ -13,64 +19,9 @@ export const useCameraDetection = () => {
   const [errorRetryCount, setErrorRetryCount] = useState(0);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [initTimeoutId, setInitTimeoutId] = useState<NodeJS.Timeout | null>(null);
-  const [apiAvailable, setApiAvailable] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const checkApiAvailability = async () => {
-      try {
-        const response = await fetch('/api/health', { 
-          method: 'HEAD',
-          headers: { 'Cache-Control': 'no-cache' }
-        });
-        setApiAvailable(response.ok);
-        
-        if (!response.ok) {
-          console.warn('API health check failed, falling back to simulation mode');
-          
-          if (typeof window !== 'undefined') {
-            // Initialize with default values if window.DEBUG_SETTINGS is undefined
-            window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {
-              enableVerboseLogging: true,
-              logNetworkRequests: true,
-              simulateCameraConnection: true,
-              simulateMotorConnection: true,
-              apiServerError: true,
-              forceUseLocalSamples: false,
-              forceJetsonPlatformDetection: false
-            };
-            
-            // Then ensure the required properties are set
-            window.DEBUG_SETTINGS.apiServerError = true;
-            window.DEBUG_SETTINGS.simulateCameraConnection = true;
-            window.DEBUG_SETTINGS.simulateMotorConnection = true;
-          }
-        }
-      } catch (error) {
-        console.error('API health check error:', error);
-        setApiAvailable(false);
-        
-        if (typeof window !== 'undefined') {
-          // Initialize with default values if window.DEBUG_SETTINGS is undefined
-          window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {
-            enableVerboseLogging: true,
-            logNetworkRequests: true,
-            simulateCameraConnection: true,
-            simulateMotorConnection: true,
-            apiServerError: true,
-            forceUseLocalSamples: false,
-            forceJetsonPlatformDetection: false
-          };
-          
-          // Then ensure the required properties are set
-          window.DEBUG_SETTINGS.apiServerError = true;
-          window.DEBUG_SETTINGS.simulateCameraConnection = true;
-          window.DEBUG_SETTINGS.simulateMotorConnection = true;
-        }
-      }
-    };
-    
-    checkApiAvailability();
-  }, []);
+  
+  // Use the API health check hook
+  const { apiAvailable } = useApiHealthCheck();
 
   const refreshCameras = useCallback(async () => {
     try {
@@ -90,34 +41,14 @@ export const useCameraDetection = () => {
       
       console.log("Refreshing camera status...");
       
-      const bypassApiCheck = localStorage.getItem('bypassApiCheck') === 'true';
-      const simulationMode = DEBUG_SETTINGS?.simulateCameraConnection || 
-                             apiAvailable === false || 
-                             bypassApiCheck || 
-                             (window.DEBUG_SETTINGS && window.DEBUG_SETTINGS.apiServerError);
+      // Check if we should use simulation mode
+      const simulationMode = shouldUseSimulationMode(apiAvailable);
       
       let detectedCameras: CameraDevice[] = [];
       try {
         if (simulationMode) {
           console.log("Using simulation mode for camera detection");
-          detectedCameras = [
-            {
-              id: "canon-001",
-              name: "Canon EOS 550D",
-              type: "DSLR",
-              port: "usb:001,004",
-              connected: true,
-              status: "ready"
-            },
-            {
-              id: "canon-002",
-              name: "Canon EOS 600D",
-              type: "DSLR",
-              port: "usb:001,005",
-              connected: true,
-              status: "ready"
-            }
-          ];
+          detectedCameras = getSimulatedCameras();
         } else {
           detectedCameras = await detectCameras();
         }
@@ -131,25 +62,7 @@ export const useCameraDetection = () => {
             status: "error"
           }));
         } else if (DEBUG_SETTINGS.simulateCameraConnection || apiAvailable === false) {
-          detectedCameras = [
-            {
-              id: "canon-001",
-              name: "Canon EOS 550D",
-              type: "DSLR",
-              port: "usb:001,004",
-              connected: true,
-              status: "ready"
-            },
-            {
-              id: "canon-002",
-              name: "Canon EOS 600D",
-              type: "DSLR",
-              port: "usb:001,005",
-              connected: true,
-              status: "ready"
-            }
-          ];
-          
+          detectedCameras = getSimulatedCameras();
           console.log("Created mock cameras since API is unavailable or simulation is enabled");
         }
         
@@ -171,40 +84,8 @@ export const useCameraDetection = () => {
             window.DEBUG_SETTINGS.simulateCameraConnection = true;
           }
           
-          detectedCameras = [
-            {
-              id: "canon-001",
-              name: "Canon EOS 550D",
-              type: "DSLR",
-              port: "usb:001,004",
-              connected: true,
-              status: "ready"
-            },
-            {
-              id: "canon-002",
-              name: "Canon EOS 600D",
-              type: "DSLR",
-              port: "usb:001,005",
-              connected: true,
-              status: "ready"
-            }
-          ];
-          
+          detectedCameras = getSimulatedCameras();
           console.log("Created mock cameras due to API error");
-        }
-        
-        if (apiAvailable === false) {
-          toast({
-            title: "API Unavailable",
-            description: "Camera control API is unavailable. Running in simulation mode.",
-            variant: "default"
-          });
-        } else {
-          toast({
-            title: "Camera Detection Error",
-            description: "Failed to detect cameras. Check connections and server status.",
-            variant: "destructive"
-          });
         }
       }
       
@@ -219,28 +100,9 @@ export const useCameraDetection = () => {
         setInitTimeoutId(null);
       }
       
-      if (hasInitialized && apiAvailable !== false) {
-        if (detectedCameras.length === 0) {
-          toast({
-            title: "No Cameras Detected",
-            description: "No cameras were found. Please check connections and try again.",
-            variant: "destructive"
-          });
-        } else if (!detectedCameras.some(camera => camera.connected)) {
-          toast({
-            title: "Cameras Disconnected",
-            description: "Cameras were detected but are not responding. Check power and connections.",
-            variant: "destructive"
-          });
-        } else {
-          const connectedCount = detectedCameras.filter(c => c.connected).length;
-          toast({
-            title: "Cameras Refreshed",
-            description: `Found ${connectedCount} connected ${connectedCount === 1 ? 'camera' : 'cameras'}.`,
-            variant: "default"
-          });
-        }
-      }
+      // Show appropriate toasts based on results
+      showCameraStatusToasts(hasInitialized, apiAvailable, detectedCameras);
+      
     } catch (error) {
       console.error("Failed to detect cameras:", error);
       
@@ -248,19 +110,9 @@ export const useCameraDetection = () => {
       setErrorRetryCount(newRetryCount);
       setHasInitialized(true);
       
-      if (hasInitialized && apiAvailable !== false) {
-        toast({
-          title: "Camera Detection Failed",
-          description: `Could not detect connected cameras. Please check USB connections.`,
-          variant: "destructive"
-        });
-      }
+      // Show troubleshooting toasts
+      showTroubleshootingToasts(hasInitialized, apiAvailable);
       
-      toast({
-        title: "Troubleshooting Suggestions",
-        description: "1. Ensure cameras are powered on.\n2. Check USB connections.\n3. Restart the application.",
-        variant: "default"
-      });
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
