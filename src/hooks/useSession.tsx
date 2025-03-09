@@ -1,6 +1,6 @@
 
 import { Session, CapturedImage, Pass } from "@/types";
-import { renameSession } from "@/utils/sessionUtils";
+import { renameSession } from "@/utils/session";
 import { useSessionCore } from "./useSessionCore";
 import { usePassManagement } from "./usePassManagement";
 import { useImageCapture } from "./useImageCapture";

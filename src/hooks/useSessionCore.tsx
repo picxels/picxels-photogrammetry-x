@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { Session, CapturedImage, SessionStatus } from "@/types";
-import { createSession, renameSession } from "@/utils/sessionUtils";
-import { getAllSessions, getSessionById } from "@/services/sessionDatabaseService";
+import { createSession, renameSession } from "@/utils/session";
+import { getAllSessions, getSessionById } from "@/services/database";
 import { toast } from "@/components/ui/use-toast";
 import { useSessionImage } from "./useSessionImage";
 

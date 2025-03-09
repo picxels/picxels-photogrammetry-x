@@ -1,6 +1,6 @@
 
 import { Session, Pass, SessionStatus } from "@/types";
-import { addPassToSession, createNewPass, completePass } from "@/utils/sessionUtils";
+import { addPassToSession, createNewPass, completePass } from "@/utils/session";
 import { toast } from "@/components/ui/use-toast";
 import { Dispatch, SetStateAction } from "react";
 

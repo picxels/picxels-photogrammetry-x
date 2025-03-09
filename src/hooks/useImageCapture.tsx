@@ -1,6 +1,6 @@
 
 import { Session, CapturedImage, SessionStatus } from "@/types";
-import { addImageToPass, renameSession } from "@/utils/sessionUtils";
+import { addImageToPass, renameSession } from "@/utils/session";
 import { toast } from "@/components/ui/use-toast";
 import { Dispatch, SetStateAction } from "react";
 

@@ -47,7 +47,7 @@ export {
   ensureColorProfile
 } from './imageProcessingUtils';
 
-// Re-export from sessionUtils
+// Re-export from session utils (now from session module)
 export {
   createSession,
   createNewPass,
@@ -56,7 +56,7 @@ export {
   renameSession,
   renamePass,
   completePass
-} from './sessionUtils';
+} from './session';
 
 // Export camera services
 export { cameraService } from '@/services/cameraService';
