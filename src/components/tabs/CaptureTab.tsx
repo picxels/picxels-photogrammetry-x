@@ -9,7 +9,7 @@ import PassControls from "@/components/PassControls";
 import { Session, MotorPosition, CapturedImage, RCNodeConfig as RCNodeConfigType } from "@/types";
 
 interface CaptureTabProps {
-  session: Session;
+  session: Session | null;
   currentPassId: string;
   currentPosition: MotorPosition;
   processingImages: string[];
