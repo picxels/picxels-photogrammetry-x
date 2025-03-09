@@ -1,28 +1,29 @@
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execPromise = promisify(exec);
 
 /**
- * Utility to execute shell commands
- * Note: This is a client-side wrapper around the server API
+ * Safely execute a command and return its output
  */
 export const executeCommand = async (command: string): Promise<string> => {
-  console.log("Executing command via API:", command);
-  
+  // Perform basic validation/sanitization
+  if (!command || typeof command !== 'string') {
+    throw new Error('Invalid command provided');
+  }
+
+  // Execute the command and return the output
   try {
-    const response = await fetch('/api/execute-command', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ command }),
-    });
+    console.log(`Executing command: ${command}`);
+    const { stdout, stderr } = await execPromise(command);
     
-    if (!response.ok) {
-      throw new Error(`API returned status: ${response.status}`);
+    if (stderr) {
+      console.warn(`Command produced stderr: ${stderr}`);
     }
     
-    const data = await response.json();
-    return data.output || '';
+    return stdout;
   } catch (error) {
-    console.error("Error executing command:", error);
+    console.error(`Command execution error:`, error);
     throw error;
   }
 };

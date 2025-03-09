@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { MODEL_PATHS, SYSTEM_REQUIREMENTS, PERFORMANCE_SETTINGS } from "@/config/jetson.config";
 
@@ -248,4 +247,48 @@ export const compareVersions = (v1: string, v2: string): number => {
   }
   
   return 0;
+};
+
+// Function to load a specific model
+const loadModel = async (modelConfig: ModelConfig): Promise<ModelConfig> => {
+  try {
+    // Simulate model loading delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    
+    // Update model state to loaded
+    return { ...modelConfig, loaded: true };
+  } catch (error) {
+    console.error(`Error loading model at ${modelConfig.path}:`, error);
+    return { ...modelConfig, loaded: false };
+  }
+};
+
+// Function to initialize a specific model
+const initializeModel = async (modelPath: string, type: 'onnx' | 'tensorrt'): Promise<ModelConfig> => {
+  const modelConfig: ModelConfig = {
+    path: modelPath,
+    optimized: type === 'tensorrt',
+    loaded: false,
+    type
+  };
+  
+  return await loadModel(modelConfig);
+};
+
+// Function to initialize all models
+export const initializeAllModels = async (): Promise<AIModels> => {
+  const sharpnessModel = await initializeModel(MODEL_PATHS.sharpness.tensorrt, 'tensorrt');
+  const maskModel = await initializeModel(MODEL_PATHS.mask.tensorrt, 'tensorrt');
+  const llmModel = await initializeModel(MODEL_PATHS.llm.tensorrt, 'tensorrt');
+  
+  return {
+    sharpness: sharpnessModel,
+    mask: maskModel,
+    llm: llmModel
+  };
+};
+
+// Function to check if models are loaded
+export const areModelsLoaded = (): boolean => {
+  return loadedModels.sharpness.loaded && loadedModels.mask.loaded && loadedModels.llm.loaded;
 };
