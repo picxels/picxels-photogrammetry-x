@@ -27,3 +27,9 @@ export {
 export {
   analyzeSubjectWithLLM
 } from './ai/subjectAnalysis';
+
+// Export from fallbackUtils
+export {
+  shouldUseFallbackData,
+  notifyFallbackMode
+} from './ai/fallbackUtils';
