@@ -50,6 +50,17 @@ export const JETSON_AI_MODELS = {
     sessionDatabaseFile: "sessions.db",
     useCompression: true,
     syncInterval: 60000 // ms
+  },
+  
+  // NanoVLM configuration for optimized vision-language model
+  nanoVLM: {
+    enabled: true,
+    modelPath: "/opt/picxels/models/nanoVLM/nanoVLM-7b.engine",
+    maxImageSize: 1024, // Maximum image size for analysis
+    temperature: 0.7,
+    maxTokenLength: 512,
+    useQuantization: true,
+    promptTemplate: "Describe this object in detail. What is it?"
   }
 };
 
