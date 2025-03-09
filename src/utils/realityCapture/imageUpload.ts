@@ -39,50 +39,34 @@ export const uploadSessionImagesToRCNode = async (
       
       // For each image in the pass
       for (let imageIndex = 0; imageIndex < pass.images.length; imageIndex++) {
-        const imageIdOrObj = pass.images[imageIndex];
+        const imageRef = pass.images[imageIndex];
         
-        // Find the actual image object from session.images
-        let imageId = '';
+        // Handle different types of image references
+        let sessionImage: SessionImage | undefined;
         
-        if (typeof imageIdOrObj === 'string') {
-          imageId = imageIdOrObj;
-        } else if (imageIdOrObj && typeof imageIdOrObj === 'object' && 'id' in imageIdOrObj) {
-          imageId = imageIdOrObj.id;
-        } else {
-          console.warn(`Invalid image reference at pass ${passIndex}, index ${imageIndex}`);
-          continue;
-        }
-        
-        // Handle the case when imageIdOrObj is a string (just an ID reference)
-        // We need to find the corresponding image object from session.images
-        let actualImage: SessionImage | undefined;
-        
-        if (typeof imageIdOrObj === 'string') {
-          // Search through session.images for a matching ID
+        if (typeof imageRef === 'string') {
+          // If imageRef is a string ID, find the corresponding SessionImage object
           const foundImage = session.images.find(img => {
-            if (typeof img === 'string') {
-              return img === imageIdOrObj;
-            } else if (img && typeof img === 'object' && 'id' in img) {
-              return img.id === imageIdOrObj;
-            }
+            if (typeof img === 'string') return img === imageRef;
+            if (img && typeof img === 'object' && 'id' in img) return img.id === imageRef;
             return false;
           });
           
-          if (foundImage && typeof foundImage !== 'string' && 'id' in foundImage) {
-            actualImage = foundImage as SessionImage;
+          if (foundImage && typeof foundImage === 'object' && 'id' in foundImage) {
+            sessionImage = foundImage as SessionImage;
           }
-        } else if (imageIdOrObj && typeof imageIdOrObj === 'object' && 'id' in imageIdOrObj) {
-          // imageIdOrObj is already a SessionImage
-          actualImage = imageIdOrObj as SessionImage;
+        } else if (imageRef && typeof imageRef === 'object' && 'id' in imageRef) {
+          // If imageRef is already a SessionImage object
+          sessionImage = imageRef as SessionImage;
         }
         
-        if (!actualImage) {
-          console.warn(`Image with ID ${imageId} not found in session`);
+        if (!sessionImage) {
+          console.warn(`Could not find image data for reference at pass ${passIndex}, index ${imageIndex}`);
           continue;
         }
         
         // Convert to CapturedImage for further processing
-        const capturedImage = sessionImageToCapturedImage(actualImage);
+        const capturedImage = sessionImageToCapturedImage(sessionImage);
         
         // Generate filenames following RC conventions
         console.log(`Processing image: ${capturedImage.id} from pass ${passIndex + 1}`);
@@ -122,8 +106,7 @@ export const uploadSessionImagesToRCNode = async (
         }
         
         // If exporting masks
-        const hasImageMask = actualImage.hasMask;
-        if (settings.exportMasks && hasImageMask) {
+        if (settings.exportMasks && sessionImage.hasMask) {
           const maskFilename = generateRCFilename(
             capturedImage, 
             pass, 

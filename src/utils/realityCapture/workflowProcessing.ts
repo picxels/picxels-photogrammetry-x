@@ -90,53 +90,45 @@ export const processSessionForRealityCapture = async (
       if (!pass) continue;
       
       // Process all images in this pass
-      for (const imageIdOrObj of pass.images) {
-        // Handle both string IDs and SessionImage objects
-        let imageId = '';
-        let imageObj: SessionImage | undefined = undefined;
+      for (const imageRef of pass.images) {
+        // Handle different types of image references
+        let sessionImage: SessionImage | undefined;
         
-        if (typeof imageIdOrObj === 'string') {
-          imageId = imageIdOrObj;
-          // Find the corresponding image object
+        if (typeof imageRef === 'string') {
+          // If imageRef is a string ID, find the corresponding SessionImage object
           const foundImage = session.images.find(img => {
-            if (typeof img === 'string') {
-              return img === imageIdOrObj;
-            } else if (img && typeof img === 'object' && 'id' in img) {
-              return img.id === imageIdOrObj;
-            }
+            if (typeof img === 'string') return img === imageRef;
+            if (img && typeof img === 'object' && 'id' in img) return img.id === imageRef;
             return false;
           });
           
-          if (foundImage && typeof foundImage !== 'string' && 'id' in foundImage) {
-            imageObj = foundImage as SessionImage;
+          if (foundImage && typeof foundImage === 'object' && 'id' in foundImage) {
+            sessionImage = foundImage as SessionImage;
           }
-        } else if (imageIdOrObj && typeof imageIdOrObj === 'object' && 'id' in imageIdOrObj) {
-          imageId = imageIdOrObj.id;
-          imageObj = imageIdOrObj as SessionImage;
-        } else {
-          console.warn(`Invalid image reference in pass ${pass.id}`);
-          continue;
+        } else if (imageRef && typeof imageRef === 'object' && 'id' in imageRef) {
+          // If imageRef is already a SessionImage object
+          sessionImage = imageRef as SessionImage;
         }
         
-        if (!imageObj) {
-          console.warn(`Image with ID ${imageId} not found in session`);
+        if (!sessionImage) {
+          console.warn(`Could not find image data for reference in pass ${pass.id}`);
           continue;
         }
         
         // Now we have the full image object, process it
         if (exportSettings.exportPng) {
-          console.log(`Exporting PNG for image: ${imageId}`);
-          await exportImageAsPng(imageObj);
+          console.log(`Exporting PNG for image: ${sessionImage.id}`);
+          await exportImageAsPng(sessionImage);
         }
         
         if (exportSettings.exportTiff) {
-          console.log(`Exporting TIFF for image: ${imageId}`);
-          await exportImageAsTiff(imageObj);
+          console.log(`Exporting TIFF for image: ${sessionImage.id}`);
+          await exportImageAsTiff(sessionImage);
         }
         
-        if (exportSettings.exportMasks && imageObj.hasMask) {
-          console.log(`Exporting mask for image: ${imageId}`);
-          await exportImageMask(imageObj);
+        if (exportSettings.exportMasks && sessionImage.hasMask) {
+          console.log(`Exporting mask for image: ${sessionImage.id}`);
+          await exportImageMask(sessionImage);
         }
       }
     }
@@ -159,8 +151,6 @@ export const processSessionForRealityCapture = async (
     return false;
   }
 };
-
-// Import the SessionImage type from the types module
 
 // Helper functions to export images
 const exportImageAsPng = async (image: SessionImage): Promise<void> => {
