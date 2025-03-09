@@ -10,7 +10,7 @@ import { Dispatch, SetStateAction } from "react";
 export const useSessionImage = (
   setProcessingImages: Dispatch<SetStateAction<string[]>>
 ) => {
-  const handleImageProcessing = async (image: CapturedImage, session: Session, passId: string) => {
+  const handleImageProcessing = async (image: CapturedImage, session: Session, passId: string): Promise<Session | null> => {
     setProcessingImages((prev) => [...prev, image.id]);
       
     try {
