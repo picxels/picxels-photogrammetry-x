@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bot, Loader2, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
-import { isEfficientViTAvailable } from "@/services/efficientViTService";
+import { isEfficientViTAvailable } from "@/services/efficientViT";
 import { isNanoVLMAvailable } from "@/services/nanoVLMService";
 import { isJetsonPlatform } from "@/utils/platformUtils";
 import { AI_FEATURES } from "@/config/jetsonAI.config";
