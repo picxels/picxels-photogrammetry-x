@@ -15,18 +15,30 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, className }) => {
   const { isLoading, apiAvailable } = useCameraDetection();
   const [forceShowContent, setForceShowContent] = useState(false);
+  const [isSimulationMode, setIsSimulationMode] = useState(false);
 
-  // Force show content after 15 seconds to prevent endless loading
+  // Force show content after 10 seconds to prevent endless loading
   useEffect(() => {
     const timer = setTimeout(() => {
       if (isLoading) {
         console.log("Forcing content display after timeout");
         setForceShowContent(true);
       }
-    }, 15000);
+    }, 10000);
     
     return () => clearTimeout(timer);
   }, [isLoading]);
+
+  // Check for simulation mode settings
+  useEffect(() => {
+    const bypassApiCheck = localStorage.getItem('bypassApiCheck') === 'true';
+    const simulationMode = apiAvailable === false || 
+                           window.DEBUG_SETTINGS?.simulateCameraConnection || 
+                           window.DEBUG_SETTINGS?.apiServerError ||
+                           bypassApiCheck;
+    
+    setIsSimulationMode(simulationMode);
+  }, [apiAvailable]);
 
   return (
     <div className={cn(
@@ -42,6 +54,11 @@ const Layout: React.FC<LayoutProps> = ({ children, className }) => {
             <h1 className="text-xl font-semibold tracking-tight">PhotogrammeryX</h1>
           </div>
           <div className="flex items-center space-x-2">
+            {isSimulationMode && (
+              <div className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20">
+                Simulation Mode
+              </div>
+            )}
             <div className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
               Jetson Nano Orin
             </div>
@@ -50,12 +67,14 @@ const Layout: React.FC<LayoutProps> = ({ children, className }) => {
         </div>
       </header>
       <main className="container py-6 px-4 md:py-8 animate-fade-in">
-        {apiAvailable === false && (
+        {isSimulationMode && (
           <Alert variant="default" className="mb-4 border-yellow-500/50 bg-yellow-500/10">
             <AlertCircle className="h-4 w-4 text-yellow-500" />
-            <AlertTitle>API Unavailable</AlertTitle>
+            <AlertTitle>Simulation Mode Active</AlertTitle>
             <AlertDescription>
-              The camera control API is unavailable. Running in simulation mode.
+              {apiAvailable === false
+                ? "Using simulated data because the API server is unavailable."
+                : "Running in simulation mode with sample data."}
             </AlertDescription>
           </Alert>
         )}

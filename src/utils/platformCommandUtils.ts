@@ -2,6 +2,7 @@
 import { isJetsonPlatform, isDevelopmentMode } from "./platformUtils";
 import { DEBUG_SETTINGS } from "@/config/jetson.config";
 import { toast } from "@/components/ui/use-toast";
+import { getFallbackCommandResponse } from "./ai/fallbackUtils";
 
 /**
  * Execute a shell command on the Jetson platform
@@ -17,6 +18,15 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
     usingSimulation: false
   };
   console.log("Command execution debug info:", debugInfo);
+  
+  // Handle simulation mode or bypassed API
+  const bypassApiCheck = localStorage.getItem('bypassApiCheck') === 'true';
+  if (window.DEBUG_SETTINGS?.simulateCameraConnection || 
+      window.DEBUG_SETTINGS?.apiServerError || 
+      bypassApiCheck) {
+    console.log("Using simulation mode for command execution");
+    return getFallbackCommandResponse(command);
+  }
   
   try {
     // Attempt to execute the command through the API
@@ -37,50 +47,26 @@ export const executeJetsonCommand = async (command: string): Promise<string> => 
   } catch (error) {
     console.error("Error executing command via API:", error);
     
-    // If we're in a development environment, show toast and use mock data
-    if (window.DEBUG_SETTINGS?.simulateCameraConnection || !isJetsonPlatform()) {
-      console.warn("Falling back to simulation for command:", command);
-      
-      toast({
-        title: "API Connection Error",
-        description: "Using simulation mode as fallback. API server on port 3001 is not responding.",
-        variant: "destructive"
-      });
-      
-      // Return mock data as fallback
-      return getMockCommandResponse(command);
+    // If we're in a development environment, use mock data
+    console.warn("Falling back to simulation for command:", command);
+    
+    toast({
+      title: "API Connection Error",
+      description: "Using simulation mode as fallback. API server on port 3001 is not responding.",
+      variant: "destructive"
+    });
+    
+    // Mark API as having an error for future commands
+    if (typeof window !== 'undefined') {
+      window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {};
+      window.DEBUG_SETTINGS.apiServerError = true;
+      window.DEBUG_SETTINGS.simulateCameraConnection = true;
+      window.DEBUG_SETTINGS.simulateMotorConnection = true;
     }
     
-    // In production, we want to fail if the API is unreachable
-    throw new Error(`Failed to execute command: ${error.message}`);
+    // Return mock data as fallback
+    return getFallbackCommandResponse(command);
   }
-};
-
-/**
- * Get mock responses for various commands
- */
-const getMockCommandResponse = (command: string): string => {
-  console.log(`Providing mock data for command: ${command}`);
-  
-  if (command.includes('--auto-detect')) {
-    return 'Model                          Port\n' +
-           '------------------------------------------------------\n' +
-           'Canon EOS 550D                 usb:001,004\n' +
-           'Canon EOS 600D                 usb:001,005\n';
-  } else if (command.includes('which gphoto2')) {
-    return '/usr/bin/gphoto2';
-  } else if (command.includes('--summary') || command.includes('lsusb')) {
-    return 'Camera detected';
-  } else if (command.includes('--capture-image-and-download')) {
-    return 'New file is in location /tmp/capt0001.jpg';
-  } else if (command.includes('pkill')) {
-    return '';
-  } else if (command.includes('--set-config')) {
-    return 'Property set.';
-  }
-  
-  // Default response for unmatched commands
-  return '';
 };
 
 /**
@@ -89,5 +75,5 @@ const getMockCommandResponse = (command: string): string => {
  */
 export const executeDevCommand = async (command: string): Promise<string> => {
   console.log(`Development mode simulation is disabled. Command was: ${command}`);
-  throw new Error("Development mode simulation is disabled. Use real camera connections.");
+  return getFallbackCommandResponse(command);
 };

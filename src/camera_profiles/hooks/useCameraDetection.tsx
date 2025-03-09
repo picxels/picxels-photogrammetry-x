@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { CameraDevice } from "@/types";
 import { toast } from "@/components/ui/use-toast";
@@ -15,7 +14,6 @@ export const useCameraDetection = () => {
   const [initTimeoutId, setInitTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const [apiAvailable, setApiAvailable] = useState<boolean | null>(null);
 
-  // Check if API is available
   useEffect(() => {
     const checkApiAvailability = async () => {
       try {
@@ -27,10 +25,24 @@ export const useCameraDetection = () => {
         
         if (!response.ok) {
           console.warn('API health check failed, falling back to simulation mode');
+          
+          if (typeof window !== 'undefined') {
+            window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {};
+            window.DEBUG_SETTINGS.apiServerError = true;
+            window.DEBUG_SETTINGS.simulateCameraConnection = true;
+            window.DEBUG_SETTINGS.simulateMotorConnection = true;
+          }
         }
       } catch (error) {
         console.error('API health check error:', error);
         setApiAvailable(false);
+        
+        if (typeof window !== 'undefined') {
+          window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {};
+          window.DEBUG_SETTINGS.apiServerError = true;
+          window.DEBUG_SETTINGS.simulateCameraConnection = true;
+          window.DEBUG_SETTINGS.simulateMotorConnection = true;
+        }
       }
     };
     
@@ -39,11 +51,9 @@ export const useCameraDetection = () => {
 
   const refreshCameras = useCallback(async () => {
     try {
-      // Only set loading true during the initial fetch, not on refreshes
       if (!isRefreshing) {
         setIsLoading(true);
         
-        // Set a timeout to exit loading state even if detection fails
         const timeoutId = setTimeout(() => {
           console.log("Force exiting loading state after timeout");
           setIsLoading(false);
@@ -52,21 +62,42 @@ export const useCameraDetection = () => {
         
         setInitTimeoutId(timeoutId);
       } else {
-        // For refreshes, we use a separate state to avoid flashing the loading spinner
         setIsRefreshing(true);
       }
       
       console.log("Refreshing camera status...");
       
-      // Handle potential errors from detectCameras
+      const bypassApiCheck = localStorage.getItem('bypassApiCheck') === 'true';
+      const simulationMode = DEBUG_SETTINGS?.simulateCameraConnection || apiAvailable === false || bypassApiCheck || DEBUG_SETTINGS?.apiServerError;
+      
       let detectedCameras: CameraDevice[] = [];
       try {
-        detectedCameras = await detectCameras();
+        if (simulationMode) {
+          console.log("Using simulation mode for camera detection");
+          detectedCameras = [
+            {
+              id: "canon-001",
+              name: "Canon EOS 550D",
+              type: "DSLR",
+              port: "usb:001,004",
+              connected: true,
+              status: "ready"
+            },
+            {
+              id: "canon-002",
+              name: "Canon EOS 600D",
+              type: "DSLR",
+              port: "usb:001,005",
+              connected: true,
+              status: "ready"
+            }
+          ];
+        } else {
+          detectedCameras = await detectCameras();
+        }
       } catch (error) {
         console.error("Error during camera detection:", error);
         
-        // If detection fails completely, mark all existing cameras as disconnected
-        // rather than showing an empty list
         if (cameras.length > 0) {
           detectedCameras = cameras.map(camera => ({
             ...camera,
@@ -74,7 +105,6 @@ export const useCameraDetection = () => {
             status: "error"
           }));
         } else if (DEBUG_SETTINGS.simulateCameraConnection || apiAvailable === false) {
-          // Create some mock cameras if we're in simulation mode or API is unavailable
           detectedCameras = [
             {
               id: "canon-001",
@@ -97,6 +127,35 @@ export const useCameraDetection = () => {
           console.log("Created mock cameras since API is unavailable or simulation is enabled");
         }
         
+        if (error.message && error.message.includes("API returned status")) {
+          if (typeof window !== 'undefined') {
+            window.DEBUG_SETTINGS = window.DEBUG_SETTINGS || {};
+            window.DEBUG_SETTINGS.apiServerError = true;
+            window.DEBUG_SETTINGS.simulateCameraConnection = true;
+          }
+          
+          detectedCameras = [
+            {
+              id: "canon-001",
+              name: "Canon EOS 550D",
+              type: "DSLR",
+              port: "usb:001,004",
+              connected: true,
+              status: "ready"
+            },
+            {
+              id: "canon-002",
+              name: "Canon EOS 600D",
+              type: "DSLR",
+              port: "usb:001,005",
+              connected: true,
+              status: "ready"
+            }
+          ];
+          
+          console.log("Created mock cameras due to API error");
+        }
+        
         if (apiAvailable === false) {
           toast({
             title: "API Unavailable",
@@ -115,19 +174,15 @@ export const useCameraDetection = () => {
       setCameras(detectedCameras);
       setLastUpdateTime(new Date());
       
-      // Reset retry count on successful detection
       setErrorRetryCount(0);
       setHasInitialized(true);
       
-      // Clear the timeout if detection completes successfully
       if (initTimeoutId) {
         clearTimeout(initTimeoutId);
         setInitTimeoutId(null);
       }
       
-      // Only show toast notifications after the first initialization
       if (hasInitialized && apiAvailable !== false) {
-        // Show toast with detection results
         if (detectedCameras.length === 0) {
           toast({
             title: "No Cameras Detected",
@@ -152,12 +207,10 @@ export const useCameraDetection = () => {
     } catch (error) {
       console.error("Failed to detect cameras:", error);
       
-      // Increment retry count
       const newRetryCount = errorRetryCount + 1;
       setErrorRetryCount(newRetryCount);
       setHasInitialized(true);
       
-      // Show error message with retry information
       if (hasInitialized && apiAvailable !== false) {
         toast({
           title: "Camera Detection Failed",
@@ -166,18 +219,15 @@ export const useCameraDetection = () => {
         });
       }
       
-      // Provide suggestions for troubleshooting
       toast({
         title: "Troubleshooting Suggestions",
         description: "1. Ensure cameras are powered on.\n2. Check USB connections.\n3. Restart the application.",
         variant: "default"
       });
     } finally {
-      // Always reset both loading states
       setIsLoading(false);
       setIsRefreshing(false);
       
-      // Clear timeout if it's still active
       if (initTimeoutId) {
         clearTimeout(initTimeoutId);
         setInitTimeoutId(null);
@@ -185,7 +235,6 @@ export const useCameraDetection = () => {
     }
   }, [cameras, errorRetryCount, hasInitialized, isRefreshing, initTimeoutId, apiAvailable]);
 
-  // Clean up timeout on unmount
   useEffect(() => {
     return () => {
       if (initTimeoutId) {
@@ -194,9 +243,7 @@ export const useCameraDetection = () => {
     };
   }, [initTimeoutId]);
 
-  // Make sure cameras are properly showing disconnected status even when detection fails
   useEffect(() => {
-    // Handle DEBUG_SETTINGS.forceDisableAllCameras
     if (DEBUG_SETTINGS?.forceDisableAllCameras && cameras.length > 0) {
       setCameras(cameras.map(camera => ({
         ...camera,
