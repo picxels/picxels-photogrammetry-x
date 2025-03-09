@@ -101,7 +101,7 @@ export const cropToSquare = async (
 export const analyzeImageWithNanoVLM = async (
   image: CapturedImage
 ): Promise<AnalysisResult> => {
-  console.log(`Analyzing image with Nano-VLM: ${image.path}`);
+  console.log(`Analyzing image with Nano-VLM: ${image.filePath || image.path}`);
   
   if (!(await isNanoVLMAvailable())) {
     throw new Error("Nano-VLM model is not available");
@@ -111,7 +111,7 @@ export const analyzeImageWithNanoVLM = async (
     const startTime = performance.now();
     
     // Prepare image for analysis (resize)
-    const resizedImagePath = await prepareImageForAnalysis(image.path);
+    const resizedImagePath = await prepareImageForAnalysis(image.filePath || image.path || '');
     
     // Set up paths for output JSON
     const outputDir = `/tmp/picxels/analysis`;
@@ -169,6 +169,7 @@ export const analyzeImageWithNanoVLM = async (
       console.log("Using mock analysis result:", mockResponse);
       
       return {
+        subjectMatter: mockResponse.subject,
         subject: mockResponse.subject,
         confidence: mockResponse.confidence,
         description: mockResponse.description,
@@ -203,6 +204,7 @@ export const analyzeImageWithNanoVLM = async (
     
     // Convert to our application's AnalysisResult format
     return {
+      subjectMatter: nanoVLMResponse.subject,
       subject: nanoVLMResponse.subject,
       confidence: nanoVLMResponse.confidence,
       description: nanoVLMResponse.description,
@@ -220,6 +222,7 @@ export const analyzeImageWithNanoVLM = async (
     
     // Return fallback result
     return {
+      subjectMatter: "Unknown Object",
       subject: "Unknown Object",
       confidence: 0,
       description: "Analysis failed. The object could not be identified.",
@@ -240,7 +243,7 @@ export const generateSessionNameWithNanoVLM = async (
     
     // Generate name with date
     const date = new Date().toISOString().split('T')[0];
-    return `${analysis.subject} - ${date}`;
+    return `${analysis.subjectMatter} - ${date}`;
   } catch (error) {
     console.error("Error generating session name:", error);
     

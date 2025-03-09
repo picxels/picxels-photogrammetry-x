@@ -63,8 +63,9 @@ export const captureImage = async (
       
       const image: CapturedImage = {
         id: `img-${timestamp}`,
+        filePath: filePath,
+        path: filePath,  // For backward compatibility
         sessionId,
-        path: filePath,
         timestamp,
         camera: cameraId,
         angle,

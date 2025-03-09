@@ -1,5 +1,5 @@
 
-import { Session, CapturedImage } from "@/types";
+import { Session, CapturedImage, SessionImage } from "@/types";
 import { processImage } from "@/utils/imageProcessingUtils";
 import { toast } from "@/components/ui/use-toast";
 import { getSessionById } from "@/services/sessionDatabaseService";
@@ -27,26 +27,29 @@ export const useSessionImage = (
             if (pass.id === passId) {
               return {
                 ...pass,
-                images: pass.images.map(img => 
-                  img.id === processedImage.id ? processedImage : img
+                images: pass.images.map(imgId => 
+                  imgId === processedImage.id ? processedImage.id : imgId
                 )
               };
             }
             return pass;
           });
           
-          // Convert CapturedImage to ImageData for the session.images array
+          // Create a SessionImage from the processed CapturedImage
           const updatedImages = refreshedSession.images.map((img) => {
             if (img.id === processedImage.id) {
-              // Create a new ImageData from the processed CapturedImage
+              // Create a SessionImage from the processed CapturedImage
               return {
                 id: processedImage.id,
-                url: processedImage.previewUrl,
+                filename: processedImage.path?.split('/').pop() || `img_${Date.now()}.jpg`,
+                filePath: processedImage.filePath || processedImage.path || '',
                 camera: processedImage.camera,
-                angle: processedImage.angle || 0,
-                timestamp: new Date(processedImage.timestamp),
-                hasMask: processedImage.hasMask
-              };
+                angle: processedImage.angle?.toString() || "0",
+                dateCaptured: processedImage.timestamp,
+                maskPath: processedImage.maskedPath,
+                analyzed: true,
+                qualityScore: processedImage.sharpness
+              } as SessionImage;
             }
             return img;
           });
@@ -55,7 +58,9 @@ export const useSessionImage = (
           const updatedSession: Session = {
             ...refreshedSession,
             images: updatedImages,
-            passes: updatedPasses
+            passes: updatedPasses,
+            updatedAt: Date.now(),
+            dateModified: Date.now()
           };
           
           // Update session

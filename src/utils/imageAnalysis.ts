@@ -20,7 +20,7 @@ const ensureModelsInitialized = async () => {
 export const analyzeImageSubject = async (
   image: CapturedImage
 ): Promise<AnalysisResult> => {
-  console.log(`Analyzing image: ${image.path}`);
+  console.log(`Analyzing image: ${image.filePath || image.path}`);
   
   // Check if we should use Nano-VLM for enhanced analysis
   if (isJetsonPlatform() && AI_FEATURES.smartSubjectAnalysis) {
@@ -45,10 +45,11 @@ export const analyzeImageSubject = async (
   
   try {
     // Use the local LLM model via analyzeSubjectWithLLM
-    const analysis = await analyzeSubjectWithLLM(image.path);
+    const analysis = await analyzeSubjectWithLLM(image.filePath || image.path || '');
     
     // Convert to AnalysisResult format
     const result: AnalysisResult = {
+      subjectMatter: analysis.subject,
       subject: analysis.subject,
       description: analysis.description,
       confidence: 0.92, // Mock confidence score
@@ -63,24 +64,28 @@ export const analyzeImageSubject = async (
     // Fallback to mock results if model fails
     const mockResults: AnalysisResult[] = [
       {
+        subjectMatter: "House Model",
         subject: "House Model",
         confidence: 0.94,
         description: "A detailed architectural model of a single-family residential house with modern design elements. The model appears to be a scale representation, likely created for architectural presentation or planning purposes.",
         tags: ["architecture", "building", "house", "residential", "3d model"]
       },
       {
+        subjectMatter: "Vintage Camera",
         subject: "Vintage Camera",
         confidence: 0.87,
         description: "A mid-20th century film camera with metal body and manual controls. The design suggests it's from approximately the 1950s-1960s era, possibly a rangefinder or SLR model from a European or Japanese manufacturer.",
         tags: ["camera", "vintage", "photography", "equipment", "analog"]
       },
       {
+        subjectMatter: "Ceramic Vase",
         subject: "Ceramic Vase",
         confidence: 0.92,
         description: "A hand-crafted ceramic vase with a glazed exterior featuring an organic, flowing pattern. The piece shows signs of traditional pottery techniques, with a rounded body and narrow neck typical of functional decorative vessels.",
         tags: ["vase", "ceramic", "pottery", "decoration", "handmade"]
       },
       {
+        subjectMatter: "Chess Piece",
         subject: "Chess Piece",
         confidence: 0.89,
         description: "A carved wooden knight chess piece with intricate detailing. The piece displays classical Western chess design elements, with the distinctive horse head profile and base size proportional to standard tournament specifications.",
@@ -97,7 +102,7 @@ export const analyzeImageSubject = async (
 // Function to generate a suggested name based on analysis
 export const generateSessionName = (result: AnalysisResult): string => {
   const date = new Date().toISOString().split('T')[0];
-  return `${result.subject} - ${date}`;
+  return `${result.subjectMatter} - ${date}`;
 };
 
 // Function to handle subject analysis and session renaming
@@ -118,13 +123,13 @@ export const analyzeAndRenameSession = async (
       
       toast({
         title: "Analysis Complete",
-        description: `Detected: ${result.subject} (${Math.round(result.confidence * 100)}% confidence)`,
+        description: `Detected: ${result.subjectMatter} (${Math.round(result.confidence * 100)}% confidence)`,
       });
       
       // Update session with analysis results
       const updatedSession = await updateSessionMetadata(session.id, {
         name: suggestedName,
-        subjectMatter: result.subject,
+        subjectMatter: result.subjectMatter,
         description: result.description,
         tags: result.tags
       });

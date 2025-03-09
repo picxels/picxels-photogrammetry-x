@@ -10,8 +10,10 @@ export const createSession = async (name: string = "New Session"): Promise<Sessi
   const session: Session = {
     id: `session-${timestamp}`,
     name,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    dateCreated: timestamp,
+    dateModified: timestamp,
+    createdAt: timestamp,
+    updatedAt: timestamp,
     images: [],
     passes: [initialPass],
     status: SessionStatus.INITIALIZING,
@@ -28,6 +30,8 @@ export const createNewPass = (name: string = "New Pass"): Pass => {
     id: `pass-${timestamp}`,
     name,
     timestamp,
+    dateCreated: timestamp,
+    dateModified: timestamp,
     images: [],
     completed: false
   };
@@ -38,7 +42,8 @@ export const addPassToSession = async (session: Session, passName: string): Prom
   const updatedSession = {
     ...session,
     passes: [...session.passes, newPass],
-    updatedAt: new Date()
+    updatedAt: Date.now(),
+    dateModified: Date.now()
   };
   
   return await updateSession(updatedSession);
@@ -52,40 +57,50 @@ export const addImageToPass = async (
   // First add the image to the pass within the session object
   const passes = session.passes.map(pass => {
     if (pass.id === passId) {
-      const images = [...pass.images, image];
-      const totalSharpness = images.reduce((sum, img) => sum + (img.sharpness || 0), 0);
-      const averageSharpness = images.length > 0 ? Math.round(totalSharpness / images.length) : 0;
+      const imageIds = [...pass.images, image.id];
+      const currentImages = pass.images.map(imgId => {
+        return typeof imgId === 'string' ? imgId : imgId.id;
+      });
+      const allImages = [...currentImages, image.id];
+      
+      const totalSharpness = session.images
+        .filter(img => allImages.includes(img.id))
+        .reduce((sum, img) => sum + (img.qualityScore || 0), 0);
+      
+      const averageSharpness = allImages.length > 0 ? Math.round(totalSharpness / allImages.length) : 0;
       
       return {
         ...pass,
-        images,
+        images: imageIds,
         imageQuality: averageSharpness
       };
     }
     return pass;
   });
   
-  const newImageData: ImageData = {
+  // Create a SessionImage from the CapturedImage
+  const newImageData: SessionImage = {
     id: image.id,
-    url: image.previewUrl,
+    filename: image.path?.split('/').pop() || `img_${Date.now()}.jpg`,
+    filePath: image.filePath || image.path || '',
     camera: image.camera,
-    angle: image.angle || 0,
-    timestamp: new Date(image.timestamp),
-    hasMask: image.hasMask
+    angle: image.angle?.toString() || "0",
+    dateCaptured: image.timestamp
   };
   
   const allImages = [...session.images, newImageData];
   
-  const allPassImages = passes.flatMap(pass => pass.images);
-  const totalSharpness = allPassImages.reduce((sum, img) => sum + (img.sharpness || 0), 0);
-  const averageSharpness = allPassImages.length > 0 ? Math.round(totalSharpness / allPassImages.length) : 0;
+  // Calculate average sharpness for all session images
+  const totalSessionSharpness = allImages.reduce((sum, img) => sum + (img.qualityScore || 0), 0);
+  const averageSessionSharpness = allImages.length > 0 ? Math.round(totalSessionSharpness / allImages.length) : 0;
   
   const updatedSession = {
     ...session,
     passes,
     images: allImages,
-    imageQuality: averageSharpness,
-    updatedAt: new Date()
+    imageQuality: averageSessionSharpness,
+    updatedAt: Date.now(),
+    dateModified: Date.now()
   };
   
   // If this is the first image captured and session is still initializing,
@@ -107,7 +122,8 @@ export const renameSession = async (
   const updatedSession = {
     ...session,
     name: newName,
-    updatedAt: new Date()
+    updatedAt: Date.now(),
+    dateModified: Date.now()
   };
   
   return await updateSession(updatedSession);
@@ -125,7 +141,8 @@ export const renamePass = async (
   const updatedSession = {
     ...session,
     passes,
-    updatedAt: new Date()
+    updatedAt: Date.now(),
+    dateModified: Date.now()
   };
   
   return await updateSession(updatedSession);
@@ -142,7 +159,8 @@ export const completePass = async (
   const updatedSession = {
     ...session,
     passes,
-    updatedAt: new Date()
+    updatedAt: Date.now(),
+    dateModified: Date.now()
   };
   
   // If all passes are completed, mark session as completed
@@ -162,7 +180,8 @@ export const processSessionImages = async (
   const updatedSession = {
     ...session,
     status: SessionStatus.PROCESSING,
-    updatedAt: new Date()
+    updatedAt: Date.now(),
+    dateModified: Date.now()
   };
   
   return await updateSession(updatedSession);

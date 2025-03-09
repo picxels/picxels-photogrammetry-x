@@ -37,13 +37,14 @@ export interface Workflow {
   stages: WorkflowStage[];
   createdAt: number;
   updatedAt: number;
-  workflow_name: string; // Changed to required for compatibility with workflow.ts
+  workflow_name: string; // Required for compatibility with workflow.ts
 }
 
 export interface WorkflowStage {
   id: string;
   name: string;
-  commands: RCCommand[]; // Changed from string[] to RCCommand[]
+  commands: RCCommand[]; // RCCommand objects instead of strings
+  description?: string; // Adding description field for compatibility
 }
 
 export interface WorkflowFile {
@@ -100,8 +101,8 @@ export interface Session {
   previewImage?: string;
   processedModels?: ProcessedModel[];
   status?: SessionStatus;
-  updatedAt?: number; // Changed from Date to number
-  createdAt?: number; // Changed from Date to number
+  updatedAt?: number; // Using number instead of Date
+  createdAt?: number; // Using number instead of Date
   description?: string;
   tags?: string[];
   processed?: boolean;
@@ -154,7 +155,8 @@ export interface CapturedImage {
   maskedPath?: string;
   sessionId?: string;
   tiffPath?: string;
-  originalPath?: string; // Added for compatibility
+  originalPath?: string;
+  jpegPath?: string; // Adding missing property for efficientViTService
 }
 
 export interface ImageData {
@@ -164,9 +166,9 @@ export interface ImageData {
   angle: number;
   timestamp: Date;
   hasMask?: boolean;
-  filename?: string; // Added for compatibility
-  filePath?: string; // Added for compatibility
-  dateCaptured?: number; // Added for compatibility
+  filename?: string;
+  filePath?: string;
+  dateCaptured?: number;
 }
 
 export interface MotorPosition {
@@ -182,16 +184,17 @@ export interface MotorSettings {
   acceleration?: number;
   connected?: boolean;
   stepSize?: number;
-  scanSteps?: number; // Added for compatibility
+  scanSteps?: number;
+  pauseTimeBetweenSteps?: number; // Adding missing property for motorControl.ts
 }
 
 export interface AnalysisResult {
-  subjectMatter: string;
+  subjectMatter: string; // Main property for subject
   description: string;
   tags: string[];
   confidence: number;
   subject?: string; // For compatibility
-  metadata?: Record<string, any>; // Added for compatibility
+  metadata?: Record<string, any>;
 }
 
 export interface RCCommand {
@@ -206,7 +209,7 @@ export interface ExportSettings {
   includeTextures: boolean;
   textureSize?: number;
   outputPath: string;
-  exportPng?: boolean; // Added for compatibility
+  exportPng?: boolean;
   exportTiff?: boolean;
   exportMasks?: boolean;
   sendToRealityCapture?: boolean;
@@ -215,6 +218,6 @@ export interface ExportSettings {
 export interface SessionDatabase {
   sessions: Session[];
   lastOpened: string | null;
-  lastUpdated?: number; // Changed from Date to number
-  version?: string; // Added for compatibility
+  lastUpdated?: number; // Using number instead of Date
+  version?: string;
 }

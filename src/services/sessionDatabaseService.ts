@@ -8,7 +8,8 @@ import { isJetsonPlatform } from "@/utils/platformUtils";
 // In-memory database (for non-Jetson platforms or as a cache)
 let sessionDatabase: SessionDatabase = {
   sessions: [],
-  lastUpdated: new Date(),
+  lastOpened: null,
+  lastUpdated: Date.now(),
   version: "1.0.0"
 };
 
@@ -61,7 +62,7 @@ export const initSessionDatabase = async (): Promise<void> => {
  */
 export const saveSessionDatabase = async (): Promise<void> => {
   try {
-    sessionDatabase.lastUpdated = new Date();
+    sessionDatabase.lastUpdated = Date.now();
     
     const dbPath = getDbFilePath();
     const jsonData = JSON.stringify(sessionDatabase, null, 2);
@@ -106,17 +107,21 @@ export const loadSessionDatabase = async (): Promise<void> => {
     try {
       const parsedData = JSON.parse(jsonData);
       
-      // Convert date strings back to Date objects
-      parsedData.lastUpdated = new Date(parsedData.lastUpdated);
+      // Convert date strings back to numbers if they were stored as ISO strings
+      parsedData.lastUpdated = typeof parsedData.lastUpdated === 'string' 
+        ? new Date(parsedData.lastUpdated).getTime() 
+        : parsedData.lastUpdated;
       
       parsedData.sessions = parsedData.sessions.map((session: any) => ({
         ...session,
-        createdAt: new Date(session.createdAt),
-        updatedAt: new Date(session.updatedAt),
-        processingDate: session.processingDate ? new Date(session.processingDate) : undefined,
+        createdAt: typeof session.createdAt === 'string' ? new Date(session.createdAt).getTime() : session.createdAt,
+        updatedAt: typeof session.updatedAt === 'string' ? new Date(session.updatedAt).getTime() : session.updatedAt,
+        processingDate: session.processingDate ? 
+          (typeof session.processingDate === 'string' ? new Date(session.processingDate).getTime() : session.processingDate) 
+          : undefined,
         images: session.images.map((img: any) => ({
           ...img,
-          timestamp: new Date(img.timestamp)
+          dateCaptured: typeof img.dateCaptured === 'string' ? new Date(img.dateCaptured).getTime() : img.dateCaptured
         }))
       }));
       
@@ -133,7 +138,8 @@ export const loadSessionDatabase = async (): Promise<void> => {
       // Create new database if parsing fails
       sessionDatabase = {
         sessions: [],
-        lastUpdated: new Date(),
+        lastOpened: null,
+        lastUpdated: Date.now(),
         version: "1.0.0"
       };
       
@@ -168,10 +174,13 @@ export const getSessionById = (sessionId: string): Session | undefined => {
  */
 export const addSession = async (session: Session): Promise<Session> => {
   // Ensure session has required fields
+  const timestamp = Date.now();
   const sessionToAdd = {
     ...session,
-    createdAt: session.createdAt || new Date(),
-    updatedAt: session.updatedAt || new Date(),
+    createdAt: session.createdAt || timestamp,
+    updatedAt: session.updatedAt || timestamp,
+    dateCreated: session.dateCreated || timestamp,
+    dateModified: session.dateModified || timestamp,
     status: session.status || SessionStatus.INITIALIZING,
     images: session.images || [],
     passes: session.passes || [],
@@ -186,7 +195,7 @@ export const addSession = async (session: Session): Promise<Session> => {
   
   // Sort by updated date (newest first)
   sessionDatabase.sessions.sort((a, b) => 
-    b.updatedAt.getTime() - a.updatedAt.getTime()
+    (b.updatedAt || 0) - (a.updatedAt || 0)
   );
   
   // Save changes
@@ -208,10 +217,13 @@ export const updateSession = async (session: Session): Promise<Session> => {
     throw new Error(`Session with ID ${session.id} not found`);
   }
   
+  const timestamp = Date.now();
+  
   // Update session
   sessionDatabase.sessions[existingSessionIndex] = {
     ...session,
-    updatedAt: new Date()
+    updatedAt: timestamp,
+    dateModified: timestamp
   };
   
   // Save changes
@@ -252,34 +264,43 @@ export const addImageToSession = async (
     throw new Error(`No active pass found for session ${sessionId}`);
   }
   
-  // Add image to the pass
-  session.passes[activePassIndex].images.push(image);
+  // Add image ID to the pass
+  const updatedPasses = [...session.passes];
+  updatedPasses[activePassIndex] = {
+    ...updatedPasses[activePassIndex],
+    images: [...updatedPasses[activePassIndex].images, image.id]
+  };
   
   // Also add to session images array for quick access
-  session.images.push({
+  const newSessionImage = {
     id: image.id,
-    url: image.previewUrl,
+    filename: image.path?.split('/').pop() || `img_${Date.now()}.jpg`,
+    filePath: image.filePath || image.path || '',
     camera: image.camera,
-    angle: image.angle || 0,
-    timestamp: new Date(image.timestamp),
-    hasMask: image.hasMask
-  });
+    angle: image.angle?.toString() || "0",
+    dateCaptured: image.timestamp
+  };
   
-  // Update session
-  session.updatedAt = new Date();
+  const updatedSession = {
+    ...session,
+    passes: updatedPasses,
+    images: [...session.images, newSessionImage],
+    updatedAt: Date.now(),
+    dateModified: Date.now()
+  };
   
   // If this is the first image and session is still initializing, 
   // update status to initialized
   if (session.status === SessionStatus.INITIALIZING && session.images.length === 1) {
-    session.status = SessionStatus.INITIALIZED;
+    updatedSession.status = SessionStatus.INITIALIZED;
   } else if (session.status === SessionStatus.INITIALIZED && session.images.length > 1) {
-    session.status = SessionStatus.IN_PROGRESS;
+    updatedSession.status = SessionStatus.IN_PROGRESS;
   }
   
   // Save changes
-  await updateSession(session);
+  await updateSession(updatedSession);
   
-  return session;
+  return updatedSession;
 };
 
 /**
@@ -295,19 +316,24 @@ export const updateSessionStatus = async (
     throw new Error(`Session with ID ${sessionId} not found`);
   }
   
-  session.status = status;
-  session.updatedAt = new Date();
+  const timestamp = Date.now();
+  const updatedSession = {
+    ...session,
+    status,
+    updatedAt: timestamp,
+    dateModified: timestamp
+  };
   
   // If status is PROCESSED, update processed flag
   if (status === SessionStatus.PROCESSED) {
-    session.processed = true;
-    session.processingDate = new Date();
+    updatedSession.processed = true;
+    updatedSession.processingDate = timestamp;
   }
   
   // Save changes
-  await updateSession(session);
+  await updateSession(updatedSession);
   
-  return session;
+  return updatedSession;
 };
 
 /**
@@ -329,17 +355,19 @@ export const updateSessionMetadata = async (
   }
   
   // Update metadata fields
-  if (metadata.name) session.name = metadata.name;
-  if (metadata.subjectMatter) session.subjectMatter = metadata.subjectMatter;
-  if (metadata.description) session.description = metadata.description;
-  if (metadata.tags) session.tags = metadata.tags;
+  const updatedSession = { ...session };
+  if (metadata.name) updatedSession.name = metadata.name;
+  if (metadata.subjectMatter) updatedSession.subjectMatter = metadata.subjectMatter;
+  if (metadata.description) updatedSession.description = metadata.description;
+  if (metadata.tags) updatedSession.tags = metadata.tags;
   
-  session.updatedAt = new Date();
+  updatedSession.updatedAt = Date.now();
+  updatedSession.dateModified = Date.now();
   
   // Save changes
-  await updateSession(session);
+  await updateSession(updatedSession);
   
-  return session;
+  return updatedSession;
 };
 
 // Initialize database when this module is imported

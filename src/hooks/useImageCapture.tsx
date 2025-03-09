@@ -69,14 +69,15 @@ export const useImageCapture = (
       
       const updatedPasses = session.passes.map(pass => ({
         ...pass,
-        images: pass.images.filter(img => img.id !== imageId)
+        images: pass.images.filter(imgId => imgId !== imageId)
       }));
       
       const updatedSession = {
         ...session,
         images: updatedImages,
         passes: updatedPasses,
-        updatedAt: new Date()
+        updatedAt: Date.now(),
+        dateModified: Date.now()
       };
       
       // Update session in database
