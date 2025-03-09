@@ -15,25 +15,29 @@ export const JETSON_AI_MODELS = {
     enabled: true,
     modelPath: "/opt/picxels/models/efficientViT/efficientViT-L1.engine",
     modelType: "tensorrt",
-    inputSize: 512, // Input resolution
+    inputSize: 1024, // Updated input resolution to 1024x1024
+    outputSize: 3456, // Output size for final masks
     confidenceThreshold: 0.75,
     useMetadataCache: true
   },
   
-  // Nano-VLM model paths and configurations
+  // Nano-VLM model paths and configurations - updated for VILA1.5-8B
   nanoVLM: {
     enabled: true,
-    modelPath: "/opt/picxels/models/nanovlm/nanovlm.engine",
+    modelPath: "/opt/picxels/models/nanovlm/vila_llama3_8b.engine",
     modelType: "tensorrt",
-    maxTokenLength: 512,
+    maxTokenLength: 2048,
     temperature: 0.7,
-    useQuantization: true
+    useQuantization: true,
+    maxImageSize: 1024, // Resize image to this size for inference
+    model: "Efficient-Large-Model/Llama-3-VILA1.5-8B" // Model identifier
   },
   
   // NanoDB configuration for optimized local data storage
   nanoDB: {
-    enabled: false, // Not implemented in first phase
+    enabled: true, // Enabled for session database
     databasePath: "/opt/picxels/data/nanodb",
+    sessionDatabaseFile: "sessions.db",
     useCompression: true,
     syncInterval: 60000 // ms
   }
@@ -59,9 +63,46 @@ export const AI_FEATURES = {
   smartSubjectAnalysis: true, // Use Nano-VLM for subject analysis
   backgroundRemoval: true, // Improved background removal using EfficientViT
   objectQualityAssessment: true, // Quality assessment of the subject
-  realTimeFeedback: false, // Not implemented in first phase
-  sessionMetadataGeneration: false, // Not implemented in first phase
-  naturalLanguageCommands: false // Not implemented in first phase
+  realTimeFeedback: true, // Provide AI feedback during capture
+  sessionMetadataGeneration: true, // Generate metadata for sessions
+  naturalLanguageCommands: false, // Not implemented in first phase
+  imageBatchProcessing: true, // Process multiple images at once
+  imageResizing: true, // Automatically resize images
+  imageCropping: true, // Automatically crop images to square
+  saveOriginalFiles: true // Keep original files after processing
+};
+
+// Image processing settings
+export const IMAGE_PROCESSING = {
+  finalImageSize: 3456, // Final size for processed images (3456x3456)
+  jpegQuality: 95, // Quality for JPEG exports
+  tiffCompression: "LZW", // Compression for TIFF files
+  preserveExif: true, // Keep EXIF data in processed images
+  colorProfilePath: "/opt/picxels/color_profiles", // Path to color profiles
+  cropToSquare: true, // Crop images to square
+  tempDir: "/tmp/picxels/processing", // Temporary directory for processing
+  outputDir: "/opt/picxels/sessions", // Output directory for sessions
+  createSubfolders: true, // Create subfolders for different formats
+  folderStructure: {
+    original: "original",
+    tiff: "tiff_16bit",
+    jpeg: "jpeg_8bit",
+    masks: "masks",
+    thumbnails: "thumbnails"
+  }
+};
+
+// Capture settings
+export const CAPTURE_SETTINGS = {
+  angleIncrement: 5.625, // 360/64 = 5.625 degrees per step
+  totalImages: 64, // 64 images for complete 360 rotation
+  triggerDelay: 500, // ms to wait after motor movement before capture
+  stabilizationDelay: 1000, // ms to wait for camera/subject to stabilize
+  maxConcurrentCaptures: 2, // Maximum concurrent camera captures
+  autoFocusBeforeCapture: true, // Trigger autofocus before each capture
+  verifyImageAfterCapture: true, // Check image quality after capture
+  retryFailedCaptures: true, // Retry if capture fails
+  maxRetries: 3 // Maximum number of retries
 };
 
 // Debugging and development options
@@ -70,5 +111,7 @@ export const AI_DEBUG_OPTIONS = {
   saveIntermediateResults: false,
   visualizeSegmentation: true,
   logMemoryUsage: true,
-  profiling: false
+  profiling: false,
+  mockAIResponses: false, // Set to true for testing without actual AI
+  mockResponseDelay: 1500, // Simulated processing time in ms
 };

@@ -7,7 +7,7 @@ import RCNodeConfig from "@/components/RCNodeConfig";
 import FileManager from "@/camera_profiles/FileManager";
 import SubjectAnalysis from "@/camera_profiles/SubjectAnalysis";
 import PassControls from "@/components/PassControls";
-import { Session, MotorPosition, CapturedImage, AnalysisResult, RCNodeConfig as RCNodeConfigType } from "@/types";
+import { Session, MotorPosition, CapturedImage, RCNodeConfig as RCNodeConfigType } from "@/types";
 
 interface CaptureTabProps {
   session: Session;
@@ -25,7 +25,7 @@ interface CaptureTabProps {
   onSwitchPass: (passId: string) => void;
   onNewPass: () => void;
   onDeleteImage: (imageId: string) => void;
-  onAnalysisComplete: (result: AnalysisResult, suggestedName: string) => void;
+  onSessionUpdated: (session: Session) => void;
   onSessionNameChange: (name: string) => void;
   onSessionRefresh: () => void;
   onRCNodeConnectionChange: (isConnected: boolean, config?: RCNodeConfigType) => void;
@@ -47,7 +47,7 @@ const CaptureTab: React.FC<CaptureTabProps> = ({
   onSwitchPass,
   onNewPass,
   onDeleteImage,
-  onAnalysisComplete,
+  onSessionUpdated,
   onSessionNameChange,
   onSessionRefresh,
   onRCNodeConnectionChange
@@ -97,8 +97,9 @@ const CaptureTab: React.FC<CaptureTabProps> = ({
         
         <SubjectAnalysis 
           image={analyzedImage}
-          onAnalysisComplete={onAnalysisComplete}
-          disabled={session.subjectMatter !== undefined}
+          session={session}
+          onSessionUpdated={onSessionUpdated}
+          disabled={!!session.subjectMatter}
         />
       </div>
     </div>

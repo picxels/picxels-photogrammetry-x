@@ -1,10 +1,11 @@
 
-import { AnalysisResult, CapturedImage } from "@/types";
+import { AnalysisResult, CapturedImage, Session, SessionStatus } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { analyzeSubjectWithLLM, initializeAIModels } from "./jetsonAI";
 import { isJetsonPlatform } from "./platformUtils";
 import { AI_FEATURES } from "@/config/jetsonAI.config";
 import { analyzeImageWithNanoVLM, isNanoVLMAvailable } from "@/services/nanoVLMService";
+import { updateSessionMetadata } from "@/services/sessionDatabaseService";
 
 // Initialize models on module load
 let modelsInitialized = false;
@@ -49,6 +50,7 @@ export const analyzeImageSubject = async (
     // Convert to AnalysisResult format
     const result: AnalysisResult = {
       subject: analysis.subject,
+      description: analysis.description,
       confidence: 0.92, // Mock confidence score
       tags: analysis.tags
     };
@@ -63,21 +65,25 @@ export const analyzeImageSubject = async (
       {
         subject: "House Model",
         confidence: 0.94,
+        description: "A detailed architectural model of a single-family residential house with modern design elements. The model appears to be a scale representation, likely created for architectural presentation or planning purposes.",
         tags: ["architecture", "building", "house", "residential", "3d model"]
       },
       {
         subject: "Vintage Camera",
         confidence: 0.87,
+        description: "A mid-20th century film camera with metal body and manual controls. The design suggests it's from approximately the 1950s-1960s era, possibly a rangefinder or SLR model from a European or Japanese manufacturer.",
         tags: ["camera", "vintage", "photography", "equipment", "analog"]
       },
       {
         subject: "Ceramic Vase",
         confidence: 0.92,
+        description: "A hand-crafted ceramic vase with a glazed exterior featuring an organic, flowing pattern. The piece shows signs of traditional pottery techniques, with a rounded body and narrow neck typical of functional decorative vessels.",
         tags: ["vase", "ceramic", "pottery", "decoration", "handmade"]
       },
       {
         subject: "Chess Piece",
         confidence: 0.89,
+        description: "A carved wooden knight chess piece with intricate detailing. The piece displays classical Western chess design elements, with the distinctive horse head profile and base size proportional to standard tournament specifications.",
         tags: ["chess", "game", "figure", "strategy", "piece"]
       }
     ];
@@ -91,14 +97,14 @@ export const analyzeImageSubject = async (
 // Function to generate a suggested name based on analysis
 export const generateSessionName = (result: AnalysisResult): string => {
   const date = new Date().toISOString().split('T')[0];
-  return `${result.subject} Scan - ${date}`;
+  return `${result.subject} - ${date}`;
 };
 
 // Function to handle subject analysis and session renaming
 export const analyzeAndRenameSession = async (
   image: CapturedImage,
-  onRename: (name: string) => void
-): Promise<void> => {
+  session: Session
+): Promise<Session> => {
   try {
     toast({
       title: "Analyzing Image",
@@ -115,13 +121,23 @@ export const analyzeAndRenameSession = async (
         description: `Detected: ${result.subject} (${Math.round(result.confidence * 100)}% confidence)`,
       });
       
-      onRename(suggestedName);
+      // Update session with analysis results
+      const updatedSession = await updateSessionMetadata(session.id, {
+        name: suggestedName,
+        subjectMatter: result.subject,
+        description: result.description,
+        tags: result.tags
+      });
+      
+      return updatedSession;
     } else {
       toast({
         title: "Analysis Inconclusive",
         description: "Could not detect subject with high confidence.",
         variant: "destructive"
       });
+      
+      return session;
     }
   } catch (error) {
     console.error("Error analyzing image:", error);
@@ -130,5 +146,7 @@ export const analyzeAndRenameSession = async (
       description: "Failed to analyze image subject.",
       variant: "destructive"
     });
+    
+    return session;
   }
 };

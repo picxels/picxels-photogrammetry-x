@@ -43,6 +43,59 @@ export const isNanoVLMAvailable = async (): Promise<boolean> => {
 };
 
 /**
+ * Resize and prepare image for Nano-VLM analysis
+ */
+export const prepareImageForAnalysis = async (
+  imagePath: string
+): Promise<string> => {
+  try {
+    // Create a resized version of the image for analysis
+    const outputDir = `/tmp/picxels/analysis/resized`;
+    const resizedFilename = `${Date.now()}_resized.jpg`;
+    const resizedPath = `${outputDir}/${resizedFilename}`;
+    
+    // Ensure output directory exists
+    await executeCommand(`mkdir -p ${outputDir}`);
+    
+    // Resize image to the max size specified in config
+    const maxSize = JETSON_AI_MODELS.nanoVLM.maxImageSize;
+    await executeCommand(`convert "${imagePath}" -resize ${maxSize}x${maxSize}\\> "${resizedPath}"`);
+    
+    console.log(`Image resized to ${maxSize}px for analysis: ${resizedPath}`);
+    return resizedPath;
+  } catch (error) {
+    console.error("Error preparing image for analysis:", error);
+    throw error;
+  }
+};
+
+/**
+ * Process an image to square format by center-cropping
+ */
+export const cropToSquare = async (
+  imagePath: string,
+  size: number = 3456
+): Promise<string> => {
+  try {
+    const outputDir = `/tmp/picxels/processing/cropped`;
+    const croppedFilename = `${Date.now()}_cropped.jpg`;
+    const croppedPath = `${outputDir}/${croppedFilename}`;
+    
+    // Ensure output directory exists
+    await executeCommand(`mkdir -p ${outputDir}`);
+    
+    // Center crop to square
+    await executeCommand(`convert "${imagePath}" -gravity center -crop ${size}x${size}+0+0 +repage "${croppedPath}"`);
+    
+    console.log(`Image cropped to ${size}x${size}: ${croppedPath}`);
+    return croppedPath;
+  } catch (error) {
+    console.error("Error cropping image to square:", error);
+    throw error;
+  }
+};
+
+/**
  * Analyze image subject using Nano-VLM
  */
 export const analyzeImageWithNanoVLM = async (
@@ -57,6 +110,9 @@ export const analyzeImageWithNanoVLM = async (
   try {
     const startTime = performance.now();
     
+    // Prepare image for analysis (resize)
+    const resizedImagePath = await prepareImageForAnalysis(image.path);
+    
     // Set up paths for output JSON
     const outputDir = `/tmp/picxels/analysis`;
     const outputFile = `${outputDir}/${image.id}_analysis.json`;
@@ -64,13 +120,13 @@ export const analyzeImageWithNanoVLM = async (
     // Ensure output directory exists
     await executeCommand(`mkdir -p ${outputDir}`);
     
-    // Prompt for the model - describe the object in detail
-    const prompt = "Describe this object in detail. What is it? What material is it made of? What are its distinguishing features?";
+    // More detailed prompt for the model - using VILA format
+    const prompt = "Describe this object in detail. What is it? What material is it made of? What are its distinguishing features? What period or style does it represent? Please provide a comprehensive description that would be useful for a museum catalog.";
     
-    // Build the command to run Nano-VLM
+    // Build the command to run Nano-VLM with VILA 1.5 model
     const command = `python3 /opt/picxels/scripts/run_nanovlm.py \
       --model ${JETSON_AI_MODELS.nanoVLM.modelPath} \
-      --input "${image.path}" \
+      --input "${resizedImagePath}" \
       --output "${outputFile}" \
       --prompt "${prompt}" \
       --max_tokens ${JETSON_AI_MODELS.nanoVLM.maxTokenLength} \
@@ -78,6 +134,48 @@ export const analyzeImageWithNanoVLM = async (
       --batch_size ${AI_HARDWARE_CONFIG.maxBatchSize} \
       --precision ${AI_HARDWARE_CONFIG.precisionMode} \
       ${JETSON_AI_MODELS.nanoVLM.useQuantization ? '--quantize' : ''}`;
+    
+    // Debug mode can return mock responses for testing
+    if (AI_DEBUG_OPTIONS.mockAIResponses) {
+      await new Promise(resolve => setTimeout(resolve, AI_DEBUG_OPTIONS.mockResponseDelay));
+      
+      // Mock responses for testing
+      const mockResponses = [
+        {
+          subject: "Ming Dynasty Vase",
+          description: "This is a blue and white porcelain vase from the Ming Dynasty (1368-1644). It features intricate hand-painted floral patterns typical of the Jingdezhen kilns. The cobalt blue pigment contrasts elegantly with the white porcelain body. The vase has a narrow neck and bulbous body with a stable base. Such vases were highly prized both in China and abroad, particularly in Europe where they influenced local ceramic production.",
+          tags: ["ceramic", "porcelain", "Ming Dynasty", "Chinese", "antique", "blue and white", "vase", "decorative art"],
+          confidence: 0.92,
+          metadata: { period: "15th century", origin: "China", condition: "excellent" }
+        },
+        {
+          subject: "Art Deco Sculpture",
+          description: "This is an Art Deco bronze sculpture from the 1930s. It depicts a stylized female figure in an elongated pose characteristic of the Art Deco movement. The geometric simplification of form and the smooth, polished surface showcase the aesthetic principles of the period. The patina has a rich, dark brown tone with subtle green highlights indicative of its age.",
+          tags: ["sculpture", "bronze", "Art Deco", "1930s", "decorative art", "figurative", "modernist"],
+          confidence: 0.89,
+          metadata: { period: "1930s", style: "Art Deco", material: "bronze" }
+        },
+        {
+          subject: "Ancient Greek Amphora",
+          description: "This is an Ancient Greek amphora from approximately 500-450 BCE (Classical period). The vessel has the typical two-handled design used for storing and transporting wine or olive oil. The terracotta surface displays black-figure painting technique with mythological scenes, possibly depicting Hercules. The craftsmanship suggests it was produced in Athens, a major center for pottery production in Ancient Greece.",
+          tags: ["amphora", "Ancient Greek", "pottery", "classical", "archaeological", "black-figure", "terracotta"],
+          confidence: 0.86,
+          metadata: { period: "Classical Greece", age: "approx. 2500 years", technique: "black-figure" }
+        }
+      ];
+      
+      const mockResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
+      
+      console.log("Using mock analysis result:", mockResponse);
+      
+      return {
+        subject: mockResponse.subject,
+        confidence: mockResponse.confidence,
+        description: mockResponse.description,
+        tags: mockResponse.tags,
+        metadata: mockResponse.metadata
+      };
+    }
     
     // Execute the command
     await executeCommand(command);
@@ -107,7 +205,9 @@ export const analyzeImageWithNanoVLM = async (
     return {
       subject: nanoVLMResponse.subject,
       confidence: nanoVLMResponse.confidence,
-      tags: nanoVLMResponse.tags
+      description: nanoVLMResponse.description,
+      tags: nanoVLMResponse.tags,
+      metadata: nanoVLMResponse.metadata
     };
   } catch (error) {
     console.error("Error analyzing image with Nano-VLM:", error);
@@ -122,6 +222,7 @@ export const analyzeImageWithNanoVLM = async (
     return {
       subject: "Unknown Object",
       confidence: 0,
+      description: "Analysis failed. The object could not be identified.",
       tags: ["error", "unknown"]
     };
   }
@@ -139,7 +240,7 @@ export const generateSessionNameWithNanoVLM = async (
     
     // Generate name with date
     const date = new Date().toISOString().split('T')[0];
-    return `${analysis.subject} Scan - ${date}`;
+    return `${analysis.subject} - ${date}`;
   } catch (error) {
     console.error("Error generating session name:", error);
     

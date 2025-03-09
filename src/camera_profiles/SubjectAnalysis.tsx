@@ -1,20 +1,23 @@
+
 import { useState } from "react";
 import { ScanSearch, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CapturedImage, AnalysisResult } from "@/types";
-import { analyzeImageSubject, generateSessionName } from "@/utils/imageAnalysis";
+import { CapturedImage, AnalysisResult, Session } from "@/types";
+import { analyzeImageSubject, analyzeAndRenameSession } from "@/utils/imageAnalysis";
 
 interface SubjectAnalysisProps {
   image: CapturedImage | null;
-  onAnalysisComplete: (result: AnalysisResult, suggestedName: string) => void;
+  session: Session;
+  onSessionUpdated: (session: Session) => void;
   disabled?: boolean;
 }
 
 const SubjectAnalysis: React.FC<SubjectAnalysisProps> = ({
   image,
-  onAnalysisComplete,
+  session,
+  onSessionUpdated,
   disabled = false
 }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -26,15 +29,21 @@ const SubjectAnalysis: React.FC<SubjectAnalysisProps> = ({
     try {
       setIsAnalyzing(true);
       
-      // Perform the analysis
-      const analysisResult = await analyzeImageSubject(image);
-      setResult(analysisResult);
+      // Perform the analysis and update the session
+      const updatedSession = await analyzeAndRenameSession(image, session);
       
-      // Generate a suggested name
-      const suggestedName = generateSessionName(analysisResult);
+      // If the session was updated with a subject, set the result
+      if (updatedSession.subjectMatter) {
+        setResult({
+          subject: updatedSession.subjectMatter,
+          confidence: 0.95,
+          description: updatedSession.description || "",
+          tags: updatedSession.tags || []
+        });
+      }
       
       // Notify parent component
-      onAnalysisComplete(analysisResult, suggestedName);
+      onSessionUpdated(updatedSession);
     } catch (error) {
       console.error("Analysis failed:", error);
     } finally {
@@ -50,7 +59,7 @@ const SubjectAnalysis: React.FC<SubjectAnalysisProps> = ({
           <span>Subject Analysis</span>
         </CardTitle>
         <CardDescription>
-          Analyze the first image to identify the subject
+          Analyze the first image to identify the subject and set up session metadata
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -59,23 +68,32 @@ const SubjectAnalysis: React.FC<SubjectAnalysisProps> = ({
             <p>No images available for analysis</p>
             <p className="text-sm mt-1">Capture at least one image first</p>
           </div>
-        ) : result ? (
+        ) : result || session.subjectMatter ? (
           <div className="space-y-3">
             <div className="p-3 rounded-md bg-primary/5 border border-primary/20">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium">Detected Subject</h3>
                 <Badge variant="outline" className="text-xs">
-                  {Math.round(result.confidence * 100)}% confidence
+                  {Math.round((result?.confidence || 0.9) * 100)}% confidence
                 </Badge>
               </div>
-              <p className="text-lg font-semibold mt-1">{result.subject}</p>
+              <p className="text-lg font-semibold mt-1">{result?.subject || session.subjectMatter}</p>
             </div>
             
-            {result.tags && (
+            {(result?.description || session.description) && (
+              <div className="space-y-1 text-sm">
+                <h4 className="font-medium">Description</h4>
+                <p className="text-muted-foreground">
+                  {result?.description || session.description}
+                </p>
+              </div>
+            )}
+            
+            {(result?.tags || session.tags) && (
               <div className="space-y-2">
                 <h4 className="text-sm font-medium">Related Tags</h4>
                 <div className="flex flex-wrap gap-1">
-                  {result.tags.map((tag, index) => (
+                  {(result?.tags || session.tags || []).map((tag, index) => (
                     <Badge key={index} variant="secondary" className="text-xs">
                       {tag}
                     </Badge>
@@ -104,7 +122,7 @@ const SubjectAnalysis: React.FC<SubjectAnalysisProps> = ({
       <CardFooter className="flex justify-end">
         <Button
           onClick={handleAnalyze}
-          disabled={disabled || !image || isAnalyzing || !!result}
+          disabled={disabled || !image || isAnalyzing || !!result || !!session.subjectMatter}
           className="hover-scale"
         >
           {isAnalyzing ? (
