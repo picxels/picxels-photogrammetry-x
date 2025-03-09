@@ -31,4 +31,12 @@ export default defineConfig(({ mode }) => ({
     // This helps separate server vs client code
     'process.env.SERVER_SIDE': JSON.stringify(false),
   },
+  optimizeDeps: {
+    exclude: ['child_process', 'util'],
+  },
+  build: {
+    rollupOptions: {
+      external: ['child_process', 'util'],
+    },
+  },
 }));

@@ -1,7 +1,5 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
 
-const execPromise = promisify(exec);
+import { executeJetsonCommand } from './platformCommandUtils';
 
 /**
  * Safely execute a command and return its output
@@ -15,10 +13,13 @@ export const executeCommand = async (command: string): Promise<string> => {
   // Execute the command and return the output
   try {
     console.log(`Executing command: ${command}`);
-    const { stdout, stderr } = await execPromise(command);
+    const stdout = await executeJetsonCommand(command);
     
-    if (stderr) {
-      console.warn(`Command produced stderr: ${stderr}`);
+    if (stdout.includes('stderr:')) {
+      const stderrContent = stdout.split('stderr:')[1]?.trim();
+      if (stderrContent) {
+        console.warn(`Command produced stderr: ${stderrContent}`);
+      }
     }
     
     return stdout;
