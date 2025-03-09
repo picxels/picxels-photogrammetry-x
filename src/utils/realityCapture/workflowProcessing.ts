@@ -92,7 +92,7 @@ export const processSessionForRealityCapture = async (
       for (const imageIdOrObj of pass.images) {
         // Handle both string IDs and SessionImage objects
         let imageId: string;
-        let imageObj: SessionImage | undefined;
+        let imageObj = undefined;
         
         if (typeof imageIdOrObj === 'string') {
           imageId = imageIdOrObj;
@@ -110,7 +110,7 @@ export const processSessionForRealityCapture = async (
           }
         } else if (imageIdOrObj && typeof imageIdOrObj === 'object' && 'id' in imageIdOrObj) {
           imageId = imageIdOrObj.id;
-          imageObj = imageIdOrObj as SessionImage;
+          imageObj = imageIdOrObj;
         } else {
           console.warn(`Invalid image reference in pass ${pass.id}`);
           continue;

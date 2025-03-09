@@ -70,7 +70,7 @@ export const uploadSessionImagesToRCNode = async (
           if (foundImage && typeof foundImage !== 'string') {
             actualImage = foundImage;
           }
-        } else {
+        } else if (imageIdOrObj && typeof imageIdOrObj === 'object' && 'id' in imageIdOrObj) {
           // imageIdOrObj is already a SessionImage
           actualImage = imageIdOrObj as SessionImage;
         }
