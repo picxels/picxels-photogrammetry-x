@@ -1,6 +1,8 @@
+
 import { EFFICIENTVIT_CONFIG } from "@/config/jetsonAI.config";
 import { executeCommand } from "@/utils/commandUtils";
 import { toast } from "@/components/ui/use-toast";
+import { generateMaskWithEfficientViT } from "./maskGeneration";
 
 /**
  * Apply the segmentation mask to an image

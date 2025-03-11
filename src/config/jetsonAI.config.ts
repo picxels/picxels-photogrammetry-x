@@ -1,3 +1,4 @@
+
 /**
  * Jetson AI Labs Integration Configuration
  * 
@@ -164,7 +165,7 @@ export const EFFICIENTVIT_CONFIG = {
   enginePath: "/opt/picxels/models/efficientViT/efficientViT-L1.engine",
   
   // Python script path for running EfficientViT
-  scriptPath: "/opt/picxels/scripts/run_efficientvit.py",
+  pythonScriptPath: "/opt/picxels/scripts/run_efficientvit.py",
   
   // Temporary directories for processing
   tempDir: "/tmp/picxels/efficientvit",
@@ -179,9 +180,14 @@ export const EFFICIENTVIT_CONFIG = {
   // Installation
   githubRepo: "https://github.com/mit-han-lab/efficientvit",
   installScript: "/opt/picxels/scripts/install_efficientvit.sh",
+  modelDownloadUrl: "https://github.com/mit-han-lab/efficientvit/releases/download/v1.0/l1.pt",
   
   // Output parameters
   saveVisualization: true,
   outputFormat: "png",
-  alphaChannel: true
+  alphaChannel: true,
+  
+  // Processing parameters
+  confidenceThreshold: 0.75,
+  useTensorRT: true
 };

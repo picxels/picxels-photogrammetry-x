@@ -1,3 +1,4 @@
+
 export interface SessionImage {
   id: string;
   filename: string;
@@ -140,7 +141,7 @@ export interface CameraDevice {
   type: string;
   port?: string;
   connected: boolean;
-  status?: 'idle' | 'ready' | 'capturing' | 'error';
+  status?: 'idle' | 'ready' | 'capturing' | 'processing' | 'error';
 }
 
 export interface CapturedImage {
@@ -162,6 +163,8 @@ export interface CapturedImage {
   jpegPath?: string;
   maskPath?: string;
   croppedWidth?: number;
+  processedPath?: string;
+  isProcessed?: boolean;
 }
 
 export interface ImageData {

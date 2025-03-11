@@ -1,20 +1,55 @@
 
+import { useState } from "react";
 import { CapturedImage } from "@/types";
-import { processImage, generateImageMask, ensureColorProfile } from "@/utils/imageProcessingUtils";
+import { processImage, checkImageSharpness, ensureColorProfile } from "@/utils/imageProcessingUtils";
+import { toast } from "@/components/ui/use-toast";
 
 export const useImageProcessing = () => {
-  return {
-    processImage,
-    processImageWithMask: async (image: CapturedImage): Promise<CapturedImage> => {
-      // First ensure the image has a color profile
-      const profiledImage = await ensureColorProfile(image);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingImageId, setProcessingImageId] = useState<string | null>(null);
+
+  const handleProcessImage = async (image: CapturedImage): Promise<CapturedImage | null> => {
+    try {
+      setIsProcessing(true);
+      setProcessingImageId(image.id);
       
-      // Then apply background mask if not already masked
-      if (!profiledImage.hasMask) {
-        return await generateImageMask(profiledImage);
-      }
+      // Ensure color profile is applied
+      const imageWithColorProfile = await ensureColorProfile(image);
       
-      return profiledImage;
+      // Check image sharpness
+      const sharpness = await checkImageSharpness(imageWithColorProfile.filePath);
+      
+      // Process the image (apply segmentation if available)
+      const processedImage = await processImage({
+        ...imageWithColorProfile,
+        sharpness
+      });
+      
+      toast({
+        title: "Image Processed",
+        description: processedImage.hasMask ? 
+          "Image processed with automatic segmentation mask." : 
+          "Image processed successfully."
+      });
+      
+      return processedImage;
+    } catch (error) {
+      console.error("Error processing image:", error);
+      toast({
+        title: "Processing Failed",
+        description: "Failed to process image.",
+        variant: "destructive"
+      });
+      return null;
+    } finally {
+      setIsProcessing(false);
+      setProcessingImageId(null);
     }
+  };
+
+  return {
+    handleProcessImage,
+    isProcessing,
+    processingImageId
   };
 };

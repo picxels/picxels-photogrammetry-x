@@ -1,3 +1,4 @@
+
 import { EFFICIENTVIT_CONFIG, JETSON_AI_MODELS } from "@/config/jetsonAI.config";
 import { executeCommand } from "@/utils/commandUtils";
 import { toast } from "@/components/ui/use-toast";
@@ -27,7 +28,7 @@ export const installEfficientViT = async (): Promise<boolean> => {
     
     if (!checkRepoOutput.includes(".git")) {
       // Clone the repository
-      await executeCommand(`git clone https://github.com/mit-han-lab/efficientvit.git ${repoDir}`);
+      await executeCommand(`git clone ${EFFICIENTVIT_CONFIG.githubRepo} ${repoDir}`);
     } else {
       // Update the repository
       await executeCommand(`cd ${repoDir} && git pull`);

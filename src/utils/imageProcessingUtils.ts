@@ -2,9 +2,8 @@
 import { toast } from "@/components/ui/use-toast";
 import { CapturedImage } from "@/types";
 import { executeCommand } from "./commandUtils";
-import { processImageForPhotogrammetry, isEfficientViTAvailable } from "@/services/efficientViT";
+import { isEfficientViTAvailable, processImageForPhotogrammetry } from "@/services/efficientViT";
 import { DEBUG_SETTINGS } from "@/config/jetson.config";
-import { checkImageSharpness, generateImageMask, analyzeSubjectWithLLM } from "./jetsonAI";
 
 /**
  * Process a captured image for use in photogrammetry
@@ -62,7 +61,16 @@ export const processImage = async (image: CapturedImage): Promise<CapturedImage>
 };
 
 /**
- * Check the sharpness of an image
+ * Import the AI utils for sharpness checking and mask generation
+ * - These are different from the local functions with the same names
+ */
+import { 
+  checkImageSharpness as aiCheckImageSharpness,
+  generateImageMask as aiGenerateImageMask,
+} from "./jetsonAI";
+
+/**
+ * Check the sharpness of an image using AI
  */
 export const checkImageSharpness = async (imagePath: string): Promise<number> => {
   try {
@@ -72,7 +80,7 @@ export const checkImageSharpness = async (imagePath: string): Promise<number> =>
     }
     
     // Use the sharpness detection from jetsonAI utilities
-    return await checkImageSharpness(imagePath);
+    return await aiCheckImageSharpness(imagePath);
   } catch (error) {
     console.error("Error checking image sharpness:", error);
     return 50; // Default mid-range value if checking fails
@@ -80,7 +88,7 @@ export const checkImageSharpness = async (imagePath: string): Promise<number> =>
 };
 
 /**
- * Generate a mask for an image
+ * Generate a mask for an image using AI
  */
 export const generateImageMask = async (imagePath: string): Promise<string | null> => {
   try {
@@ -94,9 +102,23 @@ export const generateImageMask = async (imagePath: string): Promise<string | nul
     }
     
     // Fall back to other mask generation if EfficientViT isn't available
-    return await generateImageMask(imagePath);
+    return await aiGenerateImageMask(imagePath);
   } catch (error) {
     console.error("Error generating image mask:", error);
     return null;
   }
+};
+
+/**
+ * Ensure an image has a color profile
+ */
+export const ensureColorProfile = async (image: CapturedImage): Promise<CapturedImage> => {
+  // Implementation depends on the actual color profile logic
+  // This is a placeholder implementation
+  console.log("Ensuring color profile for image:", image.filePath);
+  return {
+    ...image,
+    hasColorProfile: true,
+    colorProfileType: "sRGB"
+  };
 };
