@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { CameraDevice, CapturedImage, Session } from "@/types";
 import { toast } from "@/components/ui/use-toast";
-import { captureImage } from "@/utils/cameraUtils";
+import { captureImage } from "@/utils/camera/cameraCapture";
 import { saveImageLocally } from "@/utils/fileSystem";
 import { processImage } from "@/utils/imageProcessingUtils";
 import { isEfficientViTAvailable } from "@/services/efficientViT";
