@@ -5,6 +5,7 @@ import { toast } from "@/components/ui/use-toast";
 import { captureImage } from "@/utils/cameraUtils";
 import { saveImageLocally } from "@/utils/fileSystem";
 import { processImage } from "@/utils/imageProcessingUtils";
+import { isEfficientViTAvailable } from "@/services/efficientViT";
 
 interface UseImageCaptureSingleProps {
   currentSession: Session;
@@ -21,6 +22,8 @@ export const useImageCaptureSingle = ({
   setCameras,
   refreshCameras
 }: UseImageCaptureSingleProps) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const handleCapture = async (camera: CameraDevice) => {
     if (!camera.connected) return;
     
@@ -39,7 +42,16 @@ export const useImageCaptureSingle = ({
         // Save the image locally
         await saveImageLocally(image);
         
-        // Process the image (apply color profile)
+        // Set processing status for UI feedback
+        setIsProcessing(true);
+        setCameras(prev => prev.map(c => 
+          c.id === camera.id ? { ...c, status: "processing" } : c
+        ));
+        
+        // Check if we have EfficientViT available
+        const hasEfficientViT = await isEfficientViTAvailable();
+        
+        // Process the image (apply color profile and mask if available)
         const processedImage = await processImage(image);
         
         // Update camera status back to idle
@@ -47,12 +59,14 @@ export const useImageCaptureSingle = ({
           c.id === camera.id ? { ...c, status: "idle" } : c
         ));
         
+        setIsProcessing(false);
+        
         // Notify parent component with the processed image
         onImageCaptured(processedImage);
         
         toast({
           title: "Image Captured",
-          description: `${camera.name} captured an image successfully.`
+          description: `${camera.name} captured an image successfully${hasEfficientViT ? " with AI segmentation" : ""}.`
         });
       } else {
         // If image is null, there was a problem
@@ -82,12 +96,15 @@ export const useImageCaptureSingle = ({
         c.id === camera.id ? { ...c, status: "error" } : c
       ));
       
+      setIsProcessing(false);
+      
       // Try to reconnect to the camera
       await refreshCameras();
     }
   };
 
   return {
-    handleCapture
+    handleCapture,
+    isProcessing
   };
 };

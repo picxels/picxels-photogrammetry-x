@@ -5,6 +5,7 @@ import { toast } from "@/components/ui/use-toast";
 import { captureImage } from "@/utils/cameraUtils";
 import { saveImageLocally } from "@/utils/fileSystem";
 import { processImage } from "@/utils/imageProcessingUtils";
+import { isEfficientViTAvailable } from "@/services/efficientViT";
 
 interface UseImageCaptureAllProps {
   currentSession: Session;
@@ -23,6 +24,8 @@ export const useImageCaptureAll = ({
   setCameras,
   refreshCameras
 }: UseImageCaptureAllProps) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const handleCaptureAll = async () => {
     try {
       // Update all camera statuses to capturing
@@ -34,6 +37,9 @@ export const useImageCaptureAll = ({
       const connectedCameras = cameras.filter(c => c.connected);
       console.log(`Capturing from all ${connectedCameras.length} connected cameras...`);
       
+      // Check if we have EfficientViT available
+      const hasEfficientViT = await isEfficientViTAvailable();
+      
       for (const camera of connectedCameras) {
         try {
           const image = await captureImage(camera.id, currentSession.id, currentAngle);
@@ -41,8 +47,19 @@ export const useImageCaptureAll = ({
           if (image) {
             await saveImageLocally(image);
             
-            // Process the image (apply color profile and possibly mask)
+            // Set processing status
+            setIsProcessing(true);
+            setCameras(prev => prev.map(c => 
+              c.id === camera.id ? { ...c, status: "processing" } : c
+            ));
+            
+            // Process the image (apply color profile and mask if available)
             const processedImage = await processImage(image);
+            
+            // Set camera back to idle
+            setCameras(prev => prev.map(c => 
+              c.id === camera.id ? { ...c, status: "idle" } : c
+            ));
             
             // Notify with the processed image
             onImageCaptured(processedImage);
@@ -60,6 +77,8 @@ export const useImageCaptureAll = ({
         }
       }
       
+      setIsProcessing(false);
+      
       // Reset camera statuses to idle for connected cameras
       setCameras(prev => prev.map(c => 
         c.connected ? { ...c, status: "idle" } : c
@@ -67,7 +86,7 @@ export const useImageCaptureAll = ({
       
       toast({
         title: "Capture Complete",
-        description: `Images captured from all ${connectedCameras.length} connected cameras.`
+        description: `Images captured from all ${connectedCameras.length} connected cameras${hasEfficientViT ? " with AI segmentation" : ""}.`
       });
     } catch (error) {
       console.error("Capture all failed:", error);
@@ -79,6 +98,7 @@ export const useImageCaptureAll = ({
       
       // Reset camera statuses to error
       setCameras(prev => prev.map(c => ({ ...c, status: "error" })));
+      setIsProcessing(false);
     } finally {
       // Refresh camera status after capture attempt is complete
       setTimeout(refreshCameras, 1000);
@@ -86,6 +106,7 @@ export const useImageCaptureAll = ({
   };
 
   return {
-    handleCaptureAll
+    handleCaptureAll,
+    isProcessing
   };
 };
