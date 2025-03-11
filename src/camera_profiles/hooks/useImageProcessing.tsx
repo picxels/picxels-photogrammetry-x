@@ -1,55 +1,34 @@
 
-import { useState } from "react";
-import { CapturedImage } from "@/types";
-import { processImage, checkImageSharpness, ensureColorProfile } from "@/utils/imageProcessingUtils";
-import { toast } from "@/components/ui/use-toast";
+import { useState } from 'react';
+import { CapturedImage } from '@/types';
+import { processImage, ensureColorProfile } from '@/utils/imageProcessingUtils';
 
 export const useImageProcessing = () => {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingImageId, setProcessingImageId] = useState<string | null>(null);
+  const [processingImages, setProcessingImages] = useState<string[]>([]);
 
-  const handleProcessImage = async (image: CapturedImage): Promise<CapturedImage | null> => {
+  const handleProcessImage = async (image: CapturedImage): Promise<CapturedImage> => {
+    if (!image) return image;
+
+    setProcessingImages(prev => [...prev, image.id]);
+    
     try {
-      setIsProcessing(true);
-      setProcessingImageId(image.id);
+      // Process the image for photogrammetry
+      const processedImage = await processImage(image);
       
-      // Ensure color profile is applied
-      const imageWithColorProfile = await ensureColorProfile(image);
+      // Ensure the image has a color profile
+      const finalImage = await ensureColorProfile(processedImage);
       
-      // Check image sharpness
-      const sharpness = await checkImageSharpness(imageWithColorProfile.filePath);
-      
-      // Process the image (apply segmentation if available)
-      const processedImage = await processImage({
-        ...imageWithColorProfile,
-        sharpness
-      });
-      
-      toast({
-        title: "Image Processed",
-        description: processedImage.hasMask ? 
-          "Image processed with automatic segmentation mask." : 
-          "Image processed successfully."
-      });
-      
-      return processedImage;
+      return finalImage;
     } catch (error) {
       console.error("Error processing image:", error);
-      toast({
-        title: "Processing Failed",
-        description: "Failed to process image.",
-        variant: "destructive"
-      });
-      return null;
+      return image;
     } finally {
-      setIsProcessing(false);
-      setProcessingImageId(null);
+      setProcessingImages(prev => prev.filter(id => id !== image.id));
     }
   };
 
   return {
-    handleProcessImage,
-    isProcessing,
-    processingImageId
+    processingImages,
+    handleProcessImage
   };
 };

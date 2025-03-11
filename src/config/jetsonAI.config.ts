@@ -1,4 +1,3 @@
-
 /**
  * Jetson AI Labs Integration Configuration
  * 
@@ -45,7 +44,7 @@ export const JETSON_AI_MODELS = {
         maxOutputTokens: 1024
       }
     },
-    maxImageSize: 1024, // Resize image to this size for inference
+    maxImageSize: 1024 // Resize image to this size for inference
   },
   
   // NanoDB configuration for optimized local data storage
@@ -161,33 +160,19 @@ export const OLLAMA_CONFIG = {
 
 // EfficientViT specific configuration for MIT-HAN-LAB implementation
 export const EFFICIENTVIT_CONFIG = {
-  // Path to the TensorRT engine file
-  enginePath: "/opt/picxels/models/efficientViT/efficientViT-L1.engine",
-  
-  // Python script path for running EfficientViT
-  pythonScriptPath: "/opt/picxels/scripts/run_efficientvit.py",
-  
-  // Temporary directories for processing
-  tempDir: "/tmp/picxels/efficientvit",
-  
-  // Model parameters
-  modelVariant: "L1", // L0, L1, L2, etc.
-  
-  // Inference parameters
-  inferenceMode: "tensorrt",  // tensorrt, onnx, pytorch
+  enginePath: '/opt/efficientvit/engine',
+  scriptPath: '/opt/efficientvit/scripts',
+  tempDir: '/tmp/efficientvit',
+  modelVariant: 'l0',
+  inferenceMode: 'onnx',
   useJetsonOptimizations: true,
-  
-  // Installation
-  githubRepo: "https://github.com/mit-han-lab/efficientvit",
-  installScript: "/opt/picxels/scripts/install_efficientvit.sh",
-  modelDownloadUrl: "https://github.com/mit-han-lab/efficientvit/releases/download/v1.0/l1.pt",
-  
-  // Output parameters
+  githubRepo: 'https://github.com/mit-han-lab/efficientvit.git',
+  installScript: '/scripts/install_efficientvit.sh',
   saveVisualization: true,
-  outputFormat: "png",
+  outputFormat: 'png',
   alphaChannel: true,
-  
-  // Processing parameters
+  pythonScriptPath: '/opt/efficientvit/scripts/run_segmentation.py',
   confidenceThreshold: 0.75,
-  useTensorRT: true
+  modelDownloadUrl: 'https://huggingface.co/models/mit-han-lab/efficientvit-sam-l0/resolve/main/efficientvit_sam_l0.pt',
+  useTensorRT: false
 };

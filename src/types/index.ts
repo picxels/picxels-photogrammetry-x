@@ -1,4 +1,3 @@
-
 export interface SessionImage {
   id: string;
   filename: string;

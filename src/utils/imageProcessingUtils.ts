@@ -80,7 +80,9 @@ export const checkImageSharpness = async (imagePath: string): Promise<number> =>
     }
     
     // Use the sharpness detection from jetsonAI utilities
-    return await aiCheckImageSharpness(imagePath);
+    const sharpnessResult = await aiCheckImageSharpness(imagePath);
+    // Extract just the score as a number
+    return typeof sharpnessResult === 'number' ? sharpnessResult : sharpnessResult.score;
   } catch (error) {
     console.error("Error checking image sharpness:", error);
     return 50; // Default mid-range value if checking fails
