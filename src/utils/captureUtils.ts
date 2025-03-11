@@ -1,97 +1,38 @@
 
+import { CapturedImage, CameraDevice } from "@/types";
 import { toast } from "@/components/ui/use-toast";
-import { CapturedImage } from "@/types";
-import { executeCommand } from "./commandUtils";
-import { cameraCaptureService } from "@/services/cameraCaptureService";
+import { checkImageSharpness, generateImageMask } from "./imageProcessingUtils";
 
 /**
- * Captures an image from a camera and processes it
+ * Process a captured image for analysis and preview
  */
-export const captureImage = async (
-  cameraId: string,
-  sessionId: string,
-  angle?: number
-): Promise<CapturedImage | null> => {
-  console.log(`Capturing image from camera ${cameraId} at angle ${angle}°`);
-  
+export const processCapturedImage = async (image: CapturedImage): Promise<CapturedImage> => {
   try {
-    const cameraDevice = cameraId.split('-');
-    const cameraType = cameraDevice[0].toLowerCase();
-    let portInfo = "";
+    // Check sharpness
+    const sharpness = await checkImageSharpness(image.filePath);
     
-    if (cameraDevice.length > 1) {
-      portInfo = `usb:001,${cameraDevice[1]}`;
+    // Generate mask if needed
+    let maskPath = undefined;
+    if (sharpness > 60) { // Only generate mask for reasonably sharp images
+      maskPath = await generateImageMask(image);
     }
     
-    console.log(`Using cameraCaptureService to capture on port ${portInfo}`);
-    
-    // Create capture directory
-    const captureDir = `/tmp/picxels/captures/${sessionId}`;
-    await executeCommand(`mkdir -p ${captureDir}`);
-    
-    const timestamp = Date.now();
-    const filename = `${cameraType}_${timestamp}.jpg`;
-    const filePath = `${captureDir}/${filename}`;
-    
-    try {
-      // Use the camera capture service for image capture
-      await cameraCaptureService.captureImage(portInfo, filePath);
-      
-      // Verify the file exists
-      const fileCheckCommand = `ls -la ${filePath}`;
-      const fileCheckOutput = await executeCommand(fileCheckCommand);
-      console.log("File check output:", fileCheckOutput);
-      
-      if (!fileCheckOutput.includes(filename)) {
-        console.error("File does not exist after capture");
-        throw new Error(`Captured file not found: ${filePath}`);
-      }
-      
-      // Copy to public directory for web access
-      const publicPath = `/public/captures/${sessionId}`;
-      const publicFilePath = `${publicPath}/${filename}`;
-      
-      await executeCommand(`mkdir -p public/captures/${sessionId}`);
-      await executeCommand(`cp ${filePath} public/${publicFilePath}`);
-      
-      const previewUrl = publicFilePath;
-      
-      // Calculate sharpness using the Python script
-      const sharpnessCommand = `python3 /path/to/your/sharpness.py "${filePath}"`;
-      const sharpnessOutput = await executeCommand(sharpnessCommand);
-      const sharpness = parseInt(sharpnessOutput.trim()) || 85; // Default to 85 if parsing fails
-      
-      const image: CapturedImage = {
-        id: `img-${timestamp}`,
-        filePath: filePath,
-        path: filePath,  // For backward compatibility
-        sessionId,
-        timestamp,
-        camera: cameraId,
-        angle,
-        previewUrl,
-        sharpness
-      };
-      
-      console.log("Image captured successfully:", image.id);
-      return image;
-    } catch (error) {
-      console.error("Error during capture:", error);
-      throw error;
-    }
+    // Return the updated image with analysis data
+    return {
+      ...image,
+      sharpness,
+      hasMask: !!maskPath,
+      maskPath
+    };
   } catch (error) {
-    console.error("Error capturing image:", error);
+    console.error("Error processing captured image:", error);
     toast({
-      title: "Capture Failed",
-      description: "Failed to capture image. Please check camera connection.",
-      variant: "destructive"
+      title: "Processing Warning",
+      description: "Image captured but processing failed",
+      variant: "warning"
     });
-    return null;
+    
+    // Return the original image if processing fails
+    return image;
   }
 };
-
-// Re-export image quality functions from imageProcessingUtils
-export { 
-  checkImageSharpness, 
-  generateImageMask 
-} from "./imageProcessingUtils";

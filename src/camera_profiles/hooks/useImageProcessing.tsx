@@ -1,5 +1,6 @@
+
 import { useState } from 'react';
-import { CapturedImage, Session } from "@/types";
+import { CapturedImage } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { processImage, ensureColorProfile } from "@/utils/imageProcessingUtils";
 
@@ -16,7 +17,7 @@ export const useImageProcessing = () => {
       const processedImage = await processImage(image);
       
       // Ensure the image has a color profile
-      const finalImage = await ensureColorProfile(processedImage);
+      const finalImage = await ensureColorProfile(processedImage) as CapturedImage;
       
       return finalImage;
     } catch (error) {

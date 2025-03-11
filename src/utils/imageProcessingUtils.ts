@@ -1,12 +1,17 @@
+
 import { CapturedImage } from "@/types";
 import { DEBUG_SETTINGS } from "@/config/jetson.config";
 import { checkImageSharpness as checkImageSharpnessAI } from "./ai/imageSharpness";
+import { generateImageMask as generateImageMaskAI } from "./ai/imageMask";
 
 /**
  * Apply color profile to the image
  */
-export const ensureColorProfile = async (imagePath: string): Promise<string> => {
+export const ensureColorProfile = async (image: CapturedImage | string): Promise<CapturedImage | string> => {
   try {
+    // Handle different input types
+    const imagePath = typeof image === 'string' ? image : image.filePath;
+    
     // In real implementation, this would use a color profile tool
     console.log(`Applying color profile to image: ${imagePath}`);
     
@@ -14,9 +19,32 @@ export const ensureColorProfile = async (imagePath: string): Promise<string> => 
     // This simulates a processing delay and returns the original path
     await new Promise(resolve => setTimeout(resolve, 200));
     
-    return imagePath;
+    if (typeof image === 'string') {
+      return image; // Return original path for string inputs
+    } else {
+      // Return updated CapturedImage with color profile flag set
+      return {
+        ...image, 
+        hasColorProfile: true
+      };
+    }
   } catch (error) {
     console.error("Error applying color profile:", error);
+    return image; // Return original on error
+  }
+};
+
+/**
+ * Generate a mask for the image to remove background
+ * Re-exports from AI module but with unified interface
+ */
+export const generateImageMask = async (image: CapturedImage | string): Promise<string> => {
+  try {
+    const imagePath = typeof image === 'string' ? image : image.filePath;
+    return await generateImageMaskAI(imagePath);
+  } catch (error) {
+    console.error("Error generating mask:", error);
+    const imagePath = typeof image === 'string' ? image : image.filePath;
     return imagePath; // Return original path on error
   }
 };
@@ -24,19 +52,30 @@ export const ensureColorProfile = async (imagePath: string): Promise<string> => 
 /**
  * Apply mask to the image to remove background
  */
-export const applyMaskToImage = async (imagePath: string): Promise<string> => {
+export const applyMaskToImage = async (image: CapturedImage | string): Promise<CapturedImage | string> => {
   try {
+    const imagePath = typeof image === 'string' ? image : image.filePath;
+    
     // In real implementation, this would use a CV algorithm to apply a mask
     console.log(`Applying mask to image: ${imagePath}`);
     
-    // Placeholder implementation (would be replaced by actual CV algorithm)
-    // This simulates a processing delay and returns the original path
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Generate mask using AI module
+    const maskPath = await generateImageMask(image);
     
-    return imagePath;
+    // For string inputs, just return the mask path
+    if (typeof image === 'string') {
+      return imagePath;
+    }
+    
+    // For CapturedImage inputs, return updated object
+    return {
+      ...image,
+      maskPath: maskPath,
+      hasMask: true
+    };
   } catch (error) {
     console.error("Error applying mask:", error);
-    return imagePath; // Return original path on error
+    return image; // Return original on error
   }
 };
 
@@ -48,19 +87,17 @@ export const processImage = async (image: CapturedImage): Promise<CapturedImage>
     console.log(`Processing image: ${image.filePath}`);
     
     // Apply color profile
-    const colorProfiledPath = await ensureColorProfile(image.filePath);
+    const withColorProfile = await ensureColorProfile(image) as CapturedImage;
     
     // Apply mask
-    const maskedPath = await applyMaskToImage(colorProfiledPath);
+    const withMask = await applyMaskToImage(withColorProfile) as CapturedImage;
     
     // Check image sharpness
-    const sharpness = await checkImageSharpnessAI(maskedPath);
+    const sharpness = await checkImageSharpnessAI(withMask.filePath);
     
     return {
-      ...image,
-      filePath: maskedPath,
-      sharpness: sharpness,
-      hasMask: true // For now, assume mask was applied
+      ...withMask,
+      sharpness: sharpness
     };
   } catch (error) {
     console.error("Error processing image:", error);

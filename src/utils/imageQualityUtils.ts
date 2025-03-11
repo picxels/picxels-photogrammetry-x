@@ -1,10 +1,12 @@
+
 import { CapturedImage } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { DEBUG_SETTINGS } from "@/config/jetson.config";
 import { 
   checkImageSharpness, 
   generateImageMask,
-  ensureColorProfile
+  ensureColorProfile,
+  processImage
 } from "./imageProcessingUtils";
 
 /**
@@ -22,10 +24,10 @@ export const analyzeImageQuality = async (
     const sharpness = await checkImageSharpness(image.filePath);
     
     // Generate a mask for the image if it doesn't already have one
-    const maskPath = image.maskPath || await generateImageMask(image.filePath);
+    const maskPath = image.maskPath || await generateImageMask(image);
     
     // Ensure the image has a color profile
-    const withColorProfile = await ensureColorProfile(image);
+    const withColorProfile = await ensureColorProfile(image) as CapturedImage;
     
     return {
       sharpness,
