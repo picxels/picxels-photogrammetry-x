@@ -1,7 +1,7 @@
 
 import { CapturedImage, CameraDevice } from "@/types";
 import { toast } from "@/components/ui/use-toast";
-import { checkImageSharpness, generateImageMask } from "./imageProcessingUtils";
+import { checkImageSharpness, processImage } from "./imageProcessingUtils";
 
 /**
  * Process a captured image for analysis and preview
@@ -14,7 +14,8 @@ export const processCapturedImage = async (image: CapturedImage): Promise<Captur
     // Generate mask if needed
     let maskPath = undefined;
     if (sharpness > 60) { // Only generate mask for reasonably sharp images
-      maskPath = await generateImageMask(image);
+      const processedImage = await processImage(image);
+      maskPath = processedImage.maskPath;
     }
     
     // Return the updated image with analysis data
@@ -29,7 +30,7 @@ export const processCapturedImage = async (image: CapturedImage): Promise<Captur
     toast({
       title: "Processing Warning",
       description: "Image captured but processing failed",
-      variant: "warning"
+      variant: "default" // Changed from "warning" to "default" as only "default" or "destructive" are allowed
     });
     
     // Return the original image if processing fails
