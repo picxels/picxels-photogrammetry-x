@@ -1,8 +1,8 @@
 
-import { useEffect, useRef, useState } from "react";
 import { CameraDevice, CapturedImage, Session } from "@/types";
 import { useCameraDetection } from "./useCameraDetection";
 import { useCameraCapture } from "./useCameraCapture";
+import { useCameraInitialization } from "./useCameraInitialization";
 
 interface UseCameraControlProps {
   currentSession: Session;
@@ -39,16 +39,8 @@ export const useCameraControl = ({
     refreshCameras
   });
 
-  // Use a ref to track if we've initialized
-  const initializedRef = useRef(false);
-  
-  // Run camera detection once on component mount
-  useEffect(() => {
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-      refreshCameras();
-    }
-  }, [refreshCameras]);
+  // Initialize cameras on mount
+  useCameraInitialization({ refreshCameras });
 
   return {
     cameras,

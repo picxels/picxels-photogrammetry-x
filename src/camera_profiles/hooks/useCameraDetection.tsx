@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { CameraDevice } from "@/types";
 import { detectCameras } from "@/utils/cameraDiscoveryUtils";
