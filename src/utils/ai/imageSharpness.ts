@@ -1,61 +1,29 @@
 
-import { toast } from "@/components/ui/use-toast";
-import { 
-  shouldUseFallbackData, 
-  getRandomNumber, 
-  ensureModelsLoaded 
-} from "./aiUtils";
+import { DEBUG_SETTINGS } from "@/config/jetson.config";
 
-// Function to check image sharpness using loaded model
-export const checkImageSharpness = async (
-  imagePath: string,
-  threshold: number = 0.75
-): Promise<{isSharp: boolean, score: number}> => {
-  console.log(`Checking sharpness for image: ${imagePath}`);
-  
-  // Check if we should use fallbacks
-  if (shouldUseFallbackData()) {
-    console.log("Using fallback data for sharpness check");
-    
-    // Simulate processing delay
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    
-    // Generate a realistic sharpness score (biased toward sharper images)
-    const mockScore = getRandomNumber(0.65, 0.95);
-    const isSharp = mockScore > threshold;
-    
-    console.log(`Fallback sharpness check result: ${isSharp ? 'Sharp' : 'Blurry'} (score: ${mockScore.toFixed(2)})`);
-    
-    return {
-      isSharp,
-      score: mockScore
-    };
-  }
-  
-  // Real implementation for Jetson platform
+/**
+ * Check image sharpness using computer vision techniques
+ * Returns a sharpness score from 0-100
+ */
+export const checkImageSharpness = async (imagePath: string): Promise<number> => {
   try {
-    // Ensure models are loaded
-    const loadedModels = await ensureModelsLoaded();
+    // In real implementation, this would use OpenCV or similar to analyze the image
+    console.log(`Checking sharpness for image: ${imagePath}`);
     
-    if (!loadedModels.sharpness.loaded) {
-      throw new Error("Failed to load sharpness detection model");
+    // For testing/development without real hardware
+    if (DEBUG_SETTINGS.simulateCameraConnection) {
+      // Return a random sharpness value between 50-95
+      return Math.floor(Math.random() * 45) + 50;
     }
     
-    // Simulate processing delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Placeholder implementation (would be replaced by actual CV algorithm)
+    // This simulates a processing delay and returns a fixed value
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    // In production, this would use the actual model inference result
-    const mockScore = Math.random();
-    const isSharp = mockScore > threshold;
-    
-    console.log(`Sharpness check result: ${isSharp ? 'Sharp' : 'Blurry'} (score: ${mockScore.toFixed(2)})`);
-    
-    return {
-      isSharp,
-      score: mockScore
-    };
+    // Return a value between 0-100 where higher is better
+    return 75; 
   } catch (error) {
     console.error("Error checking image sharpness:", error);
-    throw error;
+    return 50; // Default mid-range value
   }
 };

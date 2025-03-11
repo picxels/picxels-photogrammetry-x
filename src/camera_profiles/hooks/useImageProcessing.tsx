@@ -1,7 +1,7 @@
-
 import { useState } from 'react';
-import { CapturedImage } from '@/types';
-import { processImage, ensureColorProfile } from '@/utils/imageProcessingUtils';
+import { CapturedImage, Session } from "@/types";
+import { toast } from "@/components/ui/use-toast";
+import { processImage, ensureColorProfile } from "@/utils/imageProcessingUtils";
 
 export const useImageProcessing = () => {
   const [processingImages, setProcessingImages] = useState<string[]>([]);
@@ -21,6 +21,11 @@ export const useImageProcessing = () => {
       return finalImage;
     } catch (error) {
       console.error("Error processing image:", error);
+      toast({
+        title: "Error processing image",
+        description: "Please try again later",
+        variant: "destructive"
+      });
       return image;
     } finally {
       setProcessingImages(prev => prev.filter(id => id !== image.id));

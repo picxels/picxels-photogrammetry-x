@@ -30,7 +30,7 @@ export const useImageCaptureAll = ({
     try {
       // Update all camera statuses to capturing
       setCameras(prev => prev.map(c => 
-        c.connected ? { ...c, status: "capturing" } : c
+        c.connected ? { ...c, status: "capturing" as const } : c
       ));
       
       // Capture from each camera sequentially
@@ -50,7 +50,7 @@ export const useImageCaptureAll = ({
             // Set processing status
             setIsProcessing(true);
             setCameras(prev => prev.map(c => 
-              c.id === camera.id ? { ...c, status: "processing" } : c
+              c.id === camera.id ? { ...c, status: "processing" as const } : c
             ));
             
             // Process the image (apply color profile and mask if available)
@@ -58,7 +58,7 @@ export const useImageCaptureAll = ({
             
             // Set camera back to idle
             setCameras(prev => prev.map(c => 
-              c.id === camera.id ? { ...c, status: "idle" } : c
+              c.id === camera.id ? { ...c, status: "idle" as const } : c
             ));
             
             // Notify with the processed image
@@ -69,7 +69,7 @@ export const useImageCaptureAll = ({
           
           // Update just this camera's status to error
           setCameras(prev => prev.map(c => 
-            c.id === camera.id ? { ...c, status: "error" } : c
+            c.id === camera.id ? { ...c, status: "error" as const } : c
           ));
           
           // Continue with next camera
@@ -81,7 +81,7 @@ export const useImageCaptureAll = ({
       
       // Reset camera statuses to idle for connected cameras
       setCameras(prev => prev.map(c => 
-        c.connected ? { ...c, status: "idle" } : c
+        c.connected ? { ...c, status: "idle" as const } : c
       ));
       
       toast({
@@ -97,7 +97,7 @@ export const useImageCaptureAll = ({
       });
       
       // Reset camera statuses to error
-      setCameras(prev => prev.map(c => ({ ...c, status: "error" })));
+      setCameras(prev => prev.map(c => ({ ...c, status: "error" as const })));
       setIsProcessing(false);
     } finally {
       // Refresh camera status after capture attempt is complete

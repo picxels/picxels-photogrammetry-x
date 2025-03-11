@@ -60,17 +60,15 @@ export const processImage = async (image: CapturedImage): Promise<CapturedImage>
   }
 };
 
-/**
- * Import the AI utils for sharpness checking and mask generation
- * - These are different from the local functions with the same names
- */
+// Import AI utils but with different names to avoid conflicts
 import { 
-  checkImageSharpness as aiCheckImageSharpness,
-  generateImageMask as aiGenerateImageMask,
+  checkImageSharpness as aiCheckSharpness,
+  generateImageMask as aiGenerateMask,
 } from "./jetsonAI";
 
 /**
  * Check the sharpness of an image using AI
+ * Returns a sharpness score as a number 0-100
  */
 export const checkImageSharpness = async (imagePath: string): Promise<number> => {
   try {
@@ -80,7 +78,7 @@ export const checkImageSharpness = async (imagePath: string): Promise<number> =>
     }
     
     // Use the sharpness detection from jetsonAI utilities
-    const sharpnessResult = await aiCheckImageSharpness(imagePath);
+    const sharpnessResult = await aiCheckSharpness(imagePath);
     // Extract just the score as a number
     return typeof sharpnessResult === 'number' ? sharpnessResult : sharpnessResult.score;
   } catch (error) {
@@ -104,7 +102,7 @@ export const generateImageMask = async (imagePath: string): Promise<string | nul
     }
     
     // Fall back to other mask generation if EfficientViT isn't available
-    return await aiGenerateImageMask(imagePath);
+    return await aiGenerateMask(imagePath);
   } catch (error) {
     console.error("Error generating image mask:", error);
     return null;

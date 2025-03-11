@@ -45,7 +45,7 @@ export const useImageCaptureSingle = ({
         // Set processing status for UI feedback
         setIsProcessing(true);
         setCameras(prev => prev.map(c => 
-          c.id === camera.id ? { ...c, status: "processing" } : c
+          c.id === camera.id ? { ...c, status: "processing" as const } : c
         ));
         
         // Check if we have EfficientViT available
@@ -56,7 +56,7 @@ export const useImageCaptureSingle = ({
         
         // Update camera status back to idle
         setCameras(prev => prev.map(c => 
-          c.id === camera.id ? { ...c, status: "idle" } : c
+          c.id === camera.id ? { ...c, status: "idle" as const } : c
         ));
         
         setIsProcessing(false);
@@ -71,7 +71,7 @@ export const useImageCaptureSingle = ({
       } else {
         // If image is null, there was a problem
         setCameras(prev => prev.map(c => 
-          c.id === camera.id ? { ...c, status: "error" } : c
+          c.id === camera.id ? { ...c, status: "error" as const } : c
         ));
         
         toast({
@@ -93,7 +93,7 @@ export const useImageCaptureSingle = ({
       
       // Reset camera status to error
       setCameras(prev => prev.map(c => 
-        c.id === camera.id ? { ...c, status: "error" } : c
+        c.id === camera.id ? { ...c, status: "error" as const } : c
       ));
       
       setIsProcessing(false);

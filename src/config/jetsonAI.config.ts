@@ -171,7 +171,7 @@ export const EFFICIENTVIT_CONFIG = {
   saveVisualization: true,
   outputFormat: 'png',
   alphaChannel: true,
-  pythonScriptPath: '/opt/efficientvit/scripts/run_segmentation.py',
+  pythonScriptPath: '/opt/efficientvit/scripts/run_efficientvit.py',
   confidenceThreshold: 0.75,
   modelDownloadUrl: 'https://huggingface.co/models/mit-han-lab/efficientvit-sam-l0/resolve/main/efficientvit_sam_l0.pt',
   useTensorRT: false
