@@ -1,4 +1,3 @@
-
 import { ExportSettings, RCNodeConfig, Session } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { exportSessionToRealityCapture } from "./rcRealityCaptureService";
@@ -36,6 +35,21 @@ export const saveImageLocally = async (imageData: any): Promise<void> => {
   console.log("Saving image locally:", imageData);
   
   // Simulate save delay
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  
+  return Promise.resolve();
+};
+
+/**
+ * Save a byte array to a file
+ * @param sourcePath The source file path
+ * @param targetPath The target file path
+ */
+export const saveByteArray = async (sourcePath: string, targetPath: string): Promise<void> => {
+  // In a real implementation, this would copy the file from source to target
+  console.log(`Saving file from ${sourcePath} to ${targetPath}`);
+  
+  // Simulate copy operation delay
   await new Promise((resolve) => setTimeout(resolve, 300));
   
   return Promise.resolve();

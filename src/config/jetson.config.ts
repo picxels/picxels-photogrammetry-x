@@ -21,6 +21,7 @@ export const DEBUG_SETTINGS = {
   simulateCameraConnection: false,
   forceDisableAllCameras: false,
   forceSimulationOnJetson: false,
+  autoFocusBeforeCapture: true,
   
   // Platform detection
   forceJetsonPlatformDetection: true,
